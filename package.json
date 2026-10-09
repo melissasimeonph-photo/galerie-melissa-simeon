@@ -1,15 +1,15 @@
 {
-  "name": "galerie-site",
+  "name": "galerie-melissa-simeon",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Galeries photo privées de Mélissa Siméon (Cloudflare Workers, R2, D1)",
+  "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "python3 front/build.py",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "wrangler": "^3.99.0"
-  }
+  },
+  "private": true
 }
