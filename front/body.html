@@ -1,0 +1,121 @@
+
+
+<div class="apercu" id="bandeau-apercu" hidden><b>Aperçu propriétaire.</b> Vous voyez la collection telle que vos clients la verront. Vos clics ne sont pas enregistrés et rien n’est envoyé.<span id="apercu-statut"></span></div>
+
+<!-- Accès -->
+<section id="acces">
+  <div class="amur" aria-hidden="true"><div class="amur-piste"></div></div><div class="avoile" aria-hidden="true"></div>
+  <div class="carte-acces">
+    <div class="logo-box">{{LOGO}}</div>
+    <div style="display:grid;gap:8px">
+      <span class="etiquette" style="color:var(--sauge-fonce)">Galerie privée</span>
+      <h1 id="acces-nom"></h1>
+      <p><span class="date-evt"></span> · Martinique</p>
+    </div>
+    <form class="champs" id="form-acces" novalidate>
+      <div class="champ">
+        <label for="email">Votre e-mail</label>
+        <input type="email" id="email" placeholder="prenom@exemple.fr" autocomplete="email">
+      </div>
+      <div class="champ">
+        <label for="code">Code d'accès</label>
+        <div class="mdp"><input type="password" id="code" placeholder="Code reçu par e-mail" autocomplete="off"><button type="button" class="mdp-oeil" id="code-oeil" aria-label="Afficher le code" aria-pressed="false" title="Afficher le code"></button></div>
+      </div>
+      <p class="erreur" id="err-acces" role="alert"></p>
+      <button class="btn" type="submit">Ouvrir la galerie</button>
+      
+    </form>
+  </div>
+</section>
+
+<!-- Galerie -->
+<div id="galerie" hidden>
+  <header class="couverture">
+    <div class="ph" id="ph-couv"></div>
+    <div class="haut">
+      <div class="marque"><span class="logo-box" style="color:#FBF8F4">{{LOGO}}</span>Mélissa Siméon</div>
+      <span class="puce verre" id="puce-exp"></span>
+    </div>
+    <div class="contenu">
+      <span class="etiquette date-evt"></span>
+      <h1 id="couv-nom"></h1>
+      <div class="meta-couv"><span>Martinique</span><span class="num" id="meta-nb"></span></div>
+      <div><button class="btn" id="btn-voir">Voir les photos</button></div>
+    </div>
+  </header>
+
+  <nav class="barre" aria-label="Dossiers et actions">
+    <div class="barre-int">
+      <div class="onglets" id="onglets"></div>
+      <div class="actions">
+        <button class="ibtn" id="btn-fav" title="Mes favoris" aria-label="Mes favoris" aria-pressed="false"><span class="badge num" id="nb-fav"></span></button>
+        <button class="ibtn" id="btn-album" title="Ma sélection pour l’album" aria-label="Ma sélection pour l’album" aria-pressed="false"><span class="badge num" id="nb-album"></span></button>
+        <button class="ibtn" id="btn-dl" title="Télécharger" aria-label="Télécharger" aria-haspopup="menu"></button>
+        <button class="ibtn" id="btn-partage" title="Partager la galerie" aria-label="Partager la galerie" aria-haspopup="dialog"></button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="mur" id="mur">
+    <div class="bandeau-seance" id="bandeau-seance" hidden></div>
+    <div class="entete-mur">
+      <h2 id="titre-vue">Toutes les photos</h2>
+      <p id="sous-titre-vue"></p>
+    </div>
+    <p class="adm-desc" id="desc-vue" hidden></p>
+    <div id="zone-listes" hidden style="margin-bottom:16px"></div>
+    <div class="grille" id="colonnes"></div>
+  </main>
+
+  <footer class="pied">
+    <div class="marque"><span class="logo-box">{{LOGO}}</span>Mélissa Siméon · Photographe · Martinique</div>
+    <span>galerie.melissa-simeon.com</span>
+  </footer>
+
+  <div class="selection" id="barre-sel" hidden>
+    <div class="txt">
+      <strong id="sel-txt"></strong>
+      <div class="jauge"><i id="sel-jauge"></i></div>
+    </div>
+    <button class="btn" id="btn-valider">Valider</button>
+  </div>
+</div>
+
+<!-- Vue photographe -->
+<div id="admin" hidden></div>
+
+<!-- Visionneuse -->
+<div class="visionneuse" id="vision" hidden role="dialog" aria-modal="true" aria-label="Visionneuse">
+  <div class="haut">
+    <button class="ibtn" id="v-fermer" title="Retour à la galerie" aria-label="Retour à la galerie"></button>
+    <div class="actions">
+      <button class="ibtn" id="v-fav" title="Ajouter aux favoris" aria-label="Ajouter aux favoris" aria-pressed="false"></button>
+      <button class="ibtn" id="v-album" title="Ajouter à la sélection album" aria-label="Ajouter à la sélection album" aria-pressed="false"></button>
+      <button class="ibtn" id="v-note" title="Note pour Mélissa" aria-label="Note pour Mélissa" aria-pressed="false" hidden></button>
+      <button class="ibtn" id="v-dl" title="Télécharger cette photo" aria-label="Télécharger cette photo" aria-haspopup="menu"></button>
+      <button class="ibtn" id="v-partage" title="Partager cette photo" aria-label="Partager cette photo" aria-haspopup="dialog"></button>
+    </div>
+  </div>
+  <div class="scene">
+    <button class="fleche g" id="v-prec" aria-label="Photo précédente"></button>
+    <span class="vcadre"><img class="vimg" id="v-ph" alt=""><button class="vcroix" id="v-croix" title="Fermer et revenir à la galerie" aria-label="Fermer et revenir à la galerie"></button></span>
+    <button class="fleche d" id="v-suiv" aria-label="Photo suivante"></button>
+  </div>
+  <p class="legende" id="v-info"></p>
+</div>
+
+<div class="menu" id="menu" hidden role="menu"></div>
+<div class="pop" id="pop" hidden role="menu"></div>
+
+<div class="voile" id="voile-partage" hidden>
+  <div class="fenetre partage" role="dialog" aria-modal="true" aria-labelledby="partage-titre">
+    <div class="partage-tete"><h2 id="partage-titre">Partager</h2><button class="ibtn" id="partage-fermer" aria-label="Fermer"></button></div>
+    <p id="partage-sous"></p>
+    <div class="lien"><input type="text" id="partage-lien" readonly aria-label="Lien à partager"><button class="btn" id="partage-copier">Copier</button></div>
+    <div class="reseaux" id="partage-reseaux"></div>
+    <p class="note" id="partage-note"></p>
+  </div>
+</div>
+<div class="voile" id="voile" hidden><div class="fenetre" id="fenetre" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" role="status"></div>
+

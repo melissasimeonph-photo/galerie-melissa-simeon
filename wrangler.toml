@@ -1,0 +1,37 @@
+name = "galerie-melissa-simeon"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Pages statiques (interface client et photographe)
+[assets]
+directory = "public"
+binding = "ASSETS"
+
+# Photos : stockage Cloudflare R2
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "galerie-photos"
+
+# Base de données : collections, sélections, activité
+[[d1_databases]]
+binding = "DB"
+database_name = "galerie"
+database_id = "019915aa-3a92-4bb5-af03-b16d15e00814"
+migrations_dir = "migrations"
+
+# Tâche quotidienne (9 h en Martinique) : relances, rappels d'expiration, archivage
+[triggers]
+crons = ["0 13 * * *"]
+
+[vars]
+DOMAINE = "galerie.melissa-simeon.com"
+ADMIN_EMAIL = "melissasimeon.ph@gmail.com"
+EXPEDITEUR = "Mélissa Siméon <galerie@melissa-simeon.com>"
+REPONSE_A = "melissasimeon.ph@gmail.com"
+# Renseignés après la création de l'application Cloudflare Access :
+ACCESS_EQUIPE = ""
+ACCESS_AUD = ""
+
+# Secrets (à définir avec « wrangler secret put », jamais dans ce fichier) :
+#   SESSION_SECRET  : longue chaîne aléatoire qui signe les accès clients
+#   RESEND_API_KEY  : clé d'envoi des e-mails
