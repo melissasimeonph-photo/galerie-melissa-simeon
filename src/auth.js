@@ -5,6 +5,21 @@ const enc = new TextEncoder();
 const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const deb64url = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), (c) => c.charCodeAt(0));
 
+// Clé qui signe les accès clients : secret Cloudflare SESSION_SECRET s'il existe,
+// sinon une clé aléatoire créée une fois et conservée dans la base (personne n'a à la saisir).
+let secretCache = null;
+async function secretSession(env) {
+  if (env.SESSION_SECRET) return env.SESSION_SECRET;
+  if (secretCache) return secretCache;
+  let r = await env.DB.prepare("SELECT valeur FROM prefs WHERE cle='_secret'").first();
+  if (!r) {
+    const v = JSON.stringify(Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join(''));
+    await env.DB.prepare("INSERT OR IGNORE INTO prefs (cle, valeur) VALUES ('_secret', ?)").bind(v).run();
+    r = await env.DB.prepare("SELECT valeur FROM prefs WHERE cle='_secret'").first();
+  }
+  secretCache = JSON.parse(r.valeur);
+  return secretCache;
+}
 async function cleHmac(secret) {
   return crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
 }
@@ -13,13 +28,13 @@ async function cleHmac(secret) {
 // Contenu : { c: id collection, e: email, r: 'couple' | 'invite', x: expiration (ms), v: version du code }
 export async function signerJeton(env, donnees) {
   const corps = b64url(enc.encode(JSON.stringify(donnees)));
-  const sig = await crypto.subtle.sign('HMAC', await cleHmac(env.SESSION_SECRET), enc.encode(corps));
+  const sig = await crypto.subtle.sign('HMAC', await cleHmac(await secretSession(env)), enc.encode(corps));
   return corps + '.' + b64url(sig);
 }
 export async function lireJeton(env, jeton) {
   if (!jeton || !jeton.includes('.')) return null;
   const [corps, sig] = jeton.split('.');
-  const ok = await crypto.subtle.verify('HMAC', await cleHmac(env.SESSION_SECRET), deb64url(sig), enc.encode(corps));
+  const ok = await crypto.subtle.verify('HMAC', await cleHmac(await secretSession(env)), deb64url(sig), enc.encode(corps));
   if (!ok) return null;
   try {
     const d = JSON.parse(new TextDecoder().decode(deb64url(corps)));

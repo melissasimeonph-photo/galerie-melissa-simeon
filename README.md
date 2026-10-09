@@ -28,14 +28,14 @@ Pour les séances, les aperçus sont extraits des RAW directement dans le naviga
 
 ## Mettre à jour
 
-Modifier `front/` puis lancer `python3 front/build.py` pour régénérer `public/`. Tout envoi sur la branche `main` est déployé automatiquement par Cloudflare.
+Modifier `front/` puis lancer `python3 front/build.py` pour régénérer `public/`. Tout envoi sur la branche `main` est mis en ligne automatiquement par GitHub Actions (`.github/workflows/mise-en-ligne.yml`), avec le secret de dépôt `CLOUDFLARE_API_TOKEN`.
 
 ## Réglages Cloudflare
 
 Variables dans `wrangler.toml` : `DOMAINE`, `ADMIN_EMAIL`, `EXPEDITEUR`, `REPONSE_A`, `ACCESS_EQUIPE`, `ACCESS_AUD`.
 
 Secrets (Workers › galerie-melissa-simeon › Settings › Variables and Secrets) :
-- `SESSION_SECRET` : longue chaîne aléatoire, signe les accès clients ;
+- `SESSION_SECRET` (facultatif) : sinon une clé aléatoire est créée automatiquement dans la base ;
 - `RESEND_API_KEY` : clé d'envoi Resend.
 
 ## Développement local

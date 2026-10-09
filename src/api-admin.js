@@ -27,11 +27,11 @@ export async function routerAdmin(env, req, url, ctx) {
 
   if (p[0] === 'prefs') {
     if (m === 'GET') {
-      const { results } = await env.DB.prepare('SELECT cle, valeur FROM prefs').all();
+      const { results } = await env.DB.prepare("SELECT cle, valeur FROM prefs WHERE cle NOT LIKE '\\_%' ESCAPE '\\'").all();
       return json(Object.fromEntries(results.map((r) => [r.cle, JSON.parse(r.valeur)])));
     }
     const b = await lireJSON(req);
-    for (const [k, v] of Object.entries(b)) await env.DB.prepare('INSERT OR REPLACE INTO prefs (cle, valeur) VALUES (?,?)').bind(k, JSON.stringify(v)).run();
+    for (const [k, v] of Object.entries(b)) if (!k.startsWith('_')) await env.DB.prepare('INSERT OR REPLACE INTO prefs (cle, valeur) VALUES (?,?)').bind(k, JSON.stringify(v)).run();
     return json({ ok: true });
   }
 

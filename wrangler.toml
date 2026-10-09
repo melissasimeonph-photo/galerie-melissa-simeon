@@ -1,4 +1,5 @@
 name = "galerie-melissa-simeon"
+account_id = "aee7281b36e64c5c945510d9db016f00"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
 
@@ -32,6 +33,6 @@ REPONSE_A = "melissasimeon.ph@gmail.com"
 ACCESS_EQUIPE = ""
 ACCESS_AUD = ""
 
-# Secrets (à définir avec « wrangler secret put », jamais dans ce fichier) :
-#   SESSION_SECRET  : longue chaîne aléatoire qui signe les accès clients
+# Secret à ajouter dans Cloudflare (Workers › galerie-melissa-simeon › Paramètres › Variables et secrets) :
 #   RESEND_API_KEY  : clé d'envoi des e-mails
+# La clé qui signe les accès clients est créée automatiquement (ou SESSION_SECRET si défini).
