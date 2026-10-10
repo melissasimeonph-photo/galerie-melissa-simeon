@@ -443,11 +443,14 @@ if($('remonter')){(function(){
   function maj(){
     var on=!$('galerie').hidden&&scrollY>innerHeight*.9;
     if(on!==vis){vis=on;if(on)b.hidden=false;requestAnimationFrame(function(){b.classList.toggle('visible',on)});if(!on)setTimeout(function(){if(!vis)b.hidden=true},250)}
-    var sel=document.querySelector('.selection'),h=0;
-    if(sel&&sel.offsetParent!==null){var r=sel.getBoundingClientRect();if(r.right>innerWidth-80)h=innerHeight-r.top}
-    b.style.bottom=h?'calc('+(h+12)+'px)':'';
+    // Barre de sélection de l'album visible : le bouton se place juste au-dessus, aligné à droite de la barre
+    var sel=$('barre-sel'),h=0,droite='';
+    if(sel&&!sel.hidden&&sel.getClientRects().length){var r=sel.getBoundingClientRect();if(r.height&&r.right>innerWidth-80){h=innerHeight-r.top;droite=Math.max(8,innerWidth-r.right)+'px'}}
+    b.style.bottom=h?(h+10)+'px':'';b.style.right=droite;
   }
   addEventListener('scroll',maj,{passive:true});addEventListener('resize',maj);
+  var bs=$('barre-sel');if(bs&&window.MutationObserver)new MutationObserver(function(){setTimeout(maj,30)}).observe(bs,{attributes:true,attributeFilter:['hidden','class','style'],childList:true,subtree:true});
+  if(bs&&window.ResizeObserver)new ResizeObserver(maj).observe(bs);
   b.onclick=function(){scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})};
 })()}
 // Déconnexion du client ou de l'invité : retour à la page de connexion de la galerie
