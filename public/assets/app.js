@@ -128,13 +128,16 @@ function ouvrirGalerie(){
 /* ---------- Couverture ---------- */
 function majCouv(){
   var c=ADM.couv&&parId(ADM.couv)?ADM.couv:(PHOTOS[0]&&PHOTOS[0].n);
-  var el=$('ph-couv');el.style.background='#2A2117'+(c?' url('+SRC(c)+') '+ADM.couvPos+'/cover no-repeat':'');
-  // Version haute définition préparée pour la couverture : chargée en arrière-plan puis substituée sans à-coup
-  var hd=ADM.couvHd;
-  if(MODE!=='admin'&&c&&hd&&hd.n===c&&SLUG){
-    var u='/img/'+SLUG+'/couv?v='+hd.v+(APERCU?'&apercu=1':''),im=new Image();
-    im.onload=function(){if(ADM.couvHd===hd)el.style.background='#2A2117 url('+u+') '+ADM.couvPos+'/cover no-repeat'};im.src=u;
-  }
+  var el=$('ph-couv'),hd=urlCouvHd(c);
+  // HD par-dessus, version web en dessous : la web s'affiche tout de suite, la HD la recouvre dès qu'elle est chargée
+  el.style.background='#2A2117';
+  if(c){el.style.backgroundImage=(hd?'url('+hd+'),':'')+'url('+SRC(c)+')';el.style.backgroundPosition=ADM.couvPos+(hd?','+ADM.couvPos:'');el.style.backgroundSize='cover';el.style.backgroundRepeat='no-repeat'}
+}
+// Adresse de la couverture HD si elle correspond bien à la photo affichée
+function urlCouvHd(c){
+  var hd=ADM.couvHd;if(!c||!hd||+hd.n!==+c)return null;
+  if(MODE==='admin')return CID?'/admin/api/collections/'+CID+'/couverture?v='+hd.v:null;
+  return SLUG?'/img/'+SLUG+'/couv?v='+hd.v+(APERCU?'&apercu=1':''):null;
 }
 function majDateEvt(){var s=SEANCE||(COLLPUB&&COLLPUB.type==='seance');document.querySelectorAll('.date-evt').forEach(function(e){e.textContent=(s?'Séance photo · ':'Mariage · ')+(ADM.dateEvt||(COLLPUB&&COLLPUB.dateEvt)?dateFr(ADM.dateEvt||COLLPUB.dateEvt):'')})}
 function majMur(){
@@ -566,7 +569,7 @@ function rendreAdmin(){
    '</header>'+
    '<div class="adm-corps'+(ADM.replie?' replie':'')+'">'+
      '<aside class="adm-side">'+
-       '<button class="adm-couv" id="adm-couv" style="'+(couvAdm()?'background-image:url('+SRC(couvAdm())+');':'')+'background-position:'+ADM.couvPos+'" aria-label="Changer la photo de couverture"><span>'+I.crayon+'Changer la couverture</span></button>'+
+       '<button class="adm-couv" id="adm-couv" style="'+(couvAdm()?'background-image:'+(urlCouvHd(couvAdm())?'url('+urlCouvHd(couvAdm())+'),':'')+'url('+SRC(couvAdm())+');':'')+'background-position:'+ADM.couvPos+(urlCouvHd(couvAdm())?','+ADM.couvPos:'')+'" aria-label="Changer la photo de couverture"><span>'+I.crayon+'Changer la couverture</span></button>'+
        '<div class="adm-tabs" role="tablist">'+[['photos',I.image,'Photos'],['activite',I.activite,'Activité'],['reglages',I.reglages,'Réglages']].map(function(o){return '<button class="adm-tab" role="tab" data-o="'+o[0]+'" aria-selected="'+(admOnglet===o[0])+'" title="'+o[2]+'" aria-label="'+o[2]+'">'+o[1]+'</button>'}).join('')+'</div>'+
        '<div id="adm-side"></div>'+
        '<button class="ibtn replier" id="adm-replier" title="'+(ADM.replie?'Déplier le panneau':'Replier le panneau')+'" aria-label="'+(ADM.replie?'Déplier le panneau':'Replier le panneau')+'">'+(ADM.replie?I.deplier:I.replier)+'</button>'+
@@ -1373,22 +1376,22 @@ function genererBanniere(o){
 // Couverture : version HD (3200 px de large, 3840 px max en hauteur) préparée à partir du fichier original
 var couvEnCours=null;
 function sourceCouv(){var n=couvAdm();if(!n)return null;var a=VARS[n]||{},q=SELP()?'apercu':a.hd?'hd':a.web?'web':a.apercu?'apercu':'mini';return {n:n,q:q}}
-function couvAJour(){var s=sourceCouv(),h=ADM.couvHd;return !s||(h&&h.n===s.n&&h.q===s.q)}
+function couvAJour(){var s=sourceCouv(),h=ADM.couvHd;return !s||(h&&+h.n===+s.n&&h.q===s.q&&h.r===2)}
 function genererCouv(force){
   var s=sourceCouv();if(!CID||!s||(!force&&couvAJour()))return Promise.resolve();
   var cle=CID+'/'+s.n+'/'+s.q;if(couvEnCours===cle)return Promise.resolve();couvEnCours=cle;
   var cid=CID;
   return fetch('/admin/api/img/'+cid+'/'+s.n+'/'+s.q,{credentials:'same-origin'}).then(function(r){if(!r.ok)throw 0;return r.blob()}).then(function(b){return createImageBitmap(b)}).then(function(bmp){
-    var k=Math.min(1,3200/bmp.width,3840/bmp.height),W=Math.round(bmp.width*k),H=Math.round(bmp.height*k),cur=bmp,cw=bmp.width,ch=bmp.height;
+    var k=Math.min(1,4000/bmp.width,6000/bmp.height),W=Math.round(bmp.width*k),H=Math.round(bmp.height*k),cur=bmp,cw=bmp.width,ch=bmp.height;
     // réduction par paliers (÷2) pour garder un rendu net
     while(cw/2>W){var t=document.createElement('canvas');t.width=Math.round(cw/2);t.height=Math.round(ch/2);var tx=t.getContext('2d');tx.imageSmoothingQuality='high';tx.drawImage(cur,0,0,t.width,t.height);cur=t;cw=t.width;ch=t.height}
     var c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(cur,0,0,W,H);
     if(bmp.close)bmp.close();
-    return new Promise(function(ok){c.toBlob(ok,'image/jpeg',.88)});
+    return new Promise(function(ok){c.toBlob(ok,'image/jpeg',.9)});
   }).then(function(bl){
     if(!bl)throw 0;
-    return fetch('/admin/api/collections/'+cid+'/couverture?n='+s.n+'&q='+s.q,{method:'PUT',body:bl,credentials:'same-origin'}).then(function(r){return r.json()});
-  }).then(function(r){if(r&&r.couvHd&&CID===cid)ADM.couvHd=r.couvHd}).catch(function(){}).then(function(){couvEnCours=null});
+    return fetch('/admin/api/collections/'+cid+'/couverture?n='+s.n+'&q='+s.q+'&r=2',{method:'PUT',body:bl,credentials:'same-origin'}).then(function(r){return r.json()});
+  }).then(function(r){if(r&&r.couvHd&&CID===cid){ADM.couvHd=r.couvHd;majCouv();var b=$('adm-couv'),u=urlCouvHd(couvAdm());if(b&&u){b.style.backgroundImage='url('+u+'),url('+SRC(couvAdm())+')';b.style.backgroundPosition=ADM.couvPos+','+ADM.couvPos}}}).catch(function(){}).then(function(){couvEnCours=null});
 }
 function genererMur(){
   genererBanniere();genererCouv();

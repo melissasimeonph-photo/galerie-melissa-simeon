@@ -248,11 +248,15 @@ export async function routerAdmin(env, req, url, ctx) {
     return json({ ok: true });
   }
 
+  if (m === 'GET' && action === 'couverture') {
+    const o = await env.PHOTOS.get(`c/${c.id}/couv.jpg`);
+    return o ? new Response(o.body, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'private, max-age=604800' } }) : new Response(null, { status: 404 });
+  }
   // Couverture haute définition (préparée dans le navigateur à partir du fichier HD)
   if (m === 'PUT' && action === 'couverture') {
     const n = parseInt(url.searchParams.get('n')) || 0, q = String(url.searchParams.get('q') || 'hd').replace(/[^a-z]/g, '');
     await env.PHOTOS.put(`c/${c.id}/couv.jpg`, req.body, { httpMetadata: { contentType: 'image/jpeg' } });
-    g.couvHd = { n, q, v: Date.now() }; await enregistrerReglages(env, c);
+    g.couvHd = { n, q, r: parseInt(url.searchParams.get('r')) || 1, v: Date.now() }; await enregistrerReglages(env, c);
     return json({ ok: true, couvHd: g.couvHd });
   }
 
