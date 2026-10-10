@@ -68,6 +68,8 @@ input:focus{outline:none;border-color:var(--sauge-fonce);box-shadow:0 0 0 3px va
 .couverture::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(42,33,23,.25) 0%,rgba(42,33,23,0) 35%,rgba(42,33,23,.62) 100%)}
 .couverture .haut{position:absolute;z-index:2;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:18px 16px;gap:12px}
 .marque{display:flex;align-items:center;gap:10px;font-family:var(--f-titre);font-size:15px}
+.couverture .haut .marque{white-space:nowrap;flex:none}
+@media (max-width:480px){.couverture .haut .puce{font-size:11px;padding:4px 9px;text-align:right;line-height:1.3;max-width:52%}.couverture .haut .marque{font-size:14px;gap:8px}.couverture .haut .marque .logo-box{width:26px}}
 .marque .logo-box{width:30px}
 .couverture .contenu{position:relative;z-index:2;width:100%;max-width:1200px;margin:0 auto;padding:0 16px 44px;display:grid;gap:14px}
 .couverture h1{font-size:clamp(48px,11vw,124px);line-height:.92;font-weight:300}
