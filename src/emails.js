@@ -11,12 +11,14 @@ export async function envoyerEmail(env, { collectionId = null, a, objet, texte, 
   if (!bouton && coll && !pourMoi) bouton = { texte: coll.type === 'seance' ? 'Voir mes photos' : 'Ouvrir ma galerie', url: lienGalerie(env, coll) };
   let statut = 'simulé';
   if (env.RESEND_API_KEY) {
+    const pieces = [];
+    const html = gabarit(env, { objet, texte, bouton, coll }, pieces);
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { authorization: 'Bearer ' + String(env.RESEND_API_KEY).replace(/\s+/g, ''), 'content-type': 'application/json' },
       body: JSON.stringify({
         from: env.EXPEDITEUR, to: destinataires, reply_to: env.REPONSE_A, subject: objet,
-        text: texte + (bouton ? '\n\n' + bouton.url : ''), html: gabarit(env, { objet, texte, bouton, coll }),
+        text: texte + (bouton ? '\n\n' + bouton.url : ''), html, attachments: pieces,
       }),
     });
     if (r.ok) statut = 'envoyé';
@@ -60,8 +62,10 @@ function analyser(texte) {
   return { paras, infos, signature };
 }
 
-function gabarit(env, { objet, texte, bouton, coll }) {
+function gabarit(env, { objet, texte, bouton, coll }, pieces = null) {
   const { paras, infos, signature } = analyser(texte);
+  // Avec « pieces », chaque image est jointe à l'e-mail et affichée sans téléchargement (cid:)
+  const img = (url, id, nom) => { if (!pieces) return url; pieces.push({ path: url, filename: nom, content_id: id }); return 'cid:' + id; };
   const seance = coll && coll.type === 'seance';
   const g = coll ? coll.reglages : {};
   const base = `https://${env.DOMAINE}`;
@@ -71,11 +75,11 @@ function gabarit(env, { objet, texte, bouton, coll }) {
   const banniere = coll && v ? `${base}/img/${coll.slug}/${flou ? 'email-flou' : 'email'}?v=${v}` : null;
 
   const entete = `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-<td style="vertical-align:middle;padding-right:10px"><img src="${base}/assets/email/logo.png" width="30" alt="" style="display:block;width:30px;height:auto;border:0"></td>
+<td style="vertical-align:middle;padding-right:10px"><img src="${img(`${base}/assets/email/logo.png`, 'logo', 'logo.png')}" width="30" alt="" style="display:block;width:30px;height:auto;border:0"></td>
 <td style="vertical-align:middle;font-family:${TEXTE}"><div style="font-family:${TITRE};font-weight:600;font-size:17px;line-height:1.15;color:${C.encre}">Mélissa Siméon</div>
 <div style="font-size:13px;line-height:1.3;color:${C.gris}">${seance ? 'Photographe, Martinique' : 'Photographe de mariage, Martinique'}</div></td></tr></table>`;
 
-  const photo = banniere ? `<a href="${esc(bouton ? bouton.url : base)}"><img src="${banniere}" width="560" alt="${esc(g.nom || '')}" style="display:block;width:100%;max-width:560px;height:auto;border:0"></a>` : '';
+  const photo = banniere ? `<a href="${esc(bouton ? bouton.url : base)}"><img src="${img(banniere, 'photo', 'photo.jpg')}" width="560" alt="${esc(g.nom || '')}" style="display:block;width:100%;max-width:560px;height:auto;border:0"></a>` : '';
   const titre = `<h1 style="margin:0;font-family:${TITRE};font-weight:400;font-size:38px;line-height:1.05;letter-spacing:-1px;color:${C.encre}">${esc(objet)}</h1>`;
   const corps = paras.map((p) => `<p style="margin:0 0 14px;font-family:${TEXTE};font-size:17px;line-height:1.55;color:${C.gris}">${esc(p).replace(/\n/g, '<br>')}</p>`).join('');
 
@@ -84,7 +88,7 @@ function gabarit(env, { objet, texte, bouton, coll }) {
     `background:${C.carte};border:1px solid ${C.ligne};border-radius:18px`) : '';
 
   const btn = bouton ? tableP(`<tr><td style="padding:0 8px 0 24px;vertical-align:middle"><a href="${esc(bouton.url)}" style="font-family:${TEXTE};font-weight:600;font-size:16px;color:${C.fond};text-decoration:none;display:block">${esc(bouton.texte)}</a></td>
-<td width="52" style="width:52px;padding:0;vertical-align:middle"><a href="${esc(bouton.url)}"><img src="${base}/assets/email/fleche.png" width="52" alt="" style="display:block;width:52px;height:52px;border:0;border-radius:0 999px 999px 0"></a></td></tr>`,
+<td width="52" style="width:52px;padding:0;vertical-align:middle"><a href="${esc(bouton.url)}"><img src="${img(`${base}/assets/email/fleche.png`, 'fleche', 'fleche.png')}" width="52" alt="" style="display:block;width:52px;height:52px;border:0;border-radius:0 999px 999px 0"></a></td></tr>`,
     `background:${C.encre};border-radius:999px`) : '';
 
   const sign = signature ? `<p style="margin:0;font-family:${TEXTE};font-size:16px;line-height:1.5;color:${C.encre}">${esc(signature).replace(/\n\s*Mélissa\s*$/, '<br><strong>Mélissa</strong>').replace(/\n/g, '<br>')}</p>` : '';
