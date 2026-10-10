@@ -146,6 +146,7 @@ export async function routerAdmin(env, req, url, ctx) {
     if (m === 'PATCH') {
       const b = await lireJSON(req);
       for (const k of CHAMPS_MODIFIABLES) if (k in b) g[k] = b[k];
+      if (c.type === 'mariage' && g.albumActif === false) g.relanceAuto = false; // sans album, pas de relance de sélection
       if (g.statut === 'publiee' && !g.publieLe) g.publieLe = Date.now();
       if (!g.code || !g.codeInvite) return erreur('Les deux codes doivent être remplis.');
       if (g.code === g.codeInvite) return erreur('Le code invités doit être différent du code couple.');

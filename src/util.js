@@ -59,7 +59,7 @@ export function reglagesParDefaut(type, base = {}) {
     hd: true, hdInvite: false, web: true,
     albumActif: seance ? true : base.albumActif !== false,
     expiration: base.expiration || exp,
-    rappel: true, relanceAuto: true, relanceJours: 14,
+    rappel: true, relanceAuto: seance || base.albumActif !== false, relanceJours: 14,
     couv: null, couvPos: '50% 50%',
     mur: true, phase: seance ? 'selection' : null,
     prefixe: null, livre: null,

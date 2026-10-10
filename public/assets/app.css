@@ -45,7 +45,7 @@ h1,h2,h3{font-family:var(--f-titre);font-weight:400;margin:0;text-wrap:balance;l
 .carte-acces h1{font-size:clamp(34px,8vw,46px);line-height:1.05}
 .carte-acces p{margin:0;color:var(--brun-doux)}
 form.champs{display:grid;gap:12px;text-align:left}
-label{font-size:13px;font-weight:600}
+label,.etiquette-champ{font-size:13px;font-weight:600}
 .champ{display:grid;gap:6px}
 .mdp{position:relative}.mdp input{width:100%;padding-right:52px}
 .mdp-oeil{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;background:none;border-radius:8px;display:grid;place-items:center;color:var(--brun-doux);cursor:pointer}

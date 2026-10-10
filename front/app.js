@@ -898,24 +898,30 @@ function menuFiltre(btn,k){
     m.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){COLL[k]=b.dataset.a;rendreCollections()}});
   });
 }
-var PRESETS={'Mariage':{type:'mariage',classeur:'Mariages',sous:'6 mois · album de 60 photos'},'Séance photo':{type:'seance',classeur:'Couple',sous:'3 mois · sélection filigranée, 15 photos incluses'},'Événement':{type:'mariage',classeur:'Événements',albumActif:false,sous:'3 mois · sans album'}};
+var PRESETS={'Mariage':{type:'mariage',classeur:'Mariages',sous:'6 mois · sélection de 60 photos si l’album est inclus'},'Séance photo':{type:'seance',classeur:'Couple',sous:'3 mois · sélection filigranée, 15 photos incluses'},'Événement':{type:'mariage',classeur:'Événements',albumActif:false,sous:'3 mois · sans album'}};
 function fenetreNouvelle(preset){
   preset=PRESETS[preset]?preset:'Mariage';
   fenetre(enteteFen('Nouvelle collection')+
     '<div class="champ"><label for="nc-nom">Nom de la collection</label><input type="text" id="nc-nom" placeholder="Par exemple : Mariage Léa & Thomas"></div>'+
     '<div class="champ"><label for="nc-preset">Type</label><select id="nc-preset">'+Object.keys(PRESETS).map(function(p){return '<option'+(p===preset?' selected':'')+'>'+p+'</option>'}).join('')+'</select><p class="note" id="nc-sous"></p></div>'+
+    '<div class="champ" id="nc-album-champ"><span class="etiquette-champ" id="nc-album-lab">Album photo inclus dans la prestation ?</span><div class="options" role="radiogroup" aria-labelledby="nc-album-lab" style="grid-template-columns:1fr 1fr">'+
+      '<label class="option"><span class="g"><input type="radio" name="nc-album" id="nc-album-oui" value="oui"><span>Oui, avec album</span></span></label>'+
+      '<label class="option"><span class="g"><input type="radio" name="nc-album" id="nc-album-non" value="non"><span>Non, sans album</span></span></label></div>'+
+      '<p class="note">Avec album, le couple choisit ses photos dans la galerie et reçoit l’explication du livre photo. Sans album, pas de sélection ni de relance.</p></div>'+
     '<div class="champ"><label for="nc-date">Date de l’événement</label><input type="date" id="nc-date"></div>'+
     '<div class="champ"><label for="nc-dossier">Dossier</label><select id="nc-dossier">'+CLASSEURS.map(function(c){return '<option'+(c===PRESETS[preset].classeur?' selected':'')+'>'+esc(c)+'</option>'}).join('')+'<option value="">Aucun dossier</option></select></div>'+
     '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn" id="nc-ok">Créer la collection</button></div>');
-  function maj(){var P=PRESETS[$('nc-preset').value];$('nc-sous').textContent=P.sous+'. Vous pourrez tout modifier ensuite dans les réglages.';$('nc-dossier').value=P.classeur;$('nc-nom').placeholder=P.type==='seance'?'Par exemple : Séance famille Joseph':'Par exemple : Mariage Léa & Thomas'}
+  function maj(){var P=PRESETS[$('nc-preset').value];$('nc-album-champ').hidden=!(P.type==='mariage'&&P.albumActif!==false);$('nc-sous').textContent=P.sous+'. Vous pourrez tout modifier ensuite dans les réglages.';$('nc-dossier').value=P.classeur;$('nc-nom').placeholder=P.type==='seance'?'Par exemple : Séance famille Joseph':'Par exemple : Mariage Léa & Thomas'}
   $('nc-preset').onchange=maj;maj();$('nc-nom').focus();
   $('nc-ok').onclick=function(){
     var nom=$('nc-nom').value.trim();if(!nom){toast('Donnez un nom à la collection.');$('nc-nom').focus();return}
     var P=PRESETS[$('nc-preset').value],d=$('nc-date').value||new Date().toISOString().slice(0,10),b=this;
+    var albumActif=P.albumActif;
+    if(!$('nc-album-champ').hidden){var ch=document.querySelector('[name=nc-album]:checked');if(!ch){toast('Indiquez si l’album photo est inclus.');$('nc-album-oui').focus();return}albumActif=ch.value==='oui'}
     var mois=P.type==='seance'||P.albumActif===false?3:6,e=new Date(d+'T12:00:00');e.setMonth(e.getMonth()+mois);
     if(e<new Date()){e=new Date();e.setMonth(e.getMonth()+mois)}
     b.disabled=true;
-    api('collections',{method:'POST',body:{nom:nom,type:P.type,classeur:$('nc-dossier').value,dateEvt:d,expiration:e.toISOString().slice(0,10),albumActif:P.albumActif}}).then(function(r){
+    api('collections',{method:'POST',body:{nom:nom,type:P.type,classeur:$('nc-dossier').value,dateEvt:d,expiration:e.toISOString().slice(0,10),albumActif:albumActif}}).then(function(r){
       fermerFenetre();toast('Collection créée, en statut cachée. Ajoutez-y vos photos.');return ouvrirCollection(r.id);
     }).catch(function(err){b.disabled=false;toast(err.message)});
   };
@@ -1375,7 +1381,9 @@ function rendreReglages(){
     '</div><div class="ligne-btn" style="justify-content:flex-start;margin-top:16px"><button class="btn" id="r-ok">Enregistrer les réglages</button></div>';
   function majSlug(){var v=slugifier($('r-slug').value)||'…';$('r-slug-apercu').innerHTML='Lien complet : <b>https://'+DOMAINE+esc(v)+'</b>'+(v!==ADM.slug?' · l’ancien lien redirigera automatiquement vers celui-ci.':'')}
   $('r-slug').oninput=majSlug;$('r-slug').onblur=function(){var v=slugifier(this.value);if(v)this.value=v;majSlug()};majSlug();
-  function majAlbumReg(){var on=$('r-album').checked;$('r-quota').disabled=!on;$('r-quota-champ').style.opacity=on?1:.45}
+  function majAlbumReg(e){var on=$('r-album').checked;$('r-quota').disabled=!on;$('r-quota-champ').style.opacity=on?1:.45;
+    // Sans album, rien à relancer : la relance automatique se coupe avec l'album (et revient quand on le réactive)
+    var r=$('r-relance');if(r){if(!on)r.checked=false;else if(e)r.checked=true;r.disabled=!on;r.closest('label').style.opacity=on?1:.45;majRel()}}
   $('r-album').onchange=majAlbumReg;majAlbumReg();
   function majRel(){$('r-relj').disabled=!$('r-relance').checked;$('r-relj-champ').style.opacity=$('r-relance').checked?1:.45}$('r-relance').onchange=majRel;majRel();
   $('r-ok').onclick=function(){
