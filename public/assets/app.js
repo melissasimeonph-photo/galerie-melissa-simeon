@@ -437,6 +437,19 @@ $('partage-copier').onclick=function(){
   try{navigator.clipboard.writeText(inp.value).then(ok,repli)}catch(e){repli()}
 };
 $('btn-partage').onclick=function(e){e.stopPropagation();ouvrirPartage(null)};
+// Bouton « revenir en haut » : apparaît une fois la couverture dépassée, se place au-dessus de la barre de sélection
+if($('remonter')){(function(){
+  var b=$('remonter');b.innerHTML=I.haut;var vis=false;
+  function maj(){
+    var on=!$('galerie').hidden&&scrollY>innerHeight*.9;
+    if(on!==vis){vis=on;if(on)b.hidden=false;requestAnimationFrame(function(){b.classList.toggle('visible',on)});if(!on)setTimeout(function(){if(!vis)b.hidden=true},250)}
+    var sel=document.querySelector('.selection'),h=0;
+    if(sel&&sel.offsetParent!==null){var r=sel.getBoundingClientRect();if(r.right>innerWidth-80)h=innerHeight-r.top}
+    b.style.bottom=h?'calc('+(h+12)+'px)':'';
+  }
+  addEventListener('scroll',maj,{passive:true});addEventListener('resize',maj);
+  b.onclick=function(){scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})};
+})()}
 // Déconnexion du client ou de l'invité : retour à la page de connexion de la galerie
 if($('btn-sortie')){poserIco('btn-sortie',I.sortie);$('btn-sortie').onclick=function(){
   if(APERCU){toast('Aperçu : la déconnexion est désactivée.');return}
