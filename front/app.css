@@ -672,3 +672,10 @@ body.en-glisse-photos,body.en-glisse-photos *{user-select:none;-webkit-user-sele
 .note-rgpd{margin:2px 0 0;font-size:12px;line-height:1.45;color:var(--brun-doux);text-align:center}
 .note-rgpd a,.pied-liens a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 .pied-liens a:hover,.note-rgpd a:hover{color:var(--brun)}
+
+/* Nom de la collection modifiable */
+.nom-modif{all:unset;display:inline-flex;align-items:center;gap:8px;max-width:100%;cursor:pointer;border-radius:8px;outline-offset:3px}
+.nom-modif span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nom-modif .ico{width:16px;height:16px;flex:none;opacity:0;color:var(--brun-doux);transition:opacity .15s}
+.nom-modif:hover .ico,.nom-modif:focus-visible .ico{opacity:1}
+@media (hover:none){.nom-modif .ico{opacity:.6}}

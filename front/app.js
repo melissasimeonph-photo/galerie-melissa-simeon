@@ -580,7 +580,7 @@ function rendreAdmin(){
    '<header class="adm-top">'+
      '<div class="adm-titre">'+
        '<button class="ibtn" id="adm-retour" title="Toutes mes collections" aria-label="Toutes mes collections">'+I.g+'</button>'+
-       '<div class="adm-nom"><h1>'+esc(ADM.nom||NOMDEF)+'</h1><p>'+(ADM.dateEvt?dateFr(ADM.dateEvt):'')+' · '+I.dossier+'<span>'+esc(ADM.classeur||'Sans dossier')+'</span></p></div>'+
+       '<div class="adm-nom"><h1><button class="nom-modif" id="adm-renommer" title="Modifier le nom de la collection" aria-label="Modifier le nom de la collection"><span>'+esc(ADM.nom||NOMDEF)+'</span>'+I.crayon+'</button></h1><p>'+(ADM.dateEvt?dateFr(ADM.dateEvt):'')+' · '+I.dossier+'<span>'+esc(ADM.classeur||'Sans dossier')+'</span></p></div>'+
        '<button class="statut s-'+ADM.statut+'" id="adm-statut" aria-haspopup="menu">'+st.nom+I.caret+'</button>'+
      '</div>'+
      '<div class="adm-actions">'+
@@ -606,6 +606,7 @@ function rendreAdmin(){
   }});
   $('adm-replier').onclick=function(){ADM.replie=!ADM.replie;sauverPrefs({replie:ADM.replie});fermerPop();rendreAdmin()};
   $('adm-couv').onclick=fenetreCouv;
+  if($('adm-renommer'))$('adm-renommer').onclick=fenetreRenommer;
   $('adm-retour').onclick=function(){retourCollections()};
   $('adm-statut').onclick=function(e){e.stopPropagation();menuStatut(this)};
   $('adm-plus').onclick=function(e){e.stopPropagation();menuPlus(this)};
@@ -843,6 +844,26 @@ function retirerDuDossier(c){
   toast('« '+c.nom+' » retirée du dossier '+d+'. Elle reste dans Toutes les collections.');
 }
 function partagerCollection(c){ouvrirCollection(c.id).then(function(ok){if(ok)fenetrePartageAdm()})}
+// Renommer la collection depuis la vue photographe (l'adresse de la galerie ne change pas)
+function fenetreRenommer(){
+  fenetre(enteteFen('Nom de la collection')+
+    '<div class="champ"><label for="rn-nom">Nom</label><input type="text" id="rn-nom" maxlength="120" value="'+esc(ADM.nom||'')+'"><p class="note">Affiché sur la couverture, dans les e-mails et dans l’aperçu des liens. L’adresse de la galerie reste la même : un lien déjà envoyé continue de fonctionner.</p></div>'+
+    '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn" id="rn-ok">Enregistrer</button></div>');
+  var ch=$('rn-nom');ch.focus();ch.select();
+  ch.onkeydown=function(e){if(e.key==='Enter')$('rn-ok').click()};
+  $('rn-ok').onclick=function(){
+    var nom=ch.value.trim();if(!nom){toast('Le nom ne peut pas être vide.');return}
+    if(nom===ADM.nom){fermerFenetre();return}
+    var avant=ADM.nom;ADM.nom=nom;this.disabled=true;
+    var btn=this;
+    sauverAdm(true).then(function(r){
+      if(!r){ADM.nom=avant;btn.disabled=false;return}
+      try{majCollLocale(CID,{nom:nom})}catch(_){}
+      fermerFenetre();rendreAdmin();if(typeof majNoms==='function')majNoms();
+      genererBanniere();toast('Collection renommée.');
+    });
+  };
+}
 function editionRapide(c){
   fenetre(enteteFen('Modification rapide')+
     '<div class="champ"><label for="er-nom">Nom</label><input type="text" id="er-nom" value="'+esc(c.nom)+'"></div>'+
