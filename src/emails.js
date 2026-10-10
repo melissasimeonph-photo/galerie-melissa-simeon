@@ -11,14 +11,15 @@ export async function envoyerEmail(env, { collectionId = null, a, objet, texte, 
   if (!bouton && coll && !pourMoi) bouton = { texte: coll.type === 'seance' ? 'Voir mes photos' : 'Ouvrir ma galerie', url: lienGalerie(env, coll) };
   let statut = 'simulé';
   if (env.RESEND_API_KEY) {
+    // Le design avec photo est réservé aux e-mails des clients ; tes notifications restent sobres
     const pieces = [];
-    const html = gabarit(env, { objet, texte, bouton, coll }, pieces);
+    const html = pourMoi ? gabaritSobre(objet, texte, bouton) : gabarit(env, { objet, texte, bouton, coll }, pieces);
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { authorization: 'Bearer ' + String(env.RESEND_API_KEY).replace(/\s+/g, ''), 'content-type': 'application/json' },
       body: JSON.stringify({
         from: env.EXPEDITEUR, to: destinataires, reply_to: env.REPONSE_A, subject: objet,
-        text: texte + (bouton ? '\n\n' + bouton.url : ''), html, attachments: pieces,
+        text: texte + (bouton ? '\n\n' + bouton.url : ''), html, ...(pieces.length ? { attachments: pieces } : {}),
       }),
     });
     if (r.ok) statut = 'envoyé';
@@ -60,6 +61,14 @@ function analyser(texte) {
   const dernier = paras[paras.length - 1] || '';
   if (/\n\s*Mélissa\s*$/.test(dernier) || /^Mélissa$/.test(dernier)) signature = paras.pop();
   return { paras, infos, signature };
+}
+
+function gabaritSobre(objet, texte, bouton) {
+  const paras = esc(texte).split(/\n{2,}/).map((p) => `<p style="margin:0 0 14px;line-height:1.6">${p.replace(/\n/g, '<br>')}</p>`).join('');
+  const btn = bouton ? `<p style="margin:20px 0 0"><a href="${esc(bouton.url)}" style="display:inline-block;background:${C.encre};color:${C.fond};text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600">${esc(bouton.texte)}</a></p>` : '';
+  return `<!doctype html><html><body style="margin:0;background:${C.fond};font-family:${TEXTE};color:${C.encre};font-size:15px">
+<div style="max-width:560px;margin:0 auto;padding:28px 18px"><p style="margin:0 0 6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:${C.gris}">Ma galerie · notification</p>
+<h1 style="margin:0 0 16px;font-family:${TITRE};font-weight:400;font-size:24px">${esc(objet)}</h1>${paras}${btn}</div></body></html>`;
 }
 
 function gabarit(env, { objet, texte, bouton, coll }, pieces = null) {
