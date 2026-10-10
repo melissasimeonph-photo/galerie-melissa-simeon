@@ -1081,7 +1081,7 @@ function rendreSetMainBase(){
       '<button class="ibtn" id="adm-grille" title="Affichage de la grille" aria-label="Affichage de la grille" aria-haspopup="menu">'+I.grille+'</button>'+
       '<span class="sep-v"></span><button class="txtbtn" id="adm-ajout">'+I.plusRond+libAjout+'</button></div></div>'+
     (d.desc?'<p class="adm-desc">'+esc(d.desc)+'</p>':'')+
-    '<div class="sel-adm" id="sel-adm" hidden><span id="sel-adm-n"></span><button class="lienbtn" id="sel-adm-tout">Tout sélectionner</button><button class="lienbtn" id="sel-adm-annuler">Annuler</button><button class="btn danger" id="sel-adm-suppr">'+I.corbeille+'Supprimer</button></div>'+
+    '<div class="sel-adm" id="sel-adm" hidden><span id="sel-adm-n"></span><button class="lienbtn" id="sel-adm-tout">Tout sélectionner</button><button class="lienbtn" id="sel-adm-annuler">Annuler</button>'+(DOSSIERS.length>1?'<button class="btn clair" id="sel-adm-deplacer" aria-haspopup="menu">'+I.deplacer+'Déplacer vers</button>':'')+'<button class="btn danger" id="sel-adm-suppr">'+I.corbeille+'Supprimer</button></div>'+
     (photos.length?'<div class="grille-adm g-'+ADM.grille+(ADM.fichiers?'':' sans-noms')+(SELADM.size?' mode-sel':'')+'">'+photos.map(function(p){
       var coche=SELADM.has(p.id);
       return '<figure class="cell'+(coche?' coche':'')+'" data-pid="'+p.id+'"><div class="cadre"><button class="cell-case" data-case="'+p.id+'" role="checkbox" aria-checked="'+coche+'" title="Sélectionner" aria-label="Sélectionner '+esc(p.nom)+'">'+I.check+'</button><img loading="lazy" decoding="async" src="'+SRC(p.n,'mini')+'" alt=""><span class="cell-outils"><button class="cell-btn" data-couv="'+p.id+'" title="Utiliser comme couverture" aria-label="Utiliser comme couverture">'+I.image+'</button><button class="cell-btn" data-suppr="'+p.id+'" title="Supprimer la photo" aria-label="Supprimer la photo">'+I.corbeille+'</button></span></div>'+
@@ -1116,6 +1116,18 @@ function rendreSetMainBase(){
   $('sel-adm-tout').onclick=function(){ids.forEach(function(i){basculer(i,true)});majSel()};
   $('sel-adm-annuler').onclick=function(){SELADM.forEach(function(i){basculer(i,false)});SELADM.clear();majSel()};
   $('sel-adm-suppr').onclick=function(){supprimerPhotos(Array.from(SELADM).map(parId).filter(Boolean))};
+  // Déplacer la sélection dans une autre catégorie (ajoutée à la fin de celle-ci)
+  if($('sel-adm-deplacer'))$('sel-adm-deplacer').onclick=function(e){e.stopPropagation();
+    pop(this,'<div class="pop-label">Déplacer vers la catégorie</div>'+DOSSIERS.filter(function(x){return x.id!==d.id}).map(function(x){return itemPop(x.id,null,esc(x.nom),false,TOUTES.filter(function(p){return p.dossier===x.id}).length+' photo(s)')}).join(''),function(m){
+      m.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){
+        var cible=b.dataset.a,nomC=(dossierPar(cible)||{}).nom||'',bouges=Array.from(SELADM),n=bouges.length;fermerPop();
+        var deja=TOUTES.filter(function(p){return p.dossier===cible}).sort(function(a,b){return (a.ordre||0)-(b.ordre||0)}).map(function(p){return p.id});
+        $('sel-adm-deplacer').disabled=true;
+        api('collections/'+CID+'/ordre',{method:'POST',body:{ids:deja.concat(bouges),dossier:cible}}).then(function(){
+          SELADM.clear();toast(n+' photo'+(n>1?'s':'')+' déplacée'+(n>1?'s':'')+' vers « '+nomC+' ».');return recharger();
+        }).catch(function(err){toast(err.message);$('sel-adm-deplacer').disabled=false});
+      }})});
+  };
   majSel();
   main.querySelectorAll('[data-couv]').forEach(function(b){b.onclick=function(e){e.stopPropagation();ADM.couv=+b.dataset.couv;var ph=parId(ADM.couv);ADM.couvPos=ph&&ph.h>ph.w?'50% 35%':'50% 50%';sauverAdm(true).then(function(){genererMur()});rendreAdmin();toast('Couverture mise à jour.')}});
 }

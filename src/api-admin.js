@@ -33,12 +33,12 @@ async function nettoyerApercus(env, c, etat) {
     ...livrees.map((p) => cleR2(c.id, p.id, 'apercu')),
   ];
   for (let i = 0; i < cles.length; i += 1000) await env.PHOTOS.delete(cles.slice(i, i + 1000));
-  const stmts = [
-    ...retirees.map((p) => env.DB.prepare('DELETE FROM photos WHERE id=? AND collection_id=?').bind(p.id, c.id)),
-    ...retirees.map((p) => env.DB.prepare('DELETE FROM favoris WHERE photo_id=? AND collection_id=?').bind(p.id, c.id)),
-    ...livrees.map((p) => { const v = { ...p.variantes }; delete v.apercu; return env.DB.prepare('UPDATE photos SET variantes=? WHERE id=?').bind(JSON.stringify(v), p.id); }),
-  ];
-  for (let i = 0; i < stmts.length; i += 90) await env.DB.batch(stmts.slice(i, i + 90));
+  const idsR = JSON.stringify(retirees.map((p) => p.id)), idsL = JSON.stringify(livrees.map((p) => p.id));
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM photos WHERE collection_id=?1 AND id IN (SELECT value FROM json_each(?2))').bind(c.id, idsR),
+    env.DB.prepare('DELETE FROM favoris WHERE collection_id=?1 AND photo_id IN (SELECT value FROM json_each(?2))').bind(c.id, idsR),
+    env.DB.prepare("UPDATE photos SET variantes = json_remove(variantes, '$.apercu') WHERE collection_id=?1 AND id IN (SELECT value FROM json_each(?2))").bind(c.id, idsL),
+  ]);
   return { retirees: retirees.length, apercus: livrees.length };
 }
 
@@ -229,8 +229,10 @@ export async function routerAdmin(env, req, url, ctx) {
 
   if (m === 'POST' && action === 'ordre') {
     const b = await lireJSON(req);
-    const stmts = (b.ids || []).map((id, i) => env.DB.prepare('UPDATE photos SET ordre=?, dossier=COALESCE(?,dossier) WHERE id=? AND collection_id=?').bind(i + 1, b.dossier ?? null, +id, c.id));
-    if (stmts.length) await env.DB.batch(stmts);
+    const ids = JSON.stringify((b.ids || []).map(Number));
+    const dossier = b.dossier && g.dossiers.some((d) => d.id === b.dossier) ? b.dossier : null;
+    // Une seule requête, même pour 400 photos (évite les limites de requêtes par appel de l'offre gratuite)
+    await env.DB.prepare('UPDATE photos SET ordre = (SELECT key + 1 FROM json_each(?1) WHERE value = photos.id), dossier = COALESCE(?2, dossier) WHERE collection_id = ?3 AND id IN (SELECT value FROM json_each(?1))').bind(ids, dossier, c.id).run();
     return json({ ok: true });
   }
 
