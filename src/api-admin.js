@@ -203,7 +203,7 @@ export async function routerAdmin(env, req, url, ctx) {
   }
 
   if (m === 'POST' && action === 'dupliquer') {
-    const g2 = { ...g, nom: g.nom + ' (copie)', statut: 'cachee', couv: null, banniere: null, banniereFlou: null, guideAlbum: null, phase: c.type === 'seance' ? 'selection' : null, livre: null, sauvegarde: null, rappelsEnvoyes: [], contacts: [] };
+    const g2 = { ...g, nom: g.nom + ' (copie)', statut: 'cachee', couv: null, couvHd: null, banniere: null, banniereFlou: null, guideAlbum: null, phase: c.type === 'seance' ? 'selection' : null, livre: null, sauvegarde: null, rappelsEnvoyes: [], contacts: [] };
     const id = idAleatoire(12), now = Date.now(), slug = await slugLibre(env, c.slug + '-copie');
     await env.DB.prepare('INSERT INTO collections (id, slug, type, reglages, cree_le, maj_le) VALUES (?,?,?,?,?,?)').bind(id, slug, c.type, JSON.stringify(g2), now, now).run();
     return json({ id, slug });
@@ -246,6 +246,14 @@ export async function routerAdmin(env, req, url, ctx) {
     await env.PHOTOS.put(`c/${c.id}/${flou ? 'email-flou' : 'email'}.jpg`, req.body, { httpMetadata: { contentType: 'image/jpeg' } });
     g[flou ? 'banniereFlou' : 'banniere'] = Date.now(); await enregistrerReglages(env, c);
     return json({ ok: true });
+  }
+
+  // Couverture haute définition (préparée dans le navigateur à partir du fichier HD)
+  if (m === 'PUT' && action === 'couverture') {
+    const n = parseInt(url.searchParams.get('n')) || 0, q = String(url.searchParams.get('q') || 'hd').replace(/[^a-z]/g, '');
+    await env.PHOTOS.put(`c/${c.id}/couv.jpg`, req.body, { httpMetadata: { contentType: 'image/jpeg' } });
+    g.couvHd = { n, q, v: Date.now() }; await enregistrerReglages(env, c);
+    return json({ ok: true, couvHd: g.couvHd });
   }
 
   if (m === 'POST' && action === 'relance') {

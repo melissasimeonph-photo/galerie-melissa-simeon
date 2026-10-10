@@ -86,6 +86,10 @@ export async function routerClient(env, req, url, ctx) {
   const perm = permissions(c, s);
   const etat = await etatDe(env, c.id);
 
+  if (parts[0] === 'img' && parts[2] === 'couv') {
+    const o = await env.PHOTOS.get(`c/${c.id}/couv.jpg`);
+    return o ? new Response(o.body, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'private, max-age=604800', etag: o.httpEtag } }) : new Response(null, { status: 404 });
+  }
   if (parts[0] === 'img') {
     const p = await env.DB.prepare('SELECT * FROM photos WHERE id=? AND collection_id=?').bind(+parts[2], c.id).first();
     if (!p) return new Response(null, { status: 404 });
@@ -147,7 +151,7 @@ export async function routerClient(env, req, url, ctx) {
       perm,
       collection: {
         nom: g.nom, type: c.type, dateEvt: g.dateEvt, slug: c.slug, expiration: g.expiration, phase: g.phase, livre: g.livre || null,
-        couv: g.couv, couvPos: g.couvPos, quota: g.quota, prixSupp: g.prixSupp, supp: g.supp !== false,
+        couv: g.couv, couvPos: g.couvPos, couvHd: g.couvHd || null, quota: g.quota, prixSupp: g.prixSupp, supp: g.supp !== false,
         dossiers: g.dossiers.map(({ id, nom, desc }) => ({ id, nom, desc })), domaine: env.DOMAINE,
       },
       photos: liste.map((p) => ({ id: p.id, nom: p.nomClient, dossier: p.dossier, w: p.w, h: p.h, mo: p.variantes.hd ? Math.round(p.variantes.hd.o / 1e5) / 10 : 0, web: p.variantes.web ? Math.round(p.variantes.web.o / 1e5) / 10 : 0 })),
