@@ -1255,7 +1255,7 @@ function fenetrePartageAdm(){
     var b=this;b.disabled=true;
     api('collections/'+CID+'/email',{method:'POST',body:{a:dest,objet:$('pa-o').value,texte:$('pa-m').value,memoriser:true,bouton:true}}).then(function(r){
       ADM.contacts=Array.from(new Set((ADM.contacts||[]).concat(dest)));fermerFenetre();
-      toast(r.statut==='envoyé'?'E-mail envoyé à '+dest.length+' destinataire'+(dest.length>1?'s':'')+'.':'E-mail enregistré ('+r.statut+').');
+      toast((r.statut==='envoyé'?'E-mail envoyé à '+dest.length+' destinataire'+(dest.length>1?'s':'')+'.':'E-mail enregistré ('+r.statut+').')+(r.guide&&/^programmé/.test(r.guide)?' L’explication du livre photo partira dans 30 minutes.':''));
       recharger();
     }).catch(function(e){b.disabled=false;toast(e.message)});
   };

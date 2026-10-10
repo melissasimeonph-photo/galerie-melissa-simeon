@@ -1,7 +1,7 @@
 // Vue photographe : toutes les routes /api/admin/* (protégées par Cloudflare Access + vérification ici)
 import { json, erreur, lireJSON, slugifier, idAleatoire, reglagesParDefaut, J } from './util.js';
 import { collectionParId, enregistrerReglages, journaliser, photosDe, etatDe, enregistrerEtat, cleR2, supprimerPrefixeR2 } from './db.js';
-import { envoyerEmail, texteRelance, texteLivraison } from './emails.js';
+import { envoyerEmail, texteRelance, texteLivraison, texteGuideAlbum } from './emails.js';
 
 const CHAMPS_MODIFIABLES = ['nom', 'classeur', 'dateEvt', 'statut', 'code', 'codeInvite', 'quota', 'prixSupp', 'supp', 'hd', 'hdInvite', 'web', 'albumActif',
   'expiration', 'rappel', 'relanceAuto', 'relanceJours', 'couv', 'couvPos', 'mur', 'prefixe', 'dossiers', 'grille', 'fichiers', 'tri', 'contacts', 'etoile'];
@@ -173,7 +173,7 @@ export async function routerAdmin(env, req, url, ctx) {
   }
 
   if (m === 'POST' && action === 'dupliquer') {
-    const g2 = { ...g, nom: g.nom + ' (copie)', statut: 'cachee', couv: null, banniere: null, banniereFlou: null, phase: c.type === 'seance' ? 'selection' : null, livre: null, sauvegarde: null, rappelsEnvoyes: [], contacts: [] };
+    const g2 = { ...g, nom: g.nom + ' (copie)', statut: 'cachee', couv: null, banniere: null, banniereFlou: null, guideAlbum: null, phase: c.type === 'seance' ? 'selection' : null, livre: null, sauvegarde: null, rappelsEnvoyes: [], contacts: [] };
     const id = idAleatoire(12), now = Date.now(), slug = await slugLibre(env, c.slug + '-copie');
     await env.DB.prepare('INSERT INTO collections (id, slug, type, reglages, cree_le, maj_le) VALUES (?,?,?,?,?,?)').bind(id, slug, c.type, JSON.stringify(g2), now, now).run();
     return json({ id, slug });
@@ -235,7 +235,20 @@ export async function routerAdmin(env, req, url, ctx) {
     if (b.memoriser) { g.contacts = [...new Set([...(g.contacts || []), ...a])]; await enregistrerReglages(env, c); }
     const r = await envoyerEmail(env, { collectionId: c.id, a, objet: String(b.objet || '').slice(0, 200), texte: String(b.texte || ''), bouton: b.bouton ? { texte: 'Voir la galerie', url: `https://${env.DOMAINE}/${c.slug}` } : null });
     await journaliser(env, c.id, 'Vous', `avez envoyé : « ${b.objet} »`);
-    return json({ ok: true, statut: r.statut });
+    // Mariage : 30 minutes après la galerie, l'e-mail qui explique la sélection pour le livre (une seule fois par collection)
+    let guide = null;
+    if (c.type === 'mariage' && g.albumActif !== false && !g.guideAlbum && r.ok) {
+      const etat = await etatDe(env, c.id);
+      if (!etat.valide) {
+        const quand = Date.now() + 30 * 60e3;
+        guide = await envoyerEmail(env, { collectionId: c.id, a, ...texteGuideAlbum(env, c), programmeA: quand });
+        if (guide.ok) {
+          g.guideAlbum = quand; await enregistrerReglages(env, c);
+          await journaliser(env, c.id, 'Vous', `e-mail « Ensuite, votre livre photo » ${guide.statut}`);
+        }
+      }
+    }
+    return json({ ok: true, statut: r.statut, guide: guide && guide.statut });
   }
 
   if (m === 'POST' && action === 'livrer') {

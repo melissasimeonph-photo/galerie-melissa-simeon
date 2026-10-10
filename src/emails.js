@@ -2,7 +2,7 @@
 import { esc, dateFr } from './util.js';
 import { collectionParId } from './db.js';
 
-export async function envoyerEmail(env, { collectionId = null, a, objet, texte, bouton = null }) {
+export async function envoyerEmail(env, { collectionId = null, a, objet, texte, bouton = null, etapes = null, programmeA = null }) {
   const destinataires = (Array.isArray(a) ? a : [a]).filter(Boolean);
   if (!destinataires.length) return { ok: false, raison: 'aucun destinataire' };
   const coll = collectionId ? await collectionParId(env, collectionId).catch(() => null) : null;
@@ -13,16 +13,17 @@ export async function envoyerEmail(env, { collectionId = null, a, objet, texte, 
   if (env.RESEND_API_KEY) {
     // Le design avec photo est réservé aux e-mails des clients ; tes notifications restent sobres
     const pieces = [];
-    const html = pourMoi ? gabaritSobre(objet, texte, bouton) : gabarit(env, { objet, texte, bouton, coll }, pieces);
+    const html = pourMoi ? gabaritSobre(objet, texte, bouton) : gabarit(env, { objet, texte, bouton, coll, etapes }, pieces);
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { authorization: 'Bearer ' + String(env.RESEND_API_KEY).replace(/\s+/g, ''), 'content-type': 'application/json' },
       body: JSON.stringify({
         from: env.EXPEDITEUR, to: destinataires, reply_to: env.REPONSE_A, subject: objet,
-        text: texte + (bouton ? '\n\n' + bouton.url : ''), html, ...(pieces.length ? { attachments: pieces } : {}),
+        text: texteBrut(texte, etapes) + (bouton ? '\n\n' + bouton.url : ''), html, ...(pieces.length ? { attachments: pieces } : {}),
+        ...(programmeA ? { scheduled_at: new Date(programmeA).toISOString() } : {}),
       }),
     });
-    if (r.ok) statut = 'envoyé';
+    if (r.ok) statut = programmeA ? 'programmé pour ' + new Date(programmeA).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Martinique' }) : 'envoyé';
     else {
       let detail = '';
       try { const j = await r.json(); detail = (j.message || j.name || '').slice(0, 160); } catch {}
@@ -64,6 +65,14 @@ function analyser(texte) {
   return { paras, infos, signature };
 }
 
+// Version texte : les étapes s'insèrent avant la signature
+function texteBrut(texte, etapes) {
+  if (!etapes) return texte;
+  const liste = etapes.map((e, i) => `${i + 1}. ${e.titre} : ${e.texte}`).join('\n\n');
+  const i = texte.lastIndexOf('\n\n');
+  return i > 0 ? texte.slice(0, i) + '\n\n' + liste + texte.slice(i) : texte + '\n\n' + liste;
+}
+
 function gabaritSobre(objet, texte, bouton) {
   const paras = esc(texte).split(/\n{2,}/).map((p) => `<p style="margin:0 0 14px;line-height:1.6">${p.replace(/\n/g, '<br>')}</p>`).join('');
   const btn = bouton ? `<p style="margin:20px 0 0"><a href="${esc(bouton.url)}" style="display:inline-block;background:${C.encre};color:${C.fond};text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600">${esc(bouton.texte)}</a></p>` : '';
@@ -72,7 +81,7 @@ function gabaritSobre(objet, texte, bouton) {
 <h1 style="margin:0 0 16px;font-family:${TITRE};font-weight:400;font-size:24px">${esc(objet)}</h1>${paras}${btn}</div></body></html>`;
 }
 
-function gabarit(env, { objet, texte, bouton, coll }, pieces = null) {
+function gabarit(env, { objet, texte, bouton, coll, etapes = null }, pieces = null) {
   const { paras, infos, signature } = analyser(texte);
   // Avec « pieces », chaque image est jointe à l'e-mail et affichée sans téléchargement (cid:)
   const img = (url, id, nom) => { if (!pieces) return url; pieces.push({ path: url, filename: nom, content_id: id }); return 'cid:' + id; };
@@ -101,6 +110,12 @@ function gabarit(env, { objet, texte, bouton, coll }, pieces = null) {
   }).join(''))}</td></tr>`,
     `background:${C.carte};border:1px solid ${C.ligne};border-radius:18px`) : '';
 
+  // Étapes numérotées (ex. : explication de la sélection pour l'album)
+  const blocEtapes = etapes && etapes.length ? tableP(`<tr><td style="padding:4px 18px">${tableP(etapes.map((e, i) =>
+    `<tr><td style="width:30px;padding:16px 0;${i ? `border-top:1px solid ${C.ligne};` : ''}vertical-align:top"><div style="width:30px;height:30px;line-height:30px;border-radius:50%;background:${C.encre};color:${C.fond};text-align:center;font-family:${TITRE};font-weight:600;font-size:15px">${i + 1}</div></td>`
+    + `<td style="padding:15px 0 16px 14px;${i ? `border-top:1px solid ${C.ligne};` : ''}vertical-align:top;font-family:${TEXTE}"><div style="font-size:16px;font-weight:600;color:${C.encre};margin-bottom:4px">${esc(e.titre)}</div><div style="font-size:15px;line-height:1.55;color:${C.gris}">${esc(e.texte)}</div></td></tr>`).join(''))}</td></tr>`,
+    `background:${C.carte};border:1px solid ${C.ligne};border-radius:18px`) : '';
+
   const btn = bouton ? tableP(`<tr><td style="padding:0 8px 0 24px;vertical-align:middle"><a href="${esc(bouton.url)}" style="font-family:${TEXTE};font-weight:600;font-size:16px;color:${C.fond};text-decoration:none;display:block">${esc(bouton.texte)}</a></td>
 <td width="52" style="width:52px;padding:0;vertical-align:middle"><a href="${esc(bouton.url)}"><img src="${img(`${base}/assets/email/fleche.png`, 'fleche', 'fleche.png')}" width="52" alt="" style="display:block;width:52px;height:52px;border:0;border-radius:0 999px 999px 0"></a></td></tr>`,
     `background:${C.encre};border-radius:999px`) : '';
@@ -115,6 +130,7 @@ ${tableP(`<tr><td align="center" style="padding:28px 16px 40px">${tableP(
     (photo ? ligneT(photo, '0 0 30px') : '') +
     ligneT(titre, '0 0 18px') +
     (corps ? ligneT(corps, '0 0 10px') : '') +
+    (blocEtapes ? ligneT(blocEtapes, '0 0 22px') : '') +
     (carte ? ligneT(carte, '0 0 22px') : '') +
     (btn ? ligneT(btn, '0 0 28px') : '') +
     (sign ? ligneT(sign, '0') : '') +
@@ -165,3 +181,19 @@ export function texteSelectionRecue(env, coll, etat, nomsPhotos) {
   };
 }
 export { gabarit as _gabaritPourApercu };
+
+// Mariage : explication de la sélection pour le livre photo, envoyée 30 minutes après la galerie
+export function texteGuideAlbum(env, coll) {
+  const g = coll.reglages;
+  return {
+    objet: '📖 Ensuite, votre livre photo',
+    texte: `Bonjour ${prenomsDe(g.nom)},\n\nVoici comment se passe la sélection ⬇️\n\nVotre code d’accès : ${g.code}\n\nÀ très vite,\nMélissa`,
+    etapes: [
+      { titre: 'Votre sélection', texte: `Dans la galerie, cliquez sur l’icône « album » de chaque photo que vous souhaitez voir dans votre livre. Vous pouvez en choisir jusqu’à ${g.quota}. Une jauge vous indique où vous en êtes, et vous pouvez ajouter ou retirer des photos autant que vous le souhaitez.` },
+      { titre: 'La validation', texte: 'Une fois votre sélection terminée, pensez bien à cliquer sur « Valider » dans la galerie. C’est ce qui m’envoie votre sélection par e-mail : sans cette étape, je ne la reçois pas !' },
+      { titre: 'Ma mise en page', texte: 'À partir de votre sélection, je construis le livre pour qu’il raconte votre journée comme une histoire.' },
+      { titre: 'L’impression', texte: 'J’envoie ensuite le livre à l’impression. Les délais dépendent de l’imprimeur et de l’acheminement jusqu’en Martinique, je ne peux donc pas m’engager sur une date de livraison précise, mais je vous tiendrai informés à chaque étape.' },
+    ],
+    bouton: { texte: 'Commencer ma sélection', url: lienGalerie(env, coll) },
+  };
+}
