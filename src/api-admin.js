@@ -21,6 +21,27 @@ export async function destinatairesClient(env, c) {
 }
 const selectionEnAttente = (c, e) => c.reglages.statut === 'publiee' && !e.verrou && c.reglages.albumActif !== false && (c.type === 'seance' ? c.reglages.phase !== 'livraison' : true);
 
+// Séance livrée : on supprime les aperçus filigranés (issus des RAW) devenus inutiles.
+// Photos non retenues : fiche et fichiers supprimés. Photos retenues : seul l'aperçu part, la version retouchée reste.
+// Une photo retenue dont la retouche n'est pas encore versée garde son aperçu jusqu'à l'envoi du fichier final.
+async function nettoyerApercus(env, c, etat) {
+  const photos = await photosDe(env, c.id);
+  const retirees = photos.filter((p) => !etat.album.includes(p.id));
+  const livrees = photos.filter((p) => etat.album.includes(p.id) && p.variantes.hd && p.variantes.apercu);
+  const cles = [
+    ...retirees.flatMap((p) => Object.keys(p.variantes).map((v) => cleR2(c.id, p.id, v))),
+    ...livrees.map((p) => cleR2(c.id, p.id, 'apercu')),
+  ];
+  for (let i = 0; i < cles.length; i += 1000) await env.PHOTOS.delete(cles.slice(i, i + 1000));
+  const stmts = [
+    ...retirees.map((p) => env.DB.prepare('DELETE FROM photos WHERE id=? AND collection_id=?').bind(p.id, c.id)),
+    ...retirees.map((p) => env.DB.prepare('DELETE FROM favoris WHERE photo_id=? AND collection_id=?').bind(p.id, c.id)),
+    ...livrees.map((p) => { const v = { ...p.variantes }; delete v.apercu; return env.DB.prepare('UPDATE photos SET variantes=? WHERE id=?').bind(JSON.stringify(v), p.id); }),
+  ];
+  for (let i = 0; i < stmts.length; i += 90) await env.DB.batch(stmts.slice(i, i + 90));
+  return { retirees: retirees.length, apercus: livrees.length };
+}
+
 export async function routerAdmin(env, req, url, ctx) {
   const p = url.pathname.replace(/^\/admin\/api\/?/, '').split('/').filter(Boolean);
   const m = req.method;
@@ -82,6 +103,10 @@ export async function routerAdmin(env, req, url, ctx) {
       const crc = url.searchParams.get('crc');
       vars[v] = { o: o.size, ...(crc !== null ? { crc: +crc } : {}) };
       const w = +url.searchParams.get('w') || ph.w, h = +url.searchParams.get('h') || ph.h;
+      const coll = v === 'hd' && vars.apercu ? await collectionParId(env, ph.collection_id) : null;
+      if (coll && coll.type === 'seance' && coll.reglages.phase === 'livraison') {
+        await env.PHOTOS.delete(cleR2(ph.collection_id, ph.id, 'apercu')); delete vars.apercu;
+      }
       await env.DB.prepare('UPDATE photos SET variantes=?, w=?, h=? WHERE id=?').bind(JSON.stringify(vars), w, h, ph.id).run();
       return json({ ok: true, variantes: vars });
     }
@@ -223,11 +248,12 @@ export async function routerAdmin(env, req, url, ctx) {
     if (b.prolonger !== false) g.expiration = new Date(Date.now() + 90 * J).toISOString().slice(0, 10);
     etat.verrou = true; await enregistrerEtat(env, c.id, etat);
     await enregistrerReglages(env, c);
-    // Les aperçus filigranés ne servent plus : on les supprime
-    ctx.waitUntil(env.PHOTOS.delete((await photosDe(env, c.id)).filter((x) => x.variantes.apercu).map((x) => cleR2(c.id, x.id, 'apercu'))));
     const a = await destinatairesClient(env, c);
     const r = a.length ? await envoyerEmail(env, { collectionId: c.id, a, ...texteLivraison(env, c, prets.length) }) : { statut: 'aucun destinataire' };
     await journaliser(env, c.id, 'Vous', `avez livré ${prets.length} photos retouchées`);
+    // Photos retouchées versées et e-mail parti : les aperçus filigranés n'ont plus d'utilité
+    const n = await nettoyerApercus(env, c, etat);
+    await journaliser(env, c.id, 'Vous', `aperçus filigranés supprimés : ${n.retirees} photo${n.retirees > 1 ? 's' : ''} non retenue${n.retirees > 1 ? 's' : ''} retirée${n.retirees > 1 ? 's' : ''} de la galerie`);
     return json({ ok: true, statut: r.statut, nb: prets.length, manquantes: photos.length - prets.length });
   }
 
