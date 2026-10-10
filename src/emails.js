@@ -123,7 +123,7 @@ function gabarit(env, { objet, texte, bouton, coll, etapes = null }, pieces = nu
   const sign = signature ? `<p style="margin:0;font-family:${TEXTE};font-size:16px;line-height:1.5;color:${C.encre}">${esc(signature).replace(/\n\s*Mélissa\s*$/, '<br><strong>Mélissa</strong>').replace(/\n/g, '<br>')}</p>` : '';
 
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only"><style>:root{color-scheme:light only;supported-color-schemes:light only}</style>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,500&display=swap" rel="stylesheet"></head>
+<link href="https://${env.DOMAINE}/assets/polices.css" rel="stylesheet"></head>
 <body style="margin:0;padding:0;background:${C.fond}"><div style="display:none;max-height:0;overflow:hidden;color:${C.fond}">${esc(paras[1] || paras[0] || objet)}</div>
 ${tableP(`<tr><td align="center" style="padding:28px 16px 40px">${tableP(
     ligneT(entete, '0 0 22px') +

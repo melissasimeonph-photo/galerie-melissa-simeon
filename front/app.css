@@ -667,3 +667,8 @@ body.en-glisse-photos,body.en-glisse-photos *{user-select:none;-webkit-user-sele
 .remonter:hover{background:#FBF8F4}
 .remonter .ico,.remonter svg{width:20px;height:20px}
 @media (max-width:560px){.remonter{width:44px;height:44px;right:calc(14px + env(safe-area-inset-right,0px))}}
+
+/* Mentions légales et confidentialité */
+.note-rgpd{margin:2px 0 0;font-size:12px;line-height:1.45;color:var(--brun-doux);text-align:center}
+.note-rgpd a,.pied-liens a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.pied-liens a:hover,.note-rgpd a:hover{color:var(--brun)}

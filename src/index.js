@@ -1,5 +1,6 @@
 // Galerie Mélissa Siméon — point d'entrée du Worker Cloudflare
 import { erreur, esc } from './util.js';
+import { pageLegale } from './legal.js';
 import { exigerAdmin, verifierAdmin } from './auth.js';
 import { routerAdmin } from './api-admin.js';
 import { routerClient } from './api-client.js';
@@ -43,7 +44,7 @@ async function pageClient(env, req, url, slug) {
 }
 async function pageSimple(env, titre, texte, status = 200, pied = '') {
   const html = `<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(titre)}</title>
-<link rel="stylesheet" href="/assets/simple.css"><main><img src="/assets/logo.svg" alt="" width="72"><h1>${esc(titre)}</h1><p>${esc(texte)}</p></main>${pied}</html>`;
+<link rel="stylesheet" href="/assets/polices.css"><link rel="stylesheet" href="/assets/simple.css"><main><img src="/assets/logo.svg" alt="" width="72"><h1>${esc(titre)}</h1><p>${esc(texte)}</p></main>${pied}</html>`;
   return new Response(html, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
 }
 
@@ -62,7 +63,14 @@ export default {
         return avecSecurite(await env.ASSETS.fetch(new URL('/admin/index.html', url)));
       }
       if (/^\/(api\/g|img|dl|zip)\//.test(chemin)) return avecSecurite(await routerClient(env, req, url, ctx));
-      if (chemin === '/' ) return avecSecurite(await pageSimple(env, 'Galeries de Mélissa Siméon', 'Ouvrez le lien de votre galerie reçu par e-mail pour retrouver vos photos.', 200, '<a class="pied" href="/admin/">Espace photographe</a>'));
+      if (chemin === '/' ) return avecSecurite(await pageSimple(env, 'Galeries de Mélissa Siméon', 'Ouvrez le lien de votre galerie reçu par e-mail pour retrouver vos photos.', 200, '<span class="pied"><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a> · <a href="/admin/">Espace photographe</a></span>'));
+      if (chemin === '/mentions-legales' || chemin === '/confidentialite') return avecSecurite(pageLegale(env, chemin.slice(1)));
+      if (chemin.startsWith('/assets/polices')) {
+        // Polices auto-hébergées : utilisables aussi dans les e-mails (CORS) et mises en cache longtemps
+        const r = await env.ASSETS.fetch(req), h = new Headers(r.headers);
+        h.set('access-control-allow-origin', '*'); if (r.ok) h.set('cache-control', 'public, max-age=31536000, immutable');
+        return new Response(r.body, { status: r.status, headers: h });
+      }
       if (chemin.startsWith('/assets/')) return env.ASSETS.fetch(req);
       const m = chemin.match(/^\/([a-z0-9-]+)(?:\/photo\/\d+)?\/?$/);
       if (m) return avecSecurite(await pageClient(env, req, url, m[1]));

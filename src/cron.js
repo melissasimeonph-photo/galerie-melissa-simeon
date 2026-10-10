@@ -1,4 +1,4 @@
-// Tâche quotidienne : archivage des galeries expirées, rappels d'expiration, relances automatiques
+// Tâche quotidienne : archivage des galeries expirées, rappels d'expiration, relances automatiques, effacement des données anciennes
 import { J } from './util.js';
 import { journaliser, etatDe, enregistrerReglages } from './db.js';
 import { envoyerEmail, texteRelance, texteExpiration } from './emails.js';
@@ -44,5 +44,30 @@ export async function tacheQuotidienne(env) {
     } catch (e) {
       console.error('Tâche quotidienne', c.id, e);
     }
+  }
+  await purgerDonnees(env);
+}
+
+// Confidentialité : les données des visiteurs (e-mails, visites, favoris, téléchargements) sont effacées
+// 3 mois après l'expiration d'une galerie restée archivée. Les essais de connexion (adresses IP) après 1 jour.
+export const CONSERVATION_JOURS = 90;
+async function purgerDonnees(env) {
+  try {
+    const limite = new Date(Date.now() - CONSERVATION_JOURS * J).toISOString().slice(0, 10);
+    const { results } = await env.DB.prepare("SELECT id FROM collections WHERE json_extract(reglages,'$.statut')='archivee' AND json_extract(reglages,'$.expiration') < ? AND json_extract(reglages,'$.donneesPurgees') IS NULL").bind(limite).all();
+    const ids = JSON.stringify(results.map((r) => r.id));
+    const st = (sql) => env.DB.prepare(sql).bind(ids);
+    const lots = [env.DB.prepare('DELETE FROM tentatives WHERE depuis < ?').bind(Date.now() - J)];
+    if (results.length) lots.push(
+      st('DELETE FROM visiteurs WHERE collection_id IN (SELECT value FROM json_each(?1))'),
+      st('DELETE FROM favoris WHERE collection_id IN (SELECT value FROM json_each(?1))'),
+      st('UPDATE telechargements SET email=NULL WHERE collection_id IN (SELECT value FROM json_each(?1))'),
+      st("UPDATE journal SET qui = CASE WHEN qui LIKE '%(invité)%' THEN 'Un invité' ELSE 'Un visiteur' END WHERE qui LIKE '%@%' AND collection_id IN (SELECT value FROM json_each(?1))"),
+      st("UPDATE collections SET reglages = json_set(reglages, '$.donneesPurgees', strftime('%Y-%m-%d','now')) WHERE id IN (SELECT value FROM json_each(?1))"),
+    );
+    await env.DB.batch(lots);
+    if (results.length) console.log('Données visiteurs effacées pour', results.length, 'galerie(s)');
+  } catch (e) {
+    console.error('Purge des données', e);
   }
 }

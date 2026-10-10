@@ -30,6 +30,7 @@ crons = ["0 13 * * *"]
 [vars]
 DOMAINE = "galerie.melissa-simeon.com"
 ADMIN_EMAIL = "melissasimeon.ph@gmail.com"
+ADRESSE = "Schœlcher (97233), Martinique"
 EXPEDITEUR = "Mélissa Siméon Photographie <galerie@melissa-simeon.com>"
 REPONSE_A = "melissasimeon.ph@gmail.com"
 # Renseignés après la création de l'application Cloudflare Access :
