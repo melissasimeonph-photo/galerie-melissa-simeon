@@ -908,12 +908,15 @@ function menuFiltre(btn,k){
     m.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){COLL[k]=b.dataset.a;rendreCollections()}});
   });
 }
-var PRESETS={'Mariage':{type:'mariage',classeur:'Mariages',sous:'6 mois · sélection de 60 photos si l’album est inclus'},'Séance photo':{type:'seance',classeur:'Couple',sous:'3 mois · sélection filigranée, 15 photos incluses'},'Événement':{type:'mariage',classeur:'Événements',albumActif:false,sous:'3 mois · sans album'}};
+var PRESETS={'Mariage':{type:'mariage',classeur:'Mariages',sous:'6 mois · sélection de 60 photos si l’album est inclus'},'Séance photo':{type:'seance',classeur:'Couple',sous:'3 mois · sélection filigranée par le client'},'Événement':{type:'mariage',classeur:'Événements',albumActif:false,sous:'3 mois · sans album'}};
 function fenetreNouvelle(preset){
   preset=PRESETS[preset]?preset:'Mariage';
   fenetre(enteteFen('Nouvelle collection')+
     '<div class="champ"><label for="nc-nom">Nom de la collection</label><input type="text" id="nc-nom" placeholder="Par exemple : Mariage Léa & Thomas"></div>'+
     '<div class="champ"><label for="nc-preset">Type</label><select id="nc-preset">'+Object.keys(PRESETS).map(function(p){return '<option'+(p===preset?' selected':'')+'>'+p+'</option>'}).join('')+'</select><p class="note" id="nc-sous"></p></div>'+
+    '<div class="champ" id="nc-seance-champ"><span class="etiquette-champ" id="nc-seance-lab">Type de séance</span><div class="options" role="radiogroup" aria-labelledby="nc-seance-lab" style="grid-template-columns:repeat(3,1fr)">'+
+      [['couple','Couple'],['maternite','Maternité'],['famille','Famille']].map(function(t){return '<label class="option"><span class="g"><input type="radio" name="nc-seance" id="nc-seance-'+t[0]+'" value="'+t[0]+'"><span>'+t[1]+'</span></span></label>'}).join('')+'</div></div>'+
+    '<div class="champ" id="nc-quota-champ"><label for="nc-quota">Photos retouchées incluses dans la formule</label><input type="number" id="nc-quota" min="1" max="500" value="15" inputmode="numeric"><p class="note">Le client choisit ce nombre de photos dans sa sélection. Au-delà, chaque photo supplémentaire est facturée (10 € par défaut, modifiable dans les réglages).</p></div>'+
     '<div class="champ" id="nc-album-champ"><span class="etiquette-champ" id="nc-album-lab">Album photo inclus dans la prestation ?</span><div class="options" role="radiogroup" aria-labelledby="nc-album-lab" style="grid-template-columns:1fr 1fr">'+
       '<label class="option"><span class="g"><input type="radio" name="nc-album" id="nc-album-oui" value="oui"><span>Oui, avec album</span></span></label>'+
       '<label class="option"><span class="g"><input type="radio" name="nc-album" id="nc-album-non" value="non"><span>Non, sans album</span></span></label></div>'+
@@ -921,17 +924,27 @@ function fenetreNouvelle(preset){
     '<div class="champ"><label for="nc-date">Date de l’événement</label><input type="date" id="nc-date"></div>'+
     '<div class="champ"><label for="nc-dossier">Dossier</label><select id="nc-dossier">'+CLASSEURS.map(function(c){return '<option'+(c===PRESETS[preset].classeur?' selected':'')+'>'+esc(c)+'</option>'}).join('')+'<option value="">Aucun dossier</option></select></div>'+
     '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn" id="nc-ok">Créer la collection</button></div>');
-  function maj(){var P=PRESETS[$('nc-preset').value];$('nc-album-champ').hidden=!(P.type==='mariage'&&P.albumActif!==false);$('nc-sous').textContent=P.sous+'. Vous pourrez tout modifier ensuite dans les réglages.';$('nc-dossier').value=P.classeur;$('nc-nom').placeholder=P.type==='seance'?'Par exemple : Séance famille Joseph':'Par exemple : Mariage Léa & Thomas'}
+  function maj(){var P=PRESETS[$('nc-preset').value];$('nc-album-champ').hidden=!(P.type==='mariage'&&P.albumActif!==false);$('nc-seance-champ').hidden=$('nc-quota-champ').hidden=P.type!=='seance';$('nc-sous').textContent=P.sous+'. Vous pourrez tout modifier ensuite dans les réglages.';$('nc-dossier').value=P.classeur;$('nc-nom').placeholder=P.type==='seance'?'Par exemple : Séance famille Joseph':'Par exemple : Mariage Léa & Thomas'}
   $('nc-preset').onchange=maj;maj();$('nc-nom').focus();
+  var DOSSIER_SEANCE={couple:'Couple',maternite:'Maternité',famille:'Famille'},EX_SEANCE={couple:'Séance couple Cendrine & Thierry',maternite:'Séance maternité Laura',famille:'Famille Joseph'};
+  document.querySelectorAll('[name=nc-seance]').forEach(function(r){r.onchange=function(){
+    var sel=$('nc-dossier'),v=DOSSIER_SEANCE[r.value];
+    if(![].some.call(sel.options,function(o){return o.value===v})){var o=document.createElement('option');o.textContent=v;sel.insertBefore(o,sel.lastElementChild)}
+    sel.value=v;$('nc-nom').placeholder='Par exemple : '+EX_SEANCE[r.value];
+  }});
   $('nc-ok').onclick=function(){
     var nom=$('nc-nom').value.trim();if(!nom){toast('Donnez un nom à la collection.');$('nc-nom').focus();return}
     var P=PRESETS[$('nc-preset').value],d=$('nc-date').value||new Date().toISOString().slice(0,10),b=this;
-    var albumActif=P.albumActif;
+    var albumActif=P.albumActif,sousType=null,quota=null,classeur=$('nc-dossier').value;
+    if(P.type==='seance'){
+      var st=document.querySelector('[name=nc-seance]:checked');if(!st){toast('Choisissez le type de séance : couple, maternité ou famille.');$('nc-seance-couple').focus();return}
+      sousType=st.value;quota=parseInt($('nc-quota').value,10);if(!(quota>0)){toast('Indiquez le nombre de photos incluses.');$('nc-quota').focus();return}
+    }
     if(!$('nc-album-champ').hidden){var ch=document.querySelector('[name=nc-album]:checked');if(!ch){toast('Indiquez si l’album photo est inclus.');$('nc-album-oui').focus();return}albumActif=ch.value==='oui'}
     var mois=P.type==='seance'||P.albumActif===false?3:6,e=new Date(d+'T12:00:00');e.setMonth(e.getMonth()+mois);
     if(e<new Date()){e=new Date();e.setMonth(e.getMonth()+mois)}
     b.disabled=true;
-    api('collections',{method:'POST',body:{nom:nom,type:P.type,classeur:$('nc-dossier').value,dateEvt:d,expiration:e.toISOString().slice(0,10),albumActif:albumActif}}).then(function(r){
+    api('collections',{method:'POST',body:{nom:nom,type:P.type,classeur:classeur,dateEvt:d,expiration:e.toISOString().slice(0,10),albumActif:albumActif,sousType:sousType,quota:quota}}).then(function(r){
       fermerFenetre();toast('Collection créée, en statut cachée. Ajoutez-y vos photos.');return ouvrirCollection(r.id);
     }).catch(function(err){b.disabled=false;toast(err.message)});
   };
