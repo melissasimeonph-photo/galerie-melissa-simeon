@@ -437,6 +437,12 @@ $('partage-copier').onclick=function(){
   try{navigator.clipboard.writeText(inp.value).then(ok,repli)}catch(e){repli()}
 };
 $('btn-partage').onclick=function(e){e.stopPropagation();ouvrirPartage(null)};
+// Déconnexion du client ou de l'invité : retour à la page de connexion de la galerie
+if($('btn-sortie')){poserIco('btn-sortie',I.sortie);$('btn-sortie').onclick=function(){
+  if(APERCU){toast('Aperçu : la déconnexion est désactivée.');return}
+  this.disabled=true;
+  fetch('/api/g/'+SLUG+'/deconnexion',{method:'POST',credentials:'same-origin'}).catch(function(){}).then(function(){location.replace('/'+SLUG)});
+}}
 $('v-partage').onclick=function(e){e.stopPropagation();ouvrirPartage(etat.courante[etat.idx])};
 
 /* ---------- Menu de téléchargement ---------- */

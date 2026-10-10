@@ -83,6 +83,11 @@ export async function routerClient(env, req, url, ctx) {
     return json({ ok: true, role }, 200, { 'set-cookie': `${nomCookie(c.id)}=${jeton}; Path=/; Max-Age=${30 * 86400}; HttpOnly; Secure; SameSite=Lax` });
   }
 
+  // Déconnexion : on efface le cookie de session de cette galerie
+  if (parts[0] === 'api' && parts[3] === 'deconnexion' && req.method === 'POST') {
+    return json({ ok: true }, 200, { 'set-cookie': `${nomCookie(c.id)}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax` });
+  }
+
   // Tout le reste exige une session (ou la photographe, pour l'aperçu)
   let s = await sessionClient(env, req, c);
   if (!s && (await verifierAdmin(env, req)) && url.searchParams.get('apercu') === '1') s = { c: c.id, e: 'apercu', r: 'couple', apercu: true };
