@@ -18,7 +18,7 @@ def page(titre, mode, extra=''):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#F4EFE9">
+<meta name="theme-color" content="#FFFFFF">
 <title>{titre}</title>
 <link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/polices/hanken-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>

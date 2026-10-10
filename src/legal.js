@@ -8,7 +8,7 @@ export function pageLegale(env, ancre) {
 <meta name="robots" content="noindex"><title>${ancre === 'confidentialite' ? 'Confidentialité' : 'Mentions légales'} · Mélissa Siméon Photographie</title>
 <link rel="icon" href="/assets/logo.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/polices.css">
 <style>
-:root{--fond:#F4EFE9;--carte:#FBF8F4;--ligne:#E2D8CB;--encre:#2A2016;--gris:#6B5C48}
+:root{--fond:#FFFFFF;--carte:#F7F7F6;--ligne:#EAEAE8;--encre:#2A2016;--gris:#6A6A6A}
 *{box-sizing:border-box}
 body{margin:0;background:var(--fond);color:var(--encre);font-family:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
 main{max-width:760px;margin:0 auto;padding:48px 20px 72px}
