@@ -1126,7 +1126,7 @@ function genererBanniere(o){
   var cid=CID,W=1120,H=760,R=56,c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d');
   function charger(src){return new Promise(function(ok){var im=new Image();im.onload=function(){ok(im)};im.onerror=function(){ok(null)};im.src=src})}
   var logo='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(LOGO_SVG.replace(' class="logo" aria-hidden="true"','').replace(/currentColor/g,'#FFFFFF'));
-  var polices=(document.fonts&&document.fonts.load)?Promise.all([document.fonts.load('400 64px "Bricolage Grotesque"'),document.fonts.load('500 26px "Hanken Grotesk"')]).catch(function(){}):Promise.resolve();
+  var polices=(document.fonts&&document.fonts.load)?Promise.all([document.fonts.load('600 64px "Bricolage Grotesque"'),document.fonts.load('500 26px "Hanken Grotesk"')]).catch(function(){}):Promise.resolve();
   return Promise.all([charger(src||SRC(n,'web')).then(function(im){return im||charger(SRC(n,'mini'))}),charger(logo),polices]).then(function(r){
     var im=r[0],lg=r[1];if(!im)return;
     x.fillStyle='#F4EFE9';x.fillRect(0,0,W,H);
@@ -1146,7 +1146,7 @@ function genererBanniere(o){
     var lw=74,lh=lg?lw*lg.naturalHeight/lg.naturalWidth:0;if(lg)x.drawImage(lg,W-60-lw,H-56-lh,lw,lh);
     var titre=String(ADM.nom||'').replace(/^Séance famille\s+/i,'Famille ').replace(/^(Mariage|Séance couple|Séance maternité|Séance)\s+/i,''),t=70;
     x.fillStyle='#FFFFFF';x.textBaseline='alphabetic';
-    do{x.font='400 '+t+'px "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif';t-=2}while(x.measureText(titre).width>W-60-60-lw-30&&t>34);
+    do{x.font='600 '+t+'px "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif';t-=2}while(x.measureText(titre).width>W-60-60-lw-30&&t>34);
     x.fillText(titre,60,H-104);
     x.font='500 27px "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif';x.globalAlpha=.88;
     x.fillText((SEANCE?'Séance photo':'Mariage')+(ADM.dateEvt?' · '+dateFr(ADM.dateEvt):''),62,H-58);

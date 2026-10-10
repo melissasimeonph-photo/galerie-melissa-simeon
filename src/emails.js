@@ -37,7 +37,8 @@ export async function envoyerEmail(env, { collectionId = null, a, objet, texte, 
 }
 
 /* ---------- Mise en page, sur le modèle des e-mails du questionnaire mariage ---------- */
-const C = { fond: '#F4EFE9', carte: '#FBF8F4', ligne: '#E2D8CB', encre: '#362023', gris: '#6B5C48', pale: '#9A8B77' };
+// Mêmes couleurs que les e-mails du questionnaire mariage
+const C = { fond: '#F4EFE9', carte: '#FBF8F4', ligne: '#E2D8CB', encre: '#2A2016', gris: '#6B5C48', pale: '#9A8B77' };
 const TITRE = "'Bricolage Grotesque','Avenir Next','Helvetica Neue',Helvetica,Arial,sans-serif";
 const TEXTE = "'Hanken Grotesk','Helvetica Neue',Helvetica,Arial,sans-serif";
 const ligneT = (contenu, pad = '0 0 16px') => `<tr><td style="padding:${pad}">${contenu}</td></tr>`;
@@ -89,11 +90,15 @@ function gabarit(env, { objet, texte, bouton, coll }, pieces = null) {
 <div style="font-size:13px;line-height:1.3;color:${C.gris}">${seance ? 'Photographe, Martinique' : 'Photographe de mariage, Martinique'}</div></td></tr></table>`;
 
   const photo = banniere ? `<a href="${esc(bouton ? bouton.url : base)}"><img src="${img(banniere, 'photo', 'photo.jpg')}" width="560" alt="${esc(g.nom || '')}" style="display:block;width:100%;max-width:560px;height:auto;border:0"></a>` : '';
-  const titre = `<h1 style="margin:0;font-family:${TITRE};font-weight:400;font-size:38px;line-height:1.05;letter-spacing:-1px;color:${C.encre}">${esc(objet)}</h1>`;
+  const titre = `<h1 style="margin:0;font-family:${TITRE};font-weight:700;font-size:40px;line-height:1.02;letter-spacing:-1.4px;color:${C.encre}">${esc(objet)}</h1>`;
   const corps = paras.map((p) => `<p style="margin:0 0 14px;font-family:${TEXTE};font-size:17px;line-height:1.55;color:${C.gris}">${esc(p).replace(/\n/g, '<br>')}</p>`).join('');
 
-  const carte = infos.length ? tableP(`<tr><td style="padding:6px 18px">${tableP(infos.map(([k, v], i) =>
-    `<tr><td style="padding:12px 0;${i ? `border-top:1px solid ${C.ligne};` : ''}font-family:${TEXTE}"><div style="font-size:13px;color:${C.gris};margin-bottom:3px">${esc(k)}</div><div style="font-size:17px;font-weight:600;letter-spacing:.02em;color:${C.encre}">${esc(v)}</div></td></tr>`).join(''))}</td></tr>`,
+  const icone = (k) => /invités/i.test(k) ? 'invites' : /jusqu/i.test(k) ? 'calendrier' : 'cle';
+  const carte = infos.length ? tableP(`<tr><td style="padding:2px 18px">${tableP(infos.map(([k, v], i) => {
+    const bord = i ? `border-top:1px solid ${C.ligne};` : '', ic = icone(k);
+    return `<tr><td style="width:22px;padding:16px 0;${bord}vertical-align:middle"><img src="${img(`${base}/assets/email/${ic}.png`, ic, ic + '.png')}" width="22" alt="" style="display:block;width:22px;height:22px;border:0"></td>`
+      + `<td style="padding:14px 0 14px 14px;${bord}vertical-align:middle;font-family:${TEXTE}"><div style="font-size:13px;color:${C.gris}">${esc(k)}</div><div style="font-size:16px;font-weight:600;color:${C.encre}">${esc(v)}</div></td></tr>`;
+  }).join(''))}</td></tr>`,
     `background:${C.carte};border:1px solid ${C.ligne};border-radius:18px`) : '';
 
   const btn = bouton ? tableP(`<tr><td style="padding:0 8px 0 24px;vertical-align:middle"><a href="${esc(bouton.url)}" style="font-family:${TEXTE};font-weight:600;font-size:16px;color:${C.fond};text-decoration:none;display:block">${esc(bouton.texte)}</a></td>
@@ -103,7 +108,7 @@ function gabarit(env, { objet, texte, bouton, coll }, pieces = null) {
   const sign = signature ? `<p style="margin:0;font-family:${TEXTE};font-size:16px;line-height:1.5;color:${C.encre}">${esc(signature).replace(/\n\s*Mélissa\s*$/, '<br><strong>Mélissa</strong>').replace(/\n/g, '<br>')}</p>` : '';
 
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only"><style>:root{color-scheme:light only;supported-color-schemes:light only}</style>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet"></head>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,500&display=swap" rel="stylesheet"></head>
 <body style="margin:0;padding:0;background:${C.fond}"><div style="display:none;max-height:0;overflow:hidden;color:${C.fond}">${esc(paras[1] || paras[0] || objet)}</div>
 ${tableP(`<tr><td align="center" style="padding:28px 16px 40px">${tableP(
     ligneT(entete, '0 0 22px') +
@@ -113,7 +118,7 @@ ${tableP(`<tr><td align="center" style="padding:28px 16px 40px">${tableP(
     (carte ? ligneT(carte, '0 0 22px') : '') +
     (btn ? ligneT(btn, '0 0 28px') : '') +
     (sign ? ligneT(sign, '0') : '') +
-    ligneT(`<p style="margin:0;padding-top:26px;border-top:1px solid ${C.ligne};font-family:${TEXTE};font-size:13px;line-height:1.5;color:${C.pale}">Mélissa Siméon, photographe en Martinique · <a href="https://www.instagram.com/melissasimeon.ph/" style="color:${C.gris}">@melissasimeon.ph</a></p>`, '32px 0 0'),
+    ligneT(`<p style="margin:0;padding-top:26px;border-top:1px solid ${C.ligne};font-family:${TEXTE};font-size:13px;line-height:1.5;color:${C.pale}">Mélissa Siméon, ${seance ? 'photographe' : 'photographe de mariage'} en Martinique · <a href="https://www.instagram.com/melissasimeon.ph/" style="color:${C.gris}">@melissasimeon.ph</a></p>`, '32px 0 0'),
     'max-width:560px')}</td></tr>`, `background:${C.fond}`)}
 </body></html>`;
 }
