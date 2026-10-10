@@ -35,7 +35,7 @@ h1,h2,h3{font-family:var(--f-titre);font-weight:400;margin:0;text-wrap:balance;l
 /* Écran d'accès */
 #acces{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:40px 16px;position:relative;overflow:hidden;isolation:isolate}
 .amur{position:absolute;inset:-40px;z-index:-2;filter:blur(var(--flou,9px)) saturate(1.05);overflow:hidden}
-.amur-piste{position:absolute;top:0;bottom:0;left:0;width:calc(var(--mw,3600px) * 2);background:url(photos/mur.jpg) 0 0/auto 100% repeat-x;animation:defile var(--md,120s) linear infinite;will-change:transform}
+.amur-piste{position:absolute;top:0;bottom:0;left:0;width:calc(var(--mw,3600px) * 2);background:0 0/auto 100% repeat-x;animation:defile var(--md,120s) linear infinite;will-change:transform}
 @keyframes defile{from{transform:translateX(0)}to{transform:translateX(calc(var(--mw,3600px) * -1))}}
 .avoile{position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse 46% 62% at 50% 50%,rgba(244,239,233,.86),rgba(244,239,233,.5) 75%,rgba(244,239,233,.38))}
 #acces.sans-mur .amur,#acces.sans-mur .avoile{display:none}
