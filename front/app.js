@@ -247,7 +247,7 @@ function rendre(){
   $('titre-vue').textContent=t;$('sous-titre-vue').textContent=st;
   rendreListes();
   if(!liste.length){
-    $('colonnes').innerHTML='';
+    $('colonnes').innerHTML='';$('colonnes').style.height='';
     var v=document.createElement('div');v.className='vide';
     v.innerHTML=etat.vue==='fav'?'<h3>Aucun favori pour l’instant</h3><span>Touchez le cœur sur une photo pour l’ajouter à cette liste.</span>':SEANCE?'<h3>Aucune photo sélectionnée</h3><span>Touchez le rond sur une photo pour la sélectionner. Votre formule en comprend '+QUOTA+'.</span>':'<h3>L’album est vide</h3><span>Touchez l’icône livre sur une photo pour la proposer pour votre album. Vous pouvez en choisir '+QUOTA+'.</span>';
     $('colonnes').appendChild(v);
@@ -256,7 +256,7 @@ function rendre(){
     liste.forEach(function(p,i){
       var f=estFav(p.id),a=estAlbum(p.id);
       h+='<figure class="tuile" data-i="'+i+'" data-r="'+(p.w/p.h).toFixed(4)+'" tabindex="0" aria-label="'+p.nom+'">'+
-        '<img class="ph" loading="lazy" decoding="async" src="'+SRC(p.n,'mini')+'" alt="">'+
+        '<img class="ph" loading="lazy" decoding="async" src="'+SRC(p.n,'mini')+'" srcset="'+SRC(p.n,'mini')+' 800w, '+SRC(p.n,'web')+' 2048w" sizes="33vw" alt="">'+
         '<div class="etats">'+(f?'<span title="Dans vos favoris">'+I.coeurPlein+'</span>':'')+(a?'<span class="al" title="'+TXT.dans+'">'+I.albumPlein+'</span>':'')+(SELP()&&etat.notes[p.id]?'<span title="Note pour Mélissa">'+I.crayon+'</span>':'')+'</div>'+
         '<div class="outils">'+
         '<button class="tbtn" data-act="fav" data-id="'+p.id+'" title="'+(f?'Retirer des favoris':'Ajouter aux favoris')+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?I.coeurPlein:I.coeur)+'</button>'+
@@ -270,24 +270,33 @@ function rendre(){
   }
   rendreBarreSel();
 }
-/* Grille justifiée : chaque rangée a la même hauteur, chaque photo garde son format */
-var largeurPrec=0;
+/* Mosaïque en colonnes : chaque photo garde son format, rangée dans la colonne la plus courte.
+   Le client choisit la taille d'affichage : petit, moyen (par défaut) ou grand. */
+var largeurPrec=0,TAILLES={petit:'Petit',moyen:'Moyen',grand:'Grand'};
+var TAILLE=(function(){try{var t=localStorage.getItem('taille-photos');return TAILLES[t]?t:'moyen'}catch(e){return 'moyen'}})();
+function colonnesPour(W){
+  if(TAILLE==='petit')return W>=1300?6:W>=1000?5:W>=700?4:3;
+  if(TAILLE==='grand')return W>=1100?2:1;
+  return W>=900?3:2;
+}
 function agencer(){
   var c=$('colonnes'),W=c.clientWidth;if(!W)return;largeurPrec=W;
-  var mob=W<560,gap=mob?6:10,cible=mob?180:(W<900?230:300);
-  var tuiles=[].slice.call(c.querySelectorAll('.tuile')),rang=[],somme=0;
-  function poser(r,h,dernier){
-    var x=0;r.forEach(function(t,k){
-      var w=Math.floor(+t.dataset.r*h);
-      if(!dernier&&k===r.length-1)w=W-x-gap*(r.length-1);
-      t.style.width=w+'px';t.style.height=Math.round(h)+'px';x+=w;
-    });
-  }
-  tuiles.forEach(function(t){
-    rang.push(t);somme+=+t.dataset.r;
-    if(somme*cible+gap*(rang.length-1)>=W){poser(rang,(W-gap*(rang.length-1))/somme,false);rang=[];somme=0}
+  var n=colonnesPour(W),gap=W<560?(TAILLE==='petit'?4:8):(TAILLE==='petit'?12:Math.round(Math.min(48,Math.max(20,W*.024))));
+  var cw=(W-gap*(n-1))/n,hauts=[];for(var k=0;k<n;k++)hauts.push(0);
+  [].slice.call(c.querySelectorAll('.tuile')).forEach(function(t){
+    var col=hauts.indexOf(Math.min.apply(null,hauts)),h=Math.round(cw/(+t.dataset.r||1.5));
+    t.style.width=Math.floor(cw)+'px';t.style.height=h+'px';t.style.left=Math.round(col*(cw+gap))+'px';t.style.top=hauts[col]+'px';
+    var im=t.querySelector('.ph');if(im)im.sizes=Math.ceil(cw)+'px';
+    hauts[col]+=h+gap;
   });
-  if(rang.length)poser(rang,Math.min(cible,(W-gap*(rang.length-1))/somme),true);
+  c.style.height=Math.max(0,Math.max.apply(null,hauts)-gap)+'px';
+}
+function choisirTaille(t){TAILLE=t;try{localStorage.setItem('taille-photos',t)}catch(e){}agencer();majBtnTaille()}
+function majBtnTaille(){var b=$('btn-taille');if(b){b.title='Taille des photos : '+TAILLES[TAILLE].toLowerCase();b.setAttribute('aria-label',b.title)}}
+if($('btn-taille')){
+  poserIco('btn-taille',I.grille);majBtnTaille();
+  $('btn-taille').onclick=function(e){e.stopPropagation();pop(this,'<div class="pop-label">Taille des photos</div>'+Object.keys(TAILLES).map(function(k){return itemPop(k,null,TAILLES[k],TAILLE===k)}).join(''),function(m){
+    m.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){choisirTaille(b.dataset.a);fermerPop()}})})};
 }
 if(window.ResizeObserver){new ResizeObserver(function(){if($('colonnes').clientWidth!==largeurPrec)agencer()}).observe($('colonnes'))}
 else window.addEventListener('resize',agencer);
