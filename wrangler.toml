@@ -33,8 +33,8 @@ ADMIN_EMAIL = "melissasimeon.ph@gmail.com"
 EXPEDITEUR = "Mélissa Siméon <galerie@melissa-simeon.com>"
 REPONSE_A = "melissasimeon.ph@gmail.com"
 # Renseignés après la création de l'application Cloudflare Access :
-ACCESS_EQUIPE = ""
-ACCESS_AUD = ""
+ACCESS_EQUIPE = "raspy-violet-9a10"
+ACCESS_AUD = "fa09a79f739555d0fa7550a5d107c973cfa0fe4ceccf7b53521393458b5e5918"
 
 # Secret à ajouter dans Cloudflare (Workers › galerie-melissa-simeon › Paramètres › Variables et secrets) :
 #   RESEND_API_KEY  : clé d'envoi des e-mails
