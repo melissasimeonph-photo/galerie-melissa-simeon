@@ -457,6 +457,18 @@ input[type=number],input[type=date]{width:100%;padding:12px 14px;border:1px soli
 .app-bas{display:flex;align-items:center;gap:8px;padding:12px}
 .stockage{flex:1;display:flex;align-items:center;gap:10px;background:var(--sauge-pale);color:var(--sauge-fonce);border-radius:12px;padding:10px 12px;font-size:13px;min-width:0}
 .stockage b{font-weight:600}
+.compteur-req{margin:0 12px;padding:10px 12px;border-radius:12px;border:1px solid var(--ligne);display:grid;gap:6px;font-size:13px;color:var(--brun)}
+.compteur-req .cr-ligne{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.compteur-req b{font-weight:600}
+.compteur-req b small{font-weight:500;color:var(--brun-doux);font-size:11.5px}
+.compteur-req>small{font-size:11.5px;color:var(--brun-doux)}
+.cr-jauge{height:5px;border-radius:9px;background:var(--sable-2);overflow:hidden}
+.cr-jauge i{display:block;height:100%;background:var(--sauge-fonce);border-radius:9px}
+.compteur-req.attention .cr-jauge i{background:#C08A2E}
+.compteur-req.alerte{border-color:var(--alerte)}
+.compteur-req.alerte .cr-jauge i{background:var(--alerte)}
+.compteur-req.alerte>small{color:var(--alerte);font-weight:600}
+.app.replie .compteur-req{display:none}
 .stockage small{display:block;font-size:11.5px;opacity:.85}
 .anneau{width:22px;height:22px;border-radius:50%;border:3px solid var(--sauge-fonce);border-right-color:rgba(86,120,106,.25);flex:none}
 .app.replie .app-nom,.app.replie .app-lien span,.app.replie .stockage{display:none}
@@ -573,6 +585,7 @@ select{width:100%;padding:12px 14px;border:1px solid var(--ligne);border-radius:
   .app-lien{width:auto;padding:8px 12px}
   .app.replie .app-lien span,.app.replie .app-nom{display:inline}
   .app-bas{display:none}
+  .compteur-req{width:100%;margin:0 8px 10px}
   .app-sortie{margin-top:0;padding:0 8px 8px;width:auto;margin-left:auto}
 }
 @media (max-width:560px){.dossiers{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.suivi{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.suivi-carte{grid-template-columns:1fr;padding:12px}.suivi-ico{grid-row:auto;width:30px;height:30px}.suivi-carte small{white-space:normal}.dossier-nom{font-size:14px}}

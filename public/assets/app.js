@@ -632,6 +632,23 @@ function collections(){
     seance:c.type==='seance',phase:g.phase,album:(c.type!=='seance'&&g.albumActif===false)?null:c.verrou?'validee':c.nsel?'cours':'aucun',sauvegarde:!!g.sauvegarde,cree:new Date(c.cree).toISOString().slice(0,10),creeTs:c.cree,
     couv:g.couv,couvPos:g.couvPos||'50% 50%',nsel:c.nsel,quota:g.quota,code:g.code,derniereRelance:c.derniereRelance,relanceAuto:g.relanceAuto!==false,relanceJours:g.relanceJours||14,publieLe:g.publieLe||null,premiere:c.premiere||null}});
 }
+/* ---- Compteur de requêtes du jour (limite de l'offre gratuite Cloudflare) ---- */
+var USAGE=null,usageT=0;
+function chargerUsage(){
+  if(Date.now()-usageT<120e3)return;usageT=Date.now();
+  api('usage').then(function(u){USAGE=u;rendreCompteur()}).catch(function(){});
+}
+function rendreCompteur(){
+  var el=$('compteur-req');if(!el||!USAGE||!USAGE.configure)return;
+  var u=USAGE,heure=new Date(u.remise).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}).replace(':',' h ').replace(' h 00',' h');
+  if(u.erreur){el.hidden=false;el.className='compteur-req';el.innerHTML='<span>Requêtes du jour</span><small>Compteur indisponible pour le moment</small>';return}
+  var pct=Math.min(100,u.requetes/u.limite*100),niveau=pct>=85?'alerte':pct>=60?'attention':'';
+  el.hidden=false;el.className='compteur-req '+niveau;
+  el.title='Requêtes comptées par Cloudflare aujourd’hui (chaque photo affichée en compte une). Remise à zéro à '+heure+'.';
+  el.innerHTML='<span class="cr-ligne"><span>Requêtes du jour</span><b class="num">'+u.requetes.toLocaleString('fr-FR')+' <small>/ '+u.limite.toLocaleString('fr-FR')+'</small></b></span>'+
+    '<span class="cr-jauge"><i style="width:'+pct.toFixed(1)+'%"></i></span>'+
+    '<small>'+(niveau==='alerte'?'Limite proche : passez à l’offre payante ou attendez '+heure:niveau==='attention'?'Plus de 60 % utilisés · remise à zéro à '+heure:'Remise à zéro à '+heure)+'</small>';
+}
 function retourCollections(){admPage='collections';CID=null;DONNEES=null;history.replaceState(null,'',location.pathname);chargerCollections().then(function(){rendreCollections();window.scrollTo(0,0)}).catch(function(e){toast(e.message)})}
 function joursAvant(iso){return iso?Math.ceil((new Date(iso+'T12:00:00')-new Date())/864e5):null}
 function alertesDe(c){
@@ -701,6 +718,7 @@ function rendreCollections(){
         navItem('reglages',I.reglages,'Réglages',false)+
       '</nav>'+
       '<nav class="app-nav app-sortie"><a class="app-lien" href="/cdn-cgi/access/logout" title="Se déconnecter">'+I.sortie+'<span>Se déconnecter</span></a></nav>'+
+      '<div class="compteur-req" id="compteur-req" hidden></div>'+
       '<div class="app-bas">'+
         '<button class="ibtn" id="app-replier" title="'+(PREFS.replieApp?'Déplier':'Replier')+' le menu" aria-label="'+(PREFS.replieApp?'Déplier':'Replier')+' le menu">'+(PREFS.replieApp?I.deplier:I.replier)+'</button>'+
         '<div class="stockage" title="Stockage Cloudflare R2"><i class="anneau"></i><span><b class="num">'+stock.toFixed(1).replace('.',',')+' Go</b> utilisés<small>Sans limite · '+(stock<=10?'inclus dans l’offre gratuite':'≈ '+((stock-10)*0.015).toFixed(2).replace('.',',')+' $/mois')+'</small></span></div>'+
@@ -741,7 +759,7 @@ function rendreCollections(){
       :'<div class="vide"><h3>Aucune collection</h3><span>'+(filtresActifs()?'Aucune collection ne correspond à ces filtres.':'Ce dossier est vide pour l’instant.')+'</span></div>')+
     '</main>'+
   '</div>';
-  lierCollections();
+  lierCollections();rendreCompteur();chargerUsage();
 }
 function navItem(id,ico,txt,actif){return '<button class="app-lien'+(actif?' actif':'')+'" data-nav="'+id+'" title="'+txt+'">'+ico+'<span>'+txt+'</span></button>'}
 function chip(k,txt,val){return '<button class="puce-filtre'+(val?' on':'')+'" data-filtre="'+k+'" aria-haspopup="menu">'+txt+(val?' : <b>'+val+'</b>':'')+I.caret+'</button>'}

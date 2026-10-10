@@ -42,9 +42,38 @@ async function nettoyerApercus(env, c, etat) {
   return { retirees: retirees.length, apercus: livrees.length };
 }
 
+let usageCache = { t: 0, v: null };
+async function requetesDuJour(env) {
+  const limite = +env.LIMITE_REQUETES || 100000;
+  const maintenant = new Date(), debut = new Date(Date.UTC(maintenant.getUTCFullYear(), maintenant.getUTCMonth(), maintenant.getUTCDate()));
+  const remise = new Date(debut.getTime() + 864e5).toISOString();
+  if (!env.CF_ANALYTICS_TOKEN) return { configure: false, limite, remise };
+  if (usageCache.v && Date.now() - usageCache.t < 120e3) return usageCache.v;
+  const query = `query($a: String!, $s: Time!, $e: Time!) { viewer { accounts(filter: { accountTag: $a }) {
+    workersInvocationsAdaptive(limit: 10000, filter: { datetime_geq: $s, datetime_leq: $e }) { sum { requests } } } } }`;
+  try {
+    const r = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+      method: 'POST',
+      headers: { authorization: 'Bearer ' + String(env.CF_ANALYTICS_TOKEN).replace(/\s+/g, ''), 'content-type': 'application/json' },
+      body: JSON.stringify({ query, variables: { a: env.CF_COMPTE, s: debut.toISOString(), e: maintenant.toISOString() } }),
+    });
+    const j = await r.json();
+    if (j.errors && j.errors.length) return { configure: true, erreur: j.errors[0].message, limite, remise };
+    const lignes = j.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive || [];
+    const requetes = lignes.reduce((s, l) => s + (l.sum?.requests || 0), 0);
+    usageCache = { t: Date.now(), v: { configure: true, requetes, limite, remise, maj: maintenant.toISOString() } };
+    return usageCache.v;
+  } catch (e) {
+    return { configure: true, erreur: String(e.message || e), limite, remise };
+  }
+}
+
 export async function routerAdmin(env, req, url, ctx) {
   const p = url.pathname.replace(/^\/admin\/api\/?/, '').split('/').filter(Boolean);
   const m = req.method;
+
+  // Requêtes du jour sur le compte Cloudflare (limite de l'offre gratuite : 100 000 par jour, remise à zéro à minuit UTC)
+  if (m === 'GET' && p[0] === 'usage') return json(await requetesDuJour(env));
 
   if (p[0] === 'prefs') {
     if (m === 'GET') {
