@@ -921,7 +921,10 @@ function ouvrirCollection(id){
     d.favoris.forEach(function(f){if(etat.listes.Favoris.indexOf(f.photo_id)<0)etat.listes.Favoris.push(f.photo_id)});
     ADM.journal=d.journal.map(function(j){return {t:j.ts,q:j.qui,a:j.quoi}}).reverse();
     admPage='collection';
-    setTimeout(function(){if(CID!==d.id)return;if(!couvAJour())genererCouv();if(!partageAJour())genererPartage()},1500);
+    setTimeout(function(){if(CID!==d.id)return;if(!couvAJour())genererCouv();if(!partageAJour())genererPartage();
+      // Palette blanche (octobre 2026) : les bannières d'e-mail plus anciennes ont des coins beige, on les refait
+      var PALETTE=Date.UTC(2026,9,10,22,0);if(PHOTOS.length&&((ADM.banniere&&ADM.banniere<PALETTE)||(SELP()&&ADM.banniereFlou&&ADM.banniereFlou<PALETTE)))genererBanniere();
+    },1500);
     if(location.hash!=='#c='+id)history.replaceState(null,'','#c='+id);
     rendreAdmin();
     return true;
@@ -1423,7 +1426,7 @@ function genererBanniere(o){
   var polices=(document.fonts&&document.fonts.load)?Promise.all([document.fonts.load('600 64px "Bricolage Grotesque"'),document.fonts.load('500 26px "Hanken Grotesk"')]).catch(function(){}):Promise.resolve();
   return Promise.all([charger(src||SRC(n,'web')).then(function(im){return im||charger(SRC(n,'mini'))}),charger(logo),polices]).then(function(r){
     var im=r[0],lg=r[1];if(!im)return;
-    x.fillStyle='#F4EFE9';x.fillRect(0,0,W,H);
+    x.fillStyle='#FFFFFF';x.fillRect(0,0,W,H);
     x.save();x.beginPath();x.moveTo(R,0);x.arcTo(W,0,W,H,R);x.arcTo(W,H,0,H,R);x.arcTo(0,H,0,0,R);x.arcTo(0,0,W,0,R);x.closePath();x.clip();
     var pos=String(ADM.couvPos||'50% 50%').split(' ').map(function(v){return (parseFloat(v)||50)/100});
     var k=Math.max(W/im.naturalWidth,H/im.naturalHeight),dw=im.naturalWidth*k,dh=im.naturalHeight*k;
@@ -1504,7 +1507,7 @@ function genererMur(){
   var liste=PHOTOS.filter(function(p){return !LIVRE()||estAlbum(p.id)}),pas=Math.max(1,Math.floor(liste.length/80)),choix=[];
   for(var k=0;k<liste.length&&choix.length<80;k+=pas)choix.push(liste[k]);
   var H=170,G=0,W=3600,R=4,c=document.createElement('canvas');c.width=W;c.height=R*H+(R-1)*G;
-  var x=c.getContext('2d');x.fillStyle='#F4EFE9';x.fillRect(0,0,c.width,c.height);
+  var x=c.getContext('2d');x.fillStyle='#FFFFFF';x.fillRect(0,0,c.width,c.height);
   return Promise.all(choix.map(function(p){return new Promise(function(ok){var im=new Image();im.onload=function(){ok(im)};im.onerror=function(){ok(null)};im.src=SRC(p.n,'mini')})})).then(function(imgs){
     imgs=imgs.filter(Boolean);if(!imgs.length)return;
     var i=0;
