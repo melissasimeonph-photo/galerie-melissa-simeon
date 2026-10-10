@@ -245,7 +245,7 @@ export async function routerAdmin(env, req, url, ctx) {
         guide = await envoyerEmail(env, { collectionId: c.id, a, ...texteGuideAlbum(env, c), programmeA: quand });
         if (guide.ok) {
           g.guideAlbum = quand; await enregistrerReglages(env, c);
-          await journaliser(env, c.id, 'Vous', `e-mail « Ensuite, votre livre photo » ${guide.statut}`);
+          await journaliser(env, c.id, 'Vous', `e-mail « Votre livre photo » ${guide.statut}`);
         }
       }
     }

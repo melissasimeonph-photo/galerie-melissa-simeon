@@ -186,7 +186,7 @@ export { gabarit as _gabaritPourApercu };
 export function texteGuideAlbum(env, coll) {
   const g = coll.reglages;
   return {
-    objet: '📖 Ensuite, votre livre photo',
+    objet: '📖 Votre livre photo',
     texte: `Bonjour ${prenomsDe(g.nom)},\n\nVoici comment se passe la sélection ⬇️\n\nVotre code d’accès : ${g.code}\n\nÀ très vite,\nMélissa`,
     etapes: [
       { titre: 'Votre sélection', texte: `Dans la galerie, cliquez sur l’icône « album » de chaque photo que vous souhaitez voir dans votre livre. Vous pouvez en choisir jusqu’à ${g.quota}. Une jauge vous indique où vous en êtes, et vous pouvez ajouter ou retirer des photos autant que vous le souhaitez.` },
