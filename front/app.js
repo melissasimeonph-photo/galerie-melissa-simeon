@@ -511,7 +511,7 @@ var STATUTS={
 var CLASSEURS=['Mariages','Couple','Famille','Maternité','Événements'];
 var admPage='collections';
 var LOGO_SVG='{{LOGO_JS}}';
-var admOnglet='photos',admSet=null;
+var admOnglet='photos',admSet=null,SELADM=new Set(),selAdmCtx='';
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function dossierPar(id){for(var i=0;i<DOSSIERS.length;i++)if(DOSSIERS[i].id===id)return DOSSIERS[i]}
 function lienGalerie(){return urlGalerie()}
@@ -1029,6 +1029,7 @@ function rendreSetMain(){
 }
 function rendreSetMainBase(){
   var d=dossierPar(admSet),main=$('adm-main');
+  if(selAdmCtx!==CID+'/'+admSet){SELADM.clear();selAdmCtx=CID+'/'+admSet}
   if(!d){
     var seanceSel=SEANCE&&!LIVRE(),nomDef=SEANCE?'Séance':'Cérémonie';
     main.innerHTML='<div class="vide"><h3>Aucune catégorie</h3><span>Créez une première catégorie pour y ranger vos photos.</span></div>'+
@@ -1049,8 +1050,10 @@ function rendreSetMainBase(){
       '<button class="ibtn" id="adm-grille" title="Affichage de la grille" aria-label="Affichage de la grille" aria-haspopup="menu">'+I.grille+'</button>'+
       '<span class="sep-v"></span><button class="txtbtn" id="adm-ajout">'+I.plusRond+libAjout+'</button></div></div>'+
     (d.desc?'<p class="adm-desc">'+esc(d.desc)+'</p>':'')+
-    (photos.length?'<div class="grille-adm g-'+ADM.grille+(ADM.fichiers?'':' sans-noms')+'">'+photos.map(function(p){
-      return '<figure class="cell" data-pid="'+p.id+'"><div class="cadre"><img loading="lazy" decoding="async" src="'+SRC(p.n,'mini')+'" alt=""><span class="cell-outils"><button class="cell-btn" data-couv="'+p.id+'" title="Utiliser comme couverture" aria-label="Utiliser comme couverture">'+I.image+'</button><button class="cell-btn" data-suppr="'+p.id+'" title="Supprimer la photo" aria-label="Supprimer la photo">'+I.corbeille+'</button></span></div>'+
+    '<div class="sel-adm" id="sel-adm" hidden><span id="sel-adm-n"></span><button class="lienbtn" id="sel-adm-tout">Tout sélectionner</button><button class="lienbtn" id="sel-adm-annuler">Annuler</button><button class="btn danger" id="sel-adm-suppr">'+I.corbeille+'Supprimer</button></div>'+
+    (photos.length?'<div class="grille-adm g-'+ADM.grille+(ADM.fichiers?'':' sans-noms')+(SELADM.size?' mode-sel':'')+'">'+photos.map(function(p){
+      var coche=SELADM.has(p.id);
+      return '<figure class="cell'+(coche?' coche':'')+'" data-pid="'+p.id+'"><div class="cadre"><button class="cell-case" data-case="'+p.id+'" role="checkbox" aria-checked="'+coche+'" title="Sélectionner" aria-label="Sélectionner '+esc(p.nom)+'">'+I.check+'</button><img loading="lazy" decoding="async" src="'+SRC(p.n,'mini')+'" alt=""><span class="cell-outils"><button class="cell-btn" data-couv="'+p.id+'" title="Utiliser comme couverture" aria-label="Utiliser comme couverture">'+I.image+'</button><button class="cell-btn" data-suppr="'+p.id+'" title="Supprimer la photo" aria-label="Supprimer la photo">'+I.corbeille+'</button></span></div>'+
         ((fav[p.id]||estAlbum(p.id))?'<div class="etats">'+(fav[p.id]?'<span title="Favori du client">'+I.coeurPlein+'</span>':'')+(estAlbum(p.id)?'<span class="al" title="'+TXT.dans+'">'+I.albumPlein+'</span>':'')+'</div>':'')+
         '<figcaption title="'+esc(p.nom)+'">'+esc(p.nom)+'</figcaption></figure>';
     }).join('')+'</div>':'<div class="vide"><h3>Catégorie vide</h3><span>Ajoutez des photos pour qu’elle apparaisse dans la galerie de vos clients.</span></div>');
@@ -1067,6 +1070,22 @@ function rendreSetMainBase(){
   };
   $('adm-ajout').onclick=function(){if(SEANCE&&!LIVRE())fenetreImport();else fenetreAjout(d)};
   main.querySelectorAll('[data-suppr]').forEach(function(b){b.onclick=function(e){e.stopPropagation();supprimerPhoto(parId(+b.dataset.suppr))}});
+  // Sélection multiple : case en haut à droite (au survol), clic sur la photo une fois en mode sélection, Maj+clic pour une plage
+  var ids=photos.map(function(p){return p.id}),grille=main.querySelector('.grille-adm');
+  function basculer(id,force){var on=force===undefined?!SELADM.has(id):force;if(on)SELADM.add(id);else SELADM.delete(id);var c=main.querySelector('.cell[data-pid="'+id+'"]');if(c){c.classList.toggle('coche',on);c.querySelector('.cell-case').setAttribute('aria-checked',on)}}
+  function majSel(){var n=SELADM.size;$('sel-adm').hidden=!n;if(grille)grille.classList.toggle('mode-sel',n>0);$('sel-adm-n').textContent=n+' photo'+(n>1?'s':'')+' sélectionnée'+(n>1?'s':'');$('sel-adm-tout').hidden=ids.every(function(i){return SELADM.has(i)})}
+  var dernier=null;
+  function cliquer(id,e){
+    if(e.shiftKey&&dernier!==null&&ids.indexOf(dernier)>-1){var a=ids.indexOf(dernier),b=ids.indexOf(id),on=!SELADM.has(id);ids.slice(Math.min(a,b),Math.max(a,b)+1).forEach(function(i){basculer(i,on)})}
+    else basculer(id);
+    dernier=id;majSel();
+  }
+  main.querySelectorAll('[data-case]').forEach(function(b){b.onclick=function(e){e.stopPropagation();cliquer(+b.dataset.case,e)}});
+  main.querySelectorAll('.cell .cadre').forEach(function(c){c.addEventListener('click',function(e){if(!SELADM.size||e.target.closest('.cell-btn'))return;cliquer(+c.closest('.cell').dataset.pid,e)})});
+  $('sel-adm-tout').onclick=function(){ids.forEach(function(i){basculer(i,true)});majSel()};
+  $('sel-adm-annuler').onclick=function(){SELADM.forEach(function(i){basculer(i,false)});SELADM.clear();majSel()};
+  $('sel-adm-suppr').onclick=function(){supprimerPhotos(Array.from(SELADM).map(parId).filter(Boolean))};
+  majSel();
   main.querySelectorAll('[data-couv]').forEach(function(b){b.onclick=function(e){e.stopPropagation();ADM.couv=+b.dataset.couv;var ph=parId(ADM.couv);ADM.couvPos=ph&&ph.h>ph.w?'50% 35%':'50% 50%';sauverAdm(true).then(function(){genererMur()});rendreAdmin();toast('Couverture mise à jour.')}});
 }
 /* ---- Envoi des photos : versions web et miniature créées dans le navigateur, CRC calculé pour les ZIP ---- */
@@ -1228,6 +1247,28 @@ function genererMur(){
     for(var r=0;r<R;r++){var px=0;while(px<W){var im=imgs[i++%imgs.length],w=Math.round(im.naturalWidth*H/im.naturalHeight);x.drawImage(im,px,r*(H+G),w,H);px+=w+G}}
     return new Promise(function(ok){c.toBlob(ok,'image/jpeg',.72)}).then(function(bl){return fetch('/admin/api/collections/'+CID+'/mur',{method:'PUT',body:bl,credentials:'same-origin'})});
   }).catch(function(){});
+}
+function supprimerPhotos(liste){
+  if(!liste.length)return;
+  var n=liste.length,pl=n>1?'s':'';
+  fenetre('<h2>Supprimer '+n+' photo'+pl+' ?</h2><p>'+(n>1?'Ces photos seront retirées':'Cette photo sera retirée')+' de la galerie et de votre stockage en ligne. Les fichiers sur votre ordinateur ne sont pas touchés.</p>'+
+    '<div class="envoi-prog" id="sg-prog" hidden><div class="jauge"><i id="sg-jauge"></i></div><p class="note" id="sg-txt"></p></div>'+
+    '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn danger" id="sg-ok">'+I.corbeille+'Supprimer '+n+' photo'+pl+'</button></div>');
+  $('sg-ok').onclick=function(){
+    this.disabled=true;$('sg-prog').hidden=false;
+    var i=0,fait=0,erreurs=0,actifs=0;
+    function maj(){$('sg-jauge').style.width=Math.round((fait+erreurs)/n*100)+'%';$('sg-txt').textContent=fait+' / '+n+' supprimée'+(fait>1?'s':'')+(erreurs?' · '+erreurs+' en erreur':'')}
+    new Promise(function(fin){
+      function suivant(){
+        if(i>=n&&actifs===0){fin();return}
+        while(actifs<4&&i<n){(function(p){actifs++;api('photos/'+p.id,{method:'DELETE'}).then(function(){fait++;SELADM.delete(p.id)},function(){erreurs++}).then(function(){actifs--;maj();suivant()})})(liste[i++])}
+      }
+      maj();suivant();
+    }).then(function(){
+      fermerFenetre();toast(fait+' photo'+(fait>1?'s':'')+' supprimée'+(fait>1?'s':'')+(erreurs?' · '+erreurs+' en erreur':'')+'.');
+      return recharger().then(function(){genererMur()});
+    });
+  };
 }
 function supprimerPhoto(p){
   fenetre('<h2>Supprimer cette photo ?</h2><p>« '+esc(p.nom)+' » sera retirée de la galerie et de votre stockage en ligne. Le fichier sur votre ordinateur n’est pas touché.</p><div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn danger" id="sp-ok">Supprimer</button></div>');
