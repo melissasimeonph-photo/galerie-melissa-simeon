@@ -173,6 +173,7 @@ var I={
   dossier:SV+'<path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5v8.3A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z"/></svg>',
   caret:SV+'<path d="M7 10l5 5 5-5"/></svg>',
   replier:SV+'<path d="M5 4.5v15M20 12H9.5M13.5 8l-4 4 4 4"/></svg>',
+  sortie:SV+'<path d="M14 4.5H6.5a1.5 1.5 0 0 0-1.5 1.5v12a1.5 1.5 0 0 0 1.5 1.5H14M10.5 12H20M16.5 8.5 20 12l-3.5 3.5"/></svg>',
   deplier:SV+'<path d="M19 4.5v15M4 12h10.5M10.5 8l4 4-4 4"/></svg>',
   etoile:SV+'<path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/></svg>',
   etoilePleine:SV.replace('fill="none"','fill="currentColor"')+'<path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/></svg>',
@@ -688,6 +689,7 @@ function rendreCollections(){
         navItem('accueil',I.ecran,'Page d’accueil',false)+
         navItem('reglages',I.reglages,'Réglages',false)+
       '</nav>'+
+      '<nav class="app-nav app-sortie"><a class="app-lien" href="/cdn-cgi/access/logout" title="Se déconnecter">'+I.sortie+'<span>Se déconnecter</span></a></nav>'+
       '<div class="app-bas">'+
         '<button class="ibtn" id="app-replier" title="'+(PREFS.replieApp?'Déplier':'Replier')+' le menu" aria-label="'+(PREFS.replieApp?'Déplier':'Replier')+' le menu">'+(PREFS.replieApp?I.deplier:I.replier)+'</button>'+
         '<div class="stockage" title="Stockage Cloudflare R2"><i class="anneau"></i><span><b class="num">'+stock.toFixed(1).replace('.',',')+' Go</b> utilisés<small>Sans limite · '+(stock<=10?'inclus dans l’offre gratuite':'≈ '+((stock-10)*0.015).toFixed(2).replace('.',',')+' $/mois')+'</small></span></div>'+
