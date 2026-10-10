@@ -1019,7 +1019,19 @@ function rendreSetMain(){
 }
 function rendreSetMainBase(){
   var d=dossierPar(admSet),main=$('adm-main');
-  if(!d){main.innerHTML='<div class="vide"><h3>Aucune catégorie</h3><span>Créez une première catégorie pour y ranger vos photos.</span></div>';return}
+  if(!d){
+    var seanceSel=SEANCE&&!LIVRE(),nomDef=SEANCE?'Séance':'Cérémonie';
+    main.innerHTML='<div class="vide"><h3>Aucune catégorie</h3><span>Créez une première catégorie pour y ranger vos photos.</span></div>'+
+      '<label class="depot depot-vide" id="vide-depot"><input type="file" id="vide-input" multiple accept="'+(seanceSel?'.nef,.raf,.cr2,.cr3,.arw,.dng,.jpg,.jpeg,image/jpeg':'image/jpeg,.jpg,.jpeg')+'" hidden><b>'+(seanceSel?'Glissez vos RAW ici':'Glissez vos photos ici')+'</b>ou cliquez pour les choisir</label>'+
+      '<p class="note depot-vide-note">Une catégorie « '+nomDef+' » est créée automatiquement. Vous pourrez la renommer ensuite.</p>';
+    // Dépôt direct : on crée la catégorie, puis on ouvre la fenêtre d'envoi avec les photos déjà choisies
+    lierDepot($('vide-depot'),$('vide-input'),function(fs){
+      if(!fs.length)return;
+      var nid='cat'+Date.now(),nd={id:nid,nom:nomDef,desc:''};DOSSIERS.push(nd);admSet=nid;
+      sauverAdm(true).then(function(){rendreAdmin();if(seanceSel)fenetreImport(fs);else fenetreAjout(nd,fs)});
+    });
+    return;
+  }
   var libAjout=SEANCE&&!LIVRE()?'Importer des RAW':'Ajouter des photos';
   var photos=PHOTOS.filter(function(p){return p.dossier===d.id}),fav=tousFavoris();
   main.innerHTML='<div class="adm-main-tete"><h2>'+esc(d.nom)+'</h2><div class="outils-adm">'+
@@ -1118,7 +1130,7 @@ function grilleVignettes(el,fichiers,retirer){
 }
 function etatVignette(el,i,etat){var v=el.querySelector('.vig[data-i="'+i+'"]');if(v){v.classList.remove('en-cours','envoye','erreur');if(etat)v.classList.add(etat)}}
 
-function fenetreAjout(d){
+function fenetreAjout(d,initiaux){
   fenetre(enteteFen('Ajouter des photos')+
     '<p>Dans « '+esc(d.nom)+' ». Déposez vos exports JPEG : les versions web et les miniatures sont créées automatiquement, et les fichiers originaux sont conservés pour le téléchargement en haute définition.</p>'+
     '<label class="depot" id="depot"><input type="file" id="fichiers" accept="image/jpeg,.jpg,.jpeg" multiple hidden><b>Glissez vos photos ici</b>ou cliquez pour les choisir</label>'+
@@ -1132,10 +1144,12 @@ function fenetreAjout(d){
     $('envoi').disabled=!choisis.length;
     grilleVignettes($('vignettes'),choisis,function(i){if(envoiEnCours)return;choisis.splice(i,1);majChoix()});
   }
-  lierDepot($('depot'),$('fichiers'),function(fs){
+  function surFichiers(fs){
     choisis=fs.filter(function(f){return /\.jpe?g$/i.test(f.name)||f.type==='image/jpeg'});
     majChoix();
-  });
+  }
+  lierDepot($('depot'),$('fichiers'),surFichiers);
+  if(initiaux&&initiaux.length)surFichiers(initiaux);
   $('envoi').onclick=function(){
     var b=this;b.disabled=true;envoiEnCours=true;$('depot').style.pointerEvents='none';$('envoi-fermer').textContent='Masquer';$('vignettes').classList.add('verrou');
     var vg=$('vignettes'),rang=new Map(choisis.map(function(f,i){return [f,i]}));
@@ -1624,7 +1638,7 @@ function produireApercu(bmp,ori,t){
   return new Promise(function(r){c.toBlob(function(bl){r({blob:bl,w:c.width,h:c.height})},'image/jpeg',.7)});
 }
 function poidsTxt(o){return o>=1048576?(o/1048576).toFixed(1).replace('.',',')+' Mo':Math.round(o/1024)+' Ko'}
-function fenetreImport(){
+function fenetreImport(initiaux){
   fenetre(enteteFen('Importer des RAW')+
     '<p>Déposez vos fichiers RAW (NEF, RAF, CR3, ARW, DNG) ou des JPEG. L’aperçu intégré à chaque fichier est extrait ici même, dans votre navigateur, réduit à 1600 px et filigrané. Vos RAW ne quittent jamais votre ordinateur.</p>'+
     '<label class="depot" id="imp-depot"><input type="file" id="imp-input" multiple accept=".nef,.raf,.cr2,.cr3,.arw,.dng,.jpg,.jpeg,image/jpeg" hidden><b>Glissez vos RAW ici</b>ou cliquez pour les choisir</label>'+
@@ -1635,7 +1649,8 @@ function fenetreImport(){
   var total={n:0,avant:0,apres:0,t0:0};
   $('imp-grille').addEventListener('click',function(e){var a=e.target.closest('[data-grand]');if(!a)return;e.preventDefault();var g=$('imp-grand');g.querySelector('img').src=a.dataset.grand;g.hidden=false;g.scrollIntoView({block:'nearest'})});
   $('imp-grand').querySelector('button').onclick=function(){$('imp-grand').hidden=true};
-  lierDepot($('imp-depot'),$('imp-input'),function(fs){
+  var surImport;
+  lierDepot($('imp-depot'),$('imp-input'),surImport=function(fs){
     fs=fs.filter(function(f){return /\.(nef|nrw|raf|cr2|cr3|arw|dng|orf|rw2|jpe?g)$/i.test(f.name)});
     if(!fs.length){toast('Aucun fichier RAW ou JPEG reconnu.');return}
     if(!total.t0)total.t0=performance.now();
@@ -1661,6 +1676,7 @@ function fenetreImport(){
     });
     p.then(function(){return recharger()}).then(function(){genererMur()});
   });
+  if(initiaux&&initiaux.length)surImport(initiaux);
 }
 
 /* ---------- Relances des sélections (album et séance) ---------- */
