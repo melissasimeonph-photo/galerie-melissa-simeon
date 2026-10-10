@@ -16,7 +16,7 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{background:var(--sable);color:var(--brun)}
-body{font-family:var(--f-texte);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--f-texte);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--sauge-fonce);outline-offset:2px;border-radius:6px}
@@ -33,7 +33,7 @@ h1,h2,h3{font-family:var(--f-titre);font-weight:400;margin:0;text-wrap:balance;l
 .proto .bascule #reinit{opacity:.75;font-size:12px}
 
 /* Écran d'accès */
-#acces{min-height:calc(100vh - 44px);display:grid;place-items:center;padding:40px 16px;position:relative;overflow:hidden;isolation:isolate}
+#acces{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:40px 16px;position:relative;overflow:hidden;isolation:isolate}
 .amur{position:absolute;inset:-40px;z-index:-2;filter:blur(var(--flou,9px)) saturate(1.05);overflow:hidden}
 .amur-piste{position:absolute;top:0;bottom:0;left:0;width:calc(var(--mw,3600px) * 2);background:url(photos/mur.jpg) 0 0/auto 100% repeat-x;animation:defile var(--md,120s) linear infinite;will-change:transform}
 @keyframes defile{from{transform:translateX(0)}to{transform:translateX(calc(var(--mw,3600px) * -1))}}
@@ -408,9 +408,9 @@ input[type=number],input[type=date]{width:100%;padding:12px 14px;border:1px soli
 .invite #btn-fav,.invite #btn-album,.invite [data-act=fav],.invite [data-act=album],.invite .etats,.invite #barre-sel,.invite #zone-listes{display:none!important}
 .vision-invite #v-fav,.vision-invite #v-album{display:none!important}
 /* Page Collections */
-.app{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:calc(100vh - 44px)}
+.app{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:100vh}
 .app.replie{grid-template-columns:72px minmax(0,1fr)}
-.app-side{background:var(--papier);border-right:1px solid var(--ligne);display:flex;flex-direction:column;position:sticky;top:0;height:calc(100vh - 44px);min-width:0}
+.app-side{background:var(--papier);border-right:1px solid var(--ligne);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;min-width:0}
 .app-marque{display:flex;align-items:center;gap:10px;padding:20px 20px 18px;font-family:var(--f-titre);font-size:17px}
 .app-marque .logo-box{width:30px;color:var(--marque);flex:none}
 .app-nav{display:grid;gap:2px;padding:0 10px}
