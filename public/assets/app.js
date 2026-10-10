@@ -523,8 +523,8 @@ $('vision').addEventListener('touchstart',function(e){tx=e.touches[0].clientX},{
 $('vision').addEventListener('touchend',function(e){if(tx===null)return;var d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>50){nav(d<0?1:-1);glisseAt=Date.now()}tx=null});
 
 /* ---------- Fenêtres ---------- */
-function fenetre(html){$('fenetre').className='fenetre';$('fenetre').innerHTML=html;$('voile').hidden=false;$('fenetre').querySelectorAll('[data-ferme]').forEach(function(b){b.onclick=fermerFenetre})}
-function fermerFenetre(){$('voile').hidden=true}
+function fenetre(html){$('fenetre').className='fenetre';$('fenetre').innerHTML=html;$('voile').hidden=false;$('fenetre').querySelectorAll('[data-ferme]').forEach(function(b){b.onclick=fermerFenetre});if(typeof suiviMaj==='function')suiviMaj()}
+function fermerFenetre(){$('voile').hidden=true;if(typeof suiviMaj==='function')suiviMaj()}
 $('voile').addEventListener('click',function(e){if(e.target===$('voile'))fermerFenetre()});
 
 function fenetreListe(){
@@ -1321,9 +1321,35 @@ function fileEnvoi(fichiers,tache,maj){
 }
 function blocProgression(){return '<div class="envoi-prog" id="envoi-prog" hidden><div class="jauge"><i id="envoi-jauge"></i></div><p class="note" id="envoi-txt"></p></div>'}
 function majProgression(fait,err,total){
+  if(!$('envoi-prog')||!$('envoi-jauge')||!$('envoi-txt'))return;
   $('envoi-prog').hidden=false;$('envoi-jauge').style.width=Math.round((fait+err)/total*100)+'%';
   $('envoi-txt').textContent=fait+' / '+total+' photo'+(total>1?'s':'')+' envoyée'+(fait>1?'s':'')+(err?' · '+err+' en erreur':'')+((fait+err)<total?' · gardez cette page ouverte':'');
 }
+/* ---- Suivi des envois en arrière-plan : visible dans la collection quand la fenêtre d'envoi est fermée ---- */
+var SUIVI=null,suiviMinuteur=null;
+function suiviAjouter(titre,n){
+  if(!n)return;
+  if(!SUIVI||SUIVI.fait+SUIVI.err>=SUIVI.total)SUIVI={titre:titre,total:0,fait:0,err:0,cid:CID,nom:ADM.nom||''};
+  clearTimeout(suiviMinuteur);SUIVI.total+=n;SUIVI.titre=titre;suiviMaj();
+}
+function suiviPas(ok){if(!SUIVI)return;if(ok)SUIVI.fait++;else SUIVI.err++;suiviMaj()}
+function suiviMaj(){
+  if(MODE!=='admin')return;
+  var el=$('suivi-envoi');
+  if(!SUIVI){if(el)el.remove();return}
+  if(!el){el=document.createElement('div');el.id='suivi-envoi';el.className='suivi-envoi';el.setAttribute('role','status');document.body.appendChild(el)}
+  var s=SUIVI,fini=s.fait+s.err>=s.total,pct=s.total?Math.round((s.fait+s.err)/s.total*100):0;
+  el.classList.toggle('fini',fini);
+  el.innerHTML='<div class="se-haut"><b>'+esc(s.titre)+(s.cid!==CID&&s.nom?' · '+esc(s.nom):'')+'</b><span class="num">'+(s.fait+s.err)+' / '+s.total+'</span></div>'+
+    '<div class="se-jauge"><i style="width:'+pct+'%"></i></div>'+
+    '<small>'+(fini?(s.err?s.fait+' réussie'+(s.fait>1?'s':'')+' · '+s.err+' en erreur':'Terminé ✓'):pct+' % · gardez cette page ouverte')+'</small>';
+  // Masqué tant que la fenêtre d'envoi est ouverte (elle a déjà sa propre progression)
+  var fenEnvoi=!$('voile').hidden&&($('imp-depot')||$('depot'));
+  el.hidden=!!fenEnvoi;
+  if(fini){clearTimeout(suiviMinuteur);suiviMinuteur=setTimeout(function(){SUIVI=null;suiviMaj()},s.err?12000:5000)}
+}
+addEventListener('beforeunload',function(e){if(SUIVI&&SUIVI.fait+SUIVI.err<SUIVI.total){e.preventDefault();e.returnValue=''}});
+
 /* ---- Aperçu miniature des photos choisies avant l'envoi ---- */
 // Les miniatures sont fabriquées au fil du défilement (2 à la fois) pour rester fluide même avec 400 photos
 function miniatureFichier(f){
@@ -1370,7 +1396,7 @@ function fenetreAjout(d,initiaux){
   $('envoi').onclick=function(){
     var b=this;b.disabled=true;envoiEnCours=true;$('depot').style.pointerEvents='none';$('envoi-fermer').textContent='Masquer';$('vignettes').classList.add('verrou');
     var vg=$('vignettes'),rang=new Map(choisis.map(function(f,i){return [f,i]}));
-    fileEnvoi(choisis,function(f){var i=rang.get(f);etatVignette(vg,i,'en-cours');return envoyerUnePhoto(f,{dossier:d.id}).then(function(x){etatVignette(vg,i,'envoye');return x},function(e){etatVignette(vg,i,'erreur');throw e})},majProgression).then(function(r){
+    suiviAjouter('Envoi des photos',choisis.length);fileEnvoi(choisis,function(f){var i=rang.get(f);etatVignette(vg,i,'en-cours');return envoyerUnePhoto(f,{dossier:d.id}).then(function(x){etatVignette(vg,i,'envoye');suiviPas(true);return x},function(e){etatVignette(vg,i,'erreur');suiviPas(false);throw e})},majProgression).then(function(r){
       $('envoi-fermer').textContent='Fermer';
       toast(r.fait+' photo'+(r.fait>1?'s':'')+' ajoutée'+(r.fait>1?'s':'')+(r.erreurs.length?' · '+r.erreurs.length+' en erreur':'')+'.');
       if(r.erreurs.length)$('liste-fichiers').innerHTML='<span class="err">'+r.erreurs.map(esc).join('<br>')+'</span>';
@@ -1960,23 +1986,24 @@ function fenetreImport(initiaux){
     if(!total.t0)total.t0=performance.now();
     var g=$('imp-grille'),p=preparerFiligrane(),dossier=(DOSSIERS[0]||{}).id;
     var existants={};TOUTES.forEach(function(x){existants[baseNom(x.nom)]=1});
+    var aFaire={};fs.forEach(function(f){var b=baseNom(f.name);if(!existants[b])aFaire[b]=1});suiviAjouter('Import des RAW',Object.keys(aFaire).length);
     fs.forEach(function(f){
       if(existants[baseNom(f.name)]){var fx=document.createElement('figure');fx.innerHTML='<span class="ph-att"></span><span><b>'+esc(f.name)+'</b><br>Déjà importée</span>';g.appendChild(fx);return}
       existants[baseNom(f.name)]=1;
       var fig=document.createElement('figure');fig.innerHTML='<span class="ph-att"></span><span><b>'+esc(f.name)+'</b><br>'+poidsTxt(f.size)+' · en cours…</span>';g.appendChild(fig);
       p=p.then(function(t){return extraireApercu(f).then(function(r){
-        if(!r.bmp){fig.lastChild.innerHTML='<b>'+esc(f.name)+'</b><br><span class="err">Aperçu introuvable dans ce fichier</span>';return t}
+        if(!r.bmp){fig.lastChild.innerHTML='<b>'+esc(f.name)+'</b><br><span class="err">Aperçu introuvable dans ce fichier</span>';suiviPas(false);return t}
         return produireApercu(r.bmp,r.ori,t).then(function(o){
           if(r.bmp.close)r.bmp.close();
           return api('collections/'+CID+'/photos',{method:'POST',body:{dossier:dossier,nom:f.name.replace(/\.[^.]+$/,'')+'.jpg',w:o.w,h:o.h}}).then(function(fiche){return envoyerVariante(fiche.id,'apercu',o.blob)}).then(function(){return o});
         }).then(function(o){
           var u=URL.createObjectURL(o.blob);
           fig.innerHTML='<a href="#" data-grand="'+u+'"><img src="'+u+'" alt=""></a><span><b>'+esc(f.name.replace(/\.[^.]+$/,''))+'</b><br>'+poidsTxt(f.size)+' → '+poidsTxt(o.blob.size)+' · '+o.w+'×'+o.h+'</span>';
-          total.n++;total.avant+=f.size;total.apres+=o.blob.size;
-          $('imp-bilan').hidden=false;$('imp-bilan').textContent=total.n+' aperçu'+(total.n>1?'s':'')+' filigrané'+(total.n>1?'s':'')+' en '+Math.round((performance.now()-total.t0)/1000)+' s · '+poidsTxt(total.avant)+' de RAW → '+poidsTxt(total.apres)+' envoyés en ligne';
+          total.n++;total.avant+=f.size;total.apres+=o.blob.size;suiviPas(true);
+          if($('imp-bilan'))$('imp-bilan').hidden=false;if($('imp-bilan'))$('imp-bilan').textContent=total.n+' aperçu'+(total.n>1?'s':'')+' filigrané'+(total.n>1?'s':'')+' en '+Math.round((performance.now()-total.t0)/1000)+' s · '+poidsTxt(total.avant)+' de RAW → '+poidsTxt(total.apres)+' envoyés en ligne';
           return t;
         });
-      })}).catch(function(e){fig.lastChild.innerHTML='<b>'+esc(f.name)+'</b><br><span class="err">'+esc(e&&e.message?e.message:'Fichier illisible')+'</span>';return tuileFil});
+      })}).catch(function(e){suiviPas(false);fig.lastChild.innerHTML='<b>'+esc(f.name)+'</b><br><span class="err">'+esc(e&&e.message?e.message:'Fichier illisible')+'</span>';return tuileFil});
     });
     p.then(function(){return recharger()}).then(function(){genererMur()});
   });
