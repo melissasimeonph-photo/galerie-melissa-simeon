@@ -3,6 +3,9 @@ account_id = "aee7281b36e64c5c945510d9db016f00"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
 
+# Adresse du site (domaine personnalisé, certificat HTTPS automatique)
+routes = [{ pattern = "galerie.melissa-simeon.com", custom_domain = true }]
+
 # Pages statiques (interface client et photographe)
 [assets]
 directory = "public"
