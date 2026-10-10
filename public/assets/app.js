@@ -1095,22 +1095,51 @@ function majProgression(fait,err,total){
   $('envoi-prog').hidden=false;$('envoi-jauge').style.width=Math.round((fait+err)/total*100)+'%';
   $('envoi-txt').textContent=fait+' / '+total+' photo'+(total>1?'s':'')+' envoyée'+(fait>1?'s':'')+(err?' · '+err+' en erreur':'')+((fait+err)<total?' · gardez cette page ouverte':'');
 }
+/* ---- Aperçu miniature des photos choisies avant l'envoi ---- */
+// Les miniatures sont fabriquées au fil du défilement (2 à la fois) pour rester fluide même avec 400 photos
+function miniatureFichier(f){
+  return createImageBitmap(f).then(function(b){
+    var k=Math.min(1,240/Math.max(b.width,b.height)),c=document.createElement('canvas');c.width=Math.round(b.width*k);c.height=Math.round(b.height*k);
+    c.getContext('2d').drawImage(b,0,0,c.width,c.height);if(b.close)b.close();
+    return new Promise(function(ok){c.toBlob(function(bl){ok(bl?URL.createObjectURL(bl):null)},'image/jpeg',.72)});
+  }).catch(function(){return null});
+}
+function grilleVignettes(el,fichiers,retirer){
+  (el._urls||[]).forEach(function(u){URL.revokeObjectURL(u)});el._urls=[];if(el._io)el._io.disconnect();
+  el.hidden=!fichiers.length;
+  el.innerHTML=fichiers.map(function(f,i){return '<figure class="vig" data-i="'+i+'" title="'+esc(f.name)+'"><span class="vig-nom">'+esc(f.name)+'</span>'+(retirer?'<button type="button" class="vig-x" data-x="'+i+'" aria-label="Retirer '+esc(f.name)+'">'+I.fermer+'</button>':'')+'</figure>'}).join('');
+  var attente=[],actifs=0;
+  function pomper(){
+    while(actifs<2&&attente.length){(function(v){actifs++;miniatureFichier(fichiers[+v.dataset.i]).then(function(u){actifs--;if(u){el._urls.push(u);var im=new Image();im.alt='';im.src=u;v.insertBefore(im,v.firstChild);v.classList.add('pret')}pomper()})})(attente.shift())}
+  }
+  el._io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){el._io.unobserve(e.target);attente.push(e.target);pomper()}})},{root:el,rootMargin:'160px'});
+  el.querySelectorAll('.vig').forEach(function(v){el._io.observe(v)});
+  if(retirer)el.querySelectorAll('[data-x]').forEach(function(b){b.onclick=function(e){e.preventDefault();retirer(+b.dataset.x)}});
+}
+function etatVignette(el,i,etat){var v=el.querySelector('.vig[data-i="'+i+'"]');if(v){v.classList.remove('en-cours','envoye','erreur');if(etat)v.classList.add(etat)}}
+
 function fenetreAjout(d){
   fenetre(enteteFen('Ajouter des photos')+
     '<p>Dans « '+esc(d.nom)+' ». Déposez vos exports JPEG : les versions web et les miniatures sont créées automatiquement, et les fichiers originaux sont conservés pour le téléchargement en haute définition.</p>'+
     '<label class="depot" id="depot"><input type="file" id="fichiers" accept="image/jpeg,.jpg,.jpeg" multiple hidden><b>Glissez vos photos ici</b>ou cliquez pour les choisir</label>'+
+    '<div id="vignettes" class="vignettes" hidden></div>'+
     '<div id="liste-fichiers" class="note"></div>'+blocProgression()+
     '<div class="ligne-btn"><button class="btn clair" data-ferme id="envoi-fermer">Fermer</button><button class="btn" id="envoi" disabled>Envoyer</button></div>');
-  var choisis=[];
-  lierDepot($('depot'),$('fichiers'),function(fs){
-    choisis=fs.filter(function(f){return /\.jpe?g$/i.test(f.name)||f.type==='image/jpeg'});
+  var choisis=[],envoiEnCours=false;
+  function majChoix(){
     var tot=choisis.reduce(function(s,f){return s+f.size},0)/1e6;
     $('liste-fichiers').textContent=choisis.length?choisis.length+' photo'+(choisis.length>1?'s':'')+' · '+fmtPoids(tot)+' à envoyer':'Aucune photo JPEG reconnue.';
     $('envoi').disabled=!choisis.length;
+    grilleVignettes($('vignettes'),choisis,function(i){if(envoiEnCours)return;choisis.splice(i,1);majChoix()});
+  }
+  lierDepot($('depot'),$('fichiers'),function(fs){
+    choisis=fs.filter(function(f){return /\.jpe?g$/i.test(f.name)||f.type==='image/jpeg'});
+    majChoix();
   });
   $('envoi').onclick=function(){
-    var b=this;b.disabled=true;$('depot').style.pointerEvents='none';$('envoi-fermer').textContent='Masquer';
-    fileEnvoi(choisis,function(f){return envoyerUnePhoto(f,{dossier:d.id})},majProgression).then(function(r){
+    var b=this;b.disabled=true;envoiEnCours=true;$('depot').style.pointerEvents='none';$('envoi-fermer').textContent='Masquer';$('vignettes').classList.add('verrou');
+    var vg=$('vignettes'),rang=new Map(choisis.map(function(f,i){return [f,i]}));
+    fileEnvoi(choisis,function(f){var i=rang.get(f);etatVignette(vg,i,'en-cours');return envoyerUnePhoto(f,{dossier:d.id}).then(function(x){etatVignette(vg,i,'envoye');return x},function(e){etatVignette(vg,i,'erreur');throw e})},majProgression).then(function(r){
       $('envoi-fermer').textContent='Fermer';
       toast(r.fait+' photo'+(r.fait>1?'s':'')+' ajoutée'+(r.fait>1?'s':'')+(r.erreurs.length?' · '+r.erreurs.length+' en erreur':'')+'.');
       if(r.erreurs.length)$('liste-fichiers').innerHTML='<span class="err">'+r.erreurs.map(esc).join('<br>')+'</span>';
