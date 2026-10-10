@@ -65,7 +65,10 @@ function gabarit(env, { objet, texte, bouton, coll }) {
   const seance = coll && coll.type === 'seance';
   const g = coll ? coll.reglages : {};
   const base = `https://${env.DOMAINE}`;
-  const banniere = coll && g.banniere ? `${base}/img/${coll.slug}/email?v=${g.banniere}` : null;
+  // Séance en cours de sélection : photo floutée ; mariage ou séance livrée : photo nette
+  const flou = seance && g.phase !== 'livraison';
+  const v = flou ? g.banniereFlou : g.banniere;
+  const banniere = coll && v ? `${base}/img/${coll.slug}/${flou ? 'email-flou' : 'email'}?v=${v}` : null;
 
   const entete = `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
 <td style="vertical-align:middle;padding-right:10px"><img src="${base}/assets/email/logo.png" width="30" alt="" style="display:block;width:30px;height:auto;border:0"></td>

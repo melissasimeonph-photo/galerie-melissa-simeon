@@ -1113,29 +1113,45 @@ function fenetreAjout(d){
 }
 // Mur flouté de la page d'accès : mosaïque de petites photos générée ici puis envoyée
 /* Bannière des e-mails : la photo de couverture, recadrée, avec le nom et le logo (comme l'e-mail du questionnaire) */
-function genererBanniere(){
+function genererBanniere(o){
+  o=o||{};
   var n=CID&&PHOTOS.length&&couvAdm();if(!n)return Promise.resolve();
+  // Séance : floutée pendant la sélection, nette (photo retouchée) à la livraison
+  var flou=SEANCE&&!LIVRE()&&!o.net,src=null;
+  if(SEANCE&&!flou){
+    var prete=function(p){return p&&estAlbum(p.id)&&(VARS[p.id]||{}).web};
+    if(!prete(parId(n))){var f=TOUTES.filter(prete)[0];if(!f)return Promise.resolve();n=f.n}
+    src='/admin/api/img/'+CID+'/'+n+'/web';
+  }
   var cid=CID,W=1120,H=760,R=56,c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d');
   function charger(src){return new Promise(function(ok){var im=new Image();im.onload=function(){ok(im)};im.onerror=function(){ok(null)};im.src=src})}
   var logo='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(LOGO_SVG.replace(' class="logo" aria-hidden="true"','').replace(/currentColor/g,'#FFFFFF'));
   var polices=(document.fonts&&document.fonts.load)?Promise.all([document.fonts.load('400 64px "Bricolage Grotesque"'),document.fonts.load('500 26px "Hanken Grotesk"')]).catch(function(){}):Promise.resolve();
-  return Promise.all([charger(SRC(n,'web')).then(function(im){return im||charger(SRC(n,'mini'))}),charger(logo),polices]).then(function(r){
+  return Promise.all([charger(src||SRC(n,'web')).then(function(im){return im||charger(SRC(n,'mini'))}),charger(logo),polices]).then(function(r){
     var im=r[0],lg=r[1];if(!im)return;
     x.fillStyle='#F4EFE9';x.fillRect(0,0,W,H);
     x.save();x.beginPath();x.moveTo(R,0);x.arcTo(W,0,W,H,R);x.arcTo(W,H,0,H,R);x.arcTo(0,H,0,0,R);x.arcTo(0,0,W,0,R);x.closePath();x.clip();
     var pos=String(ADM.couvPos||'50% 50%').split(' ').map(function(v){return (parseFloat(v)||50)/100});
     var k=Math.max(W/im.naturalWidth,H/im.naturalHeight),dw=im.naturalWidth*k,dh=im.naturalHeight*k;
-    x.drawImage(im,(W-dw)*pos[0],(H-dh)*(pos[1]===undefined?.5:pos[1]),dw,dh);
+    var ix=(W-dw)*pos[0],iy=(H-dh)*(pos[1]===undefined?.5:pos[1]);
+    if(flou){
+      // Flou fiable sur tous les navigateurs : on réduit fortement l'image puis on l'agrandit en plusieurs passes
+      var t=document.createElement('canvas'),tw=Math.round(W/22),th=Math.round(H/22);t.width=tw;t.height=th;
+      var tx=t.getContext('2d');tx.imageSmoothingQuality='high';tx.drawImage(im,ix/22,iy/22,dw/22,dh/22);
+      var m=document.createElement('canvas');m.width=tw*4;m.height=th*4;var mx=m.getContext('2d');mx.imageSmoothingQuality='high';mx.drawImage(t,0,0,m.width,m.height);
+      x.imageSmoothingQuality='high';x.drawImage(m,-20,-20,W+40,H+40);
+      x.fillStyle='rgba(244,239,233,.12)';x.fillRect(0,0,W,H);
+    } else x.drawImage(im,ix,iy,dw,dh);
     var g=x.createLinearGradient(0,H*.42,0,H);g.addColorStop(0,'rgba(28,21,13,0)');g.addColorStop(1,'rgba(28,21,13,.74)');x.fillStyle=g;x.fillRect(0,0,W,H);
     var lw=74,lh=lg?lw*lg.naturalHeight/lg.naturalWidth:0;if(lg)x.drawImage(lg,W-60-lw,H-56-lh,lw,lh);
-    var titre=String(ADM.nom||'').replace(/^(Mariage|Séance couple|Séance famille|Séance maternité|Séance)\s+/i,''),t=70;
+    var titre=String(ADM.nom||'').replace(/^Séance famille\s+/i,'Famille ').replace(/^(Mariage|Séance couple|Séance maternité|Séance)\s+/i,''),t=70;
     x.fillStyle='#FFFFFF';x.textBaseline='alphabetic';
     do{x.font='400 '+t+'px "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif';t-=2}while(x.measureText(titre).width>W-60-60-lw-30&&t>34);
     x.fillText(titre,60,H-104);
     x.font='500 27px "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif';x.globalAlpha=.88;
     x.fillText((SEANCE?'Séance photo':'Mariage')+(ADM.dateEvt?' · '+dateFr(ADM.dateEvt):''),62,H-58);
     x.restore();
-    return new Promise(function(ok){c.toBlob(ok,'image/jpeg',.86)}).then(function(bl){return fetch('/admin/api/collections/'+cid+'/banniere',{method:'PUT',body:bl,credentials:'same-origin'})});
+    return new Promise(function(ok){c.toBlob(ok,'image/jpeg',.86)}).then(function(bl){return fetch('/admin/api/collections/'+cid+'/banniere'+(flou?'?flou=1':''),{method:'PUT',body:bl,credentials:'same-origin'})});
   }).catch(function(){});
 }
 function genererMur(){
@@ -1505,7 +1521,7 @@ function fenetreLivrer(){
     fileEnvoi(fichiers,function(f){return envoyerUnePhoto(f,{final:true})},majProgression).then(function(r){
       if(r.erreurs.length){$('liv-bilan').innerHTML='<span class="err">'+r.erreurs.map(esc).join('<br>')+'</span>';b.disabled=false;b.textContent='Réessayer';return}
       if(deja){fermerFenetre();toast(r.fait+' photo'+(r.fait>1?'s':'')+' ajoutée'+(r.fait>1?'s':'')+'.');return recharger()}
-      return api('collections/'+CID+'/livrer',{method:'POST',body:{prefixe:pf&&pf!==prefixeDefaut()?pf:null}}).then(function(x){
+      return recharger().then(function(){return genererBanniere({net:true})}).then(function(){return api('collections/'+CID+'/livrer',{method:'POST',body:{prefixe:pf&&pf!==prefixeDefaut()?pf:null}})}).then(function(x){
         fermerFenetre();
         toast('Photos livrées ('+x.nb+')'+(x.statut==='envoyé'?' : le client a reçu l’e-mail « Vos photos sont prêtes ».':x.statut==='aucun destinataire'?'. Aucune adresse client : envoyez le lien avec Partager.':'.'));
         return recharger().then(function(){genererMur()});
