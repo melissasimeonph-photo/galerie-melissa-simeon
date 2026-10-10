@@ -1081,7 +1081,7 @@ function rendreSetMainBase(){
       '<button class="ibtn" id="adm-grille" title="Affichage de la grille" aria-label="Affichage de la grille" aria-haspopup="menu">'+I.grille+'</button>'+
       '<span class="sep-v"></span><button class="txtbtn" id="adm-ajout">'+I.plusRond+libAjout+'</button></div></div>'+
     (d.desc?'<p class="adm-desc">'+esc(d.desc)+'</p>':'')+
-    '<div class="sel-adm" id="sel-adm" hidden><span id="sel-adm-n"></span><button class="lienbtn" id="sel-adm-tout">Tout sélectionner</button><button class="lienbtn" id="sel-adm-annuler">Annuler</button>'+(DOSSIERS.length>1?'<button class="btn clair" id="sel-adm-deplacer" aria-haspopup="menu">'+I.deplacer+'Déplacer vers</button>':'')+'<button class="btn danger" id="sel-adm-suppr">'+I.corbeille+'Supprimer</button></div>'+
+    '<div class="sel-adm" id="sel-adm" hidden><span id="sel-adm-n"></span><button class="lienbtn" id="sel-adm-tout">Tout sélectionner</button><button class="lienbtn" id="sel-adm-annuler">Annuler</button><button class="btn clair" id="sel-adm-deplacer" aria-haspopup="menu">'+I.deplacer+'Déplacer vers</button><button class="btn danger" id="sel-adm-suppr">'+I.corbeille+'Supprimer</button></div>'+
     (photos.length?'<div class="grille-adm g-'+ADM.grille+(ADM.fichiers?'':' sans-noms')+(SELADM.size?' mode-sel':'')+'">'+photos.map(function(p){
       var coche=SELADM.has(p.id);
       return '<figure class="cell'+(coche?' coche':'')+'" data-pid="'+p.id+'"><div class="cadre"><button class="cell-case" data-case="'+p.id+'" role="checkbox" aria-checked="'+coche+'" title="Sélectionner" aria-label="Sélectionner '+esc(p.nom)+'">'+I.check+'</button><img loading="lazy" decoding="async" src="'+SRC(p.n,'mini')+'" alt=""><span class="cell-outils"><button class="cell-btn" data-couv="'+p.id+'" title="Utiliser comme couverture" aria-label="Utiliser comme couverture">'+I.image+'</button><button class="cell-btn" data-suppr="'+p.id+'" title="Supprimer la photo" aria-label="Supprimer la photo">'+I.corbeille+'</button></span></div>'+
@@ -1113,21 +1113,74 @@ function rendreSetMainBase(){
   }
   main.querySelectorAll('[data-case]').forEach(function(b){b.onclick=function(e){e.stopPropagation();cliquer(+b.dataset.case,e)}});
   main.querySelectorAll('.cell .cadre').forEach(function(c){c.addEventListener('click',function(e){if(!SELADM.size||e.target.closest('.cell-btn'))return;cliquer(+c.closest('.cell').dataset.pid,e)})});
+  // Sélection au lasso : cliquer-glisser avec la souris (sur la grille ou dans la marge) coche toutes les photos touchées par le cadre
+  main.onpointerdown=null;
+  if(grille)main.onpointerdown=function(e){
+    if(e.pointerType!=='mouse'||e.button!==0||e.target.closest('button,a,input,label,select,textarea,[contenteditable],.sel-adm,.pop'))return;
+    var g=main.querySelector('.grille-adm');if(g!==grille)return;
+    var base=new Set(SELADM),cells=[].slice.call(grille.querySelectorAll('.cell')),boites=null,cadre=null,actif=false;
+    var r0=grille.getBoundingClientRect(),x0=e.clientX-r0.left,y0=e.clientY-r0.top,cx=e.clientX,cy=e.clientY,defil=null,ot0=grille.offsetTop;
+    var conteneur=(function(n){while(n&&n!==document.body){var s=getComputedStyle(n).overflowY;if((s==='auto'||s==='scroll')&&n.scrollHeight>n.clientHeight)return n;n=n.parentElement}return null})(grille.parentElement);
+    e.preventDefault();
+    function maj(){
+      var r=grille.getBoundingClientRect(),x1=cx-r.left,y1=cy-r.top;
+      var L=Math.min(x0,x1),T=Math.min(y0,y1),R=Math.max(x0,x1),B=Math.max(y0,y1);
+      if(!actif){if(Math.abs(x1-x0)<6&&Math.abs(y1-y0)<6)return;actif=true;document.body.classList.add('en-lasso');
+        cadre=document.createElement('div');cadre.className='lasso';grille.appendChild(cadre);
+        boites=cells.map(function(c){var b=c.querySelector('.cadre').getBoundingClientRect();return{id:+c.dataset.pid,l:b.left-r.left,t:b.top-r.top,r:b.right-r.left,b:b.bottom-r.top}})}
+      cadre.style.cssText='left:'+L+'px;top:'+T+'px;width:'+(R-L)+'px;height:'+(B-T)+'px';
+      boites.forEach(function(b){var dedans=b.l<R&&b.r>L&&b.t<B&&b.b>T,on=dedans||base.has(b.id);if(on!==SELADM.has(b.id))basculer(b.id,on)});
+      majSel();
+      // la barre de sélection qui apparaît pousse la grille : on compense pour que les photos restent sous la souris
+      var d=grille.offsetTop-ot0;if(d){ot0+=d;if(conteneur)conteneur.scrollTop+=d;else scrollBy(0,d);maj()}
+    }
+    function bouge(ev){cx=ev.clientX;cy=ev.clientY;maj();
+      // défilement automatique près des bords
+      var h=conteneur?conteneur.getBoundingClientRect():{top:0,bottom:innerHeight},v=0;
+      if(actif){if(cy<h.top+60)v=-Math.ceil((h.top+60-cy)/4);else if(cy>h.bottom-60)v=Math.ceil((cy-h.bottom+60)/4)}
+      clearInterval(defil);defil=null;
+      if(v)defil=setInterval(function(){if(conteneur)conteneur.scrollTop+=v;else scrollBy(0,v);maj()},16);
+    }
+    function fin(){clearInterval(defil);removeEventListener('pointermove',bouge);removeEventListener('pointerup',fin);removeEventListener('pointercancel',fin);
+      document.body.classList.remove('en-lasso');if(cadre)cadre.remove();
+      if(actif){var stop=function(ev){ev.stopPropagation();ev.preventDefault()};addEventListener('click',stop,true);setTimeout(function(){removeEventListener('click',stop,true)},0)}
+    }
+    addEventListener('pointermove',bouge);addEventListener('pointerup',fin);addEventListener('pointercancel',fin);
+  };
   $('sel-adm-tout').onclick=function(){ids.forEach(function(i){basculer(i,true)});majSel()};
   $('sel-adm-annuler').onclick=function(){SELADM.forEach(function(i){basculer(i,false)});SELADM.clear();majSel()};
   $('sel-adm-suppr').onclick=function(){supprimerPhotos(Array.from(SELADM).map(parId).filter(Boolean))};
   // Déplacer la sélection dans une autre catégorie (ajoutée à la fin de celle-ci)
-  if($('sel-adm-deplacer'))$('sel-adm-deplacer').onclick=function(e){e.stopPropagation();
-    pop(this,'<div class="pop-label">Déplacer vers la catégorie</div>'+DOSSIERS.filter(function(x){return x.id!==d.id}).map(function(x){return itemPop(x.id,null,esc(x.nom),false,TOUTES.filter(function(p){return p.dossier===x.id}).length+' photo(s)')}).join(''),function(m){
+  function deplacerSel(cible){
+    var nomC=(dossierPar(cible)||{}).nom||'',bouges=Array.from(SELADM),n=bouges.length;
+    var deja=TOUTES.filter(function(p){return p.dossier===cible}).sort(function(a,b){return (a.ordre||0)-(b.ordre||0)}).map(function(p){return p.id});
+    if($('sel-adm-deplacer'))$('sel-adm-deplacer').disabled=true;
+    return api('collections/'+CID+'/ordre',{method:'POST',body:{ids:deja.concat(bouges),dossier:cible}}).then(function(){
+      SELADM.clear();toast(n+' photo'+(n>1?'s':'')+' déplacée'+(n>1?'s':'')+' vers « '+nomC+' ».');return recharger();
+    }).catch(function(err){toast(err.message);if($('sel-adm-deplacer'))$('sel-adm-deplacer').disabled=false});
+  }
+  // Déplacer la sélection dans une autre catégorie, existante ou créée sur le moment
+  $('sel-adm-deplacer').onclick=function(e){e.stopPropagation();
+    var autres=DOSSIERS.filter(function(x){return x.id!==d.id});
+    pop(this,'<div class="pop-label">Déplacer vers la catégorie</div>'+autres.map(function(x){var k=TOUTES.filter(function(p){return p.dossier===x.id}).length;return itemPop(x.id,null,esc(x.nom),false,k+' photo'+(k>1?'s':''))}).join('')+
+      (autres.length?'<div class="pop-sep"></div>':'')+itemPop('__nouvelle',I.plusRond,'Nouvelle catégorie…'),function(m){
       m.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){
-        var cible=b.dataset.a,nomC=(dossierPar(cible)||{}).nom||'',bouges=Array.from(SELADM),n=bouges.length;fermerPop();
-        var deja=TOUTES.filter(function(p){return p.dossier===cible}).sort(function(a,b){return (a.ordre||0)-(b.ordre||0)}).map(function(p){return p.id});
-        $('sel-adm-deplacer').disabled=true;
-        api('collections/'+CID+'/ordre',{method:'POST',body:{ids:deja.concat(bouges),dossier:cible}}).then(function(){
-          SELADM.clear();toast(n+' photo'+(n>1?'s':'')+' déplacée'+(n>1?'s':'')+' vers « '+nomC+' ».');return recharger();
-        }).catch(function(err){toast(err.message);$('sel-adm-deplacer').disabled=false});
+        fermerPop();
+        if(b.dataset.a!=='__nouvelle'){deplacerSel(b.dataset.a);return}
+        var n=SELADM.size;
+        fenetre(enteteFen('Nouvelle catégorie')+'<div class="champ"><label for="nd-nom">Nom de la catégorie</label><input type="text" id="nd-nom" maxlength="60" placeholder="Par exemple : Cocktail"></div>'+
+          '<p class="note">Les '+n+' photo'+(n>1?'s':'')+' sélectionnée'+(n>1?'s':'')+' y seront déplacée'+(n>1?'s':'')+' tout de suite.</p>'+
+          '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn" id="nd-ok">Créer et déplacer</button></div>');
+        $('nd-nom').focus();
+        $('nd-nom').onkeydown=function(ev){if(ev.key==='Enter')$('nd-ok').click()};
+        $('nd-ok').onclick=function(){
+          var nom=$('nd-nom').value.trim();if(!nom){toast('Donnez un nom à la catégorie.');$('nd-nom').focus();return}
+          this.disabled=true;var nid='cat'+Date.now();DOSSIERS.push({id:nid,nom:nom,desc:''});
+          sauverAdm(true).then(function(){fermerPop();fermerFenetre();rendreSets();return deplacerSel(nid)});
+        };
       }})});
   };
+
   majSel();
   main.querySelectorAll('[data-couv]').forEach(function(b){b.onclick=function(e){e.stopPropagation();ADM.couv=+b.dataset.couv;var ph=parId(ADM.couv);ADM.couvPos=ph&&ph.h>ph.w?'50% 35%':'50% 50%';sauverAdm(true).then(function(){genererMur()});rendreAdmin();toast('Couverture mise à jour.')}});
 }

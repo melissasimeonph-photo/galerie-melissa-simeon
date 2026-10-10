@@ -647,3 +647,7 @@ footer .marque .logo-box{color:var(--marque)}
 .envoi-prog .jauge{background:var(--sable-2);height:7px}
 .err{color:var(--alerte)}
 .sans-dl #btn-dl,.sans-dl [data-act=dl],.sans-dl #v-dl{display:none!important}
+/* Sélection au lasso dans la grille photographe */
+.grille-adm{position:relative}
+.lasso{position:absolute;z-index:5;pointer-events:none;border:1.5px solid var(--brun,#2A2016);background:rgba(42,32,22,.10);border-radius:4px}
+body.en-lasso,body.en-lasso *{user-select:none;-webkit-user-select:none;cursor:crosshair!important}
