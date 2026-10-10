@@ -620,24 +620,28 @@ function rendreAdmin(){
 }
 
 /* ---- Photo de couverture ---- */
-function fenetreCouv(){
-  var choix=ADM.couv,pos=ADM.couvPos,filtre='tout';
+function fenetreCouv(o){
+  // o (facultatif) : { liste, titre, texte, libelle, valider(choix,pos,bouton) } — utilisé à la livraison d'une séance
+  o=o||{};
+  var liste=o.liste||PHOTOS,src=o.liste?function(n,v){return '/admin/api/img/'+CID+'/'+n+'/'+(v||'web')}:SRC;
+  var choix=ADM.couv,pos=ADM.couvPos||'50% 50%',filtre='tout';
   function xy(){var m=pos.match(/(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%/);return m?[+m[1],+m[2]]:[50,50]}
-  fenetre(enteteFen('Photo de couverture')+
-    '<p>Choisissez la photo affichée en grand à l’ouverture de la galerie, puis touchez l’aperçu pour placer le point de cadrage.</p>'+
+  fenetre(enteteFen(o.titre||'Photo de couverture')+
+    '<p>'+(o.texte||'Choisissez la photo affichée en grand à l’ouverture de la galerie, puis touchez l’aperçu pour placer le point de cadrage.')+'</p>'+
     '<div class="couv-apercu" id="couv-apercu"><i class="point" id="couv-point"></i><span class="legende-couv">Point de cadrage</span></div>'+
     '<div class="portee" id="couv-filtres" style="padding:0;border:0;margin:0"></div>'+
     '<div class="couv-choix" id="couv-choix"></div>'+
-    '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn" id="couv-ok">Enregistrer</button></div>');
+    '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn" id="couv-ok">'+(o.libelle||'Enregistrer')+'</button></div>');
   $('fenetre').classList.add('couv-fen');
-  if(!PHOTOS.length){toast('Ajoutez d’abord des photos à la collection.');fermerFenetre();return}
-  if(!choix||!parId(choix))choix=PHOTOS[0].n;
-  function majApercu(){var a=$('couv-apercu'),p=xy();a.style.backgroundImage='url('+SRC(choix)+')';a.style.backgroundPosition=pos;$('couv-point').style.left=p[0]+'%';$('couv-point').style.top=p[1]+'%'}
+  if(!liste.length){toast('Ajoutez d’abord des photos à la collection.');fermerFenetre();return}
+  if(!choix||!liste.some(function(p){return p.n===choix})){choix=liste[0].n;var p0=parId(choix);pos=p0&&p0.h>p0.w?'50% 35%':'50% 50%'}
+  function majApercu(){var a=$('couv-apercu'),p=xy();a.style.backgroundImage='url('+src(choix)+')';a.style.backgroundPosition=pos;$('couv-point').style.left=p[0]+'%';$('couv-point').style.top=p[1]+'%'}
   function grille(){
-    $('couv-filtres').innerHTML=[['tout','Toutes']].concat(DOSSIERS.filter(function(d){return d.n}).map(function(d){return [d.id,d.nom]})).map(function(c){return '<button class="chip" data-f="'+c[0]+'" aria-pressed="'+(c[0]===filtre)+'">'+esc(c[1])+'</button>'}).join('');
+    var doss=DOSSIERS.filter(function(d){return liste.some(function(p){return p.dossier===d.id})});
+    $('couv-filtres').innerHTML=doss.length>1?[['tout','Toutes']].concat(doss.map(function(d){return [d.id,d.nom]})).map(function(c){return '<button class="chip" data-f="'+c[0]+'" aria-pressed="'+(c[0]===filtre)+'">'+esc(c[1])+'</button>'}).join(''):'';
     $('couv-filtres').querySelectorAll('[data-f]').forEach(function(b){b.onclick=function(){filtre=b.dataset.f;grille()}});
-    var l=filtre==='tout'?PHOTOS:PHOTOS.filter(function(p){return p.dossier===filtre});
-    $('couv-choix').innerHTML=l.map(function(p){return '<button data-n="'+p.n+'" aria-pressed="'+(p.n===choix)+'" title="'+esc(p.nom)+'"><img loading="lazy" src="'+SRC(p.n,'mini')+'" alt=""></button>'}).join('');
+    var l=filtre==='tout'?liste:liste.filter(function(p){return p.dossier===filtre});
+    $('couv-choix').innerHTML=l.map(function(p){return '<button data-n="'+p.n+'" aria-pressed="'+(p.n===choix)+'" title="'+esc(p.nom)+'"><img loading="lazy" src="'+src(p.n,'mini')+'" alt=""></button>'}).join('');
     $('couv-choix').querySelectorAll('[data-n]').forEach(function(b){b.onclick=function(){
       choix=+b.dataset.n;var ph=parId(choix);pos=ph&&ph.h>ph.w?'50% 35%':'50% 50%';
       $('couv-choix').querySelectorAll('[aria-pressed="true"]').forEach(function(x){x.setAttribute('aria-pressed','false')});b.setAttribute('aria-pressed','true');majApercu();
@@ -645,7 +649,7 @@ function fenetreCouv(){
   }
   $('couv-apercu').onclick=function(e){var r=this.getBoundingClientRect();pos=Math.round((e.clientX-r.left)/r.width*100)+'% '+Math.round((e.clientY-r.top)/r.height*100)+'%';majApercu()};
   majApercu();grille();
-  $('couv-ok').onclick=function(){ADM.couv=choix;ADM.couvPos=pos;sauverAdm(true).then(function(){genererMur()});fermerFenetre();rendreAdmin();toast('Couverture mise à jour.')};
+  $('couv-ok').onclick=o.valider?function(){o.valider(choix,pos,this)}:function(){ADM.couv=choix;ADM.couvPos=pos;sauverAdm(true).then(function(){genererMur()});fermerFenetre();rendreAdmin();toast('Couverture mise à jour.')};
 }
 
 /* Panneau replié : les catégories s'ouvrent dans un volet flottant */
@@ -1827,6 +1831,22 @@ function lierDepot(dep,inp,f){
   inp.onchange=function(){f([].slice.call(inp.files));inp.value=''};
 }
 function baseNom(s){return s.replace(/\.[^.]+$/,'').toUpperCase().replace(/[-_ ](MODIFIER|EDIT|EDITED|RETOUCHE|FINAL|HD|\d{1,2})$/,'').replace(/\s*\(\d+\)$/,'')}
+// Dernière étape de la livraison d'une séance : choisir et cadrer la couverture parmi les photos retouchées, puis envoyer l'e-mail
+function etapeCouvLivraison(pf){
+  var retouchees=selection().filter(function(p){return (VARS[p.id]||{}).web&&(VARS[p.id]||{}).hd}).map(function(p){return parId(p.id)||p});
+  if(!retouchees.length){toast('Aucune photo retouchée en ligne.');return}
+  fenetreCouv({liste:retouchees,titre:'Dernière étape : la couverture',libelle:I.envoyer+'Livrer au client',
+    texte:'Choisissez la photo retouchée qui s’affichera en grand à l’ouverture de la galerie et dans l’e-mail, puis touchez l’aperçu pour ajuster le cadrage. L’e-mail « Vos photos sont prêtes » part quand vous cliquez sur « Livrer au client ».',
+    valider:function(choix,pos,b){
+      b.disabled=true;b.textContent='Livraison en cours…';
+      ADM.couv=choix;ADM.couvPos=pos;
+      sauverAdm(true).then(function(){return genererBanniere({net:true})}).then(function(){return api('collections/'+CID+'/livrer',{method:'POST',body:{prefixe:pf&&pf!==prefixeDefaut()?pf:null}})}).then(function(x){
+        fermerFenetre();
+        toast('Photos livrées ('+x.nb+')'+(x.statut==='envoyé'?' : le client a reçu l’e-mail « Vos photos sont prêtes ».':x.statut==='aucun destinataire'?'. Aucune adresse client : envoyez le lien avec Partager.':'.'));
+        return recharger().then(function(){genererMur()});
+      }).catch(function(e){b.disabled=false;b.innerHTML=I.envoyer+'Livrer au client';toast(e.message)});
+    }});
+}
 function fenetreLivrer(){
   var l=selection(),attendus={},deja=LIVRE();l.forEach(function(p){attendus[baseNom(p.nom)]=p});
   var dejaEnvoyes=l.filter(function(p){return p.variantes&&p.variantes.hd}).length;
@@ -1835,20 +1855,22 @@ function fenetreLivrer(){
     '<label class="depot" id="liv-depot"><input type="file" id="liv-input" multiple accept="image/jpeg,.jpg,.jpeg" hidden><b>Glissez vos JPEG retouchés ici</b>ou cliquez pour les choisir</label>'+
     '<div class="liv-bilan" id="liv-bilan"></div>'+blocProgression()+
     (deja?'':'<div class="champ"><label for="liv-prefixe">Nom des fichiers livrés au client</label><input type="text" id="liv-prefixe" value="'+esc(prefixeFichiers())+'" spellcheck="false"><p class="note" id="liv-ex"></p></div>')+
-    '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn" id="liv-ok" disabled>'+I.envoyer+(deja?'Envoyer':'Livrer au client')+'</button></div>');
+    '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn" id="liv-ok" disabled>'+(deja?I.envoyer+'Envoyer':'Téléverser et continuer')+'</button></div>');
   $('fenetre').classList.add('large-fen');
   var trouves={};
   function bilan(extra){
     var nb=Object.keys(trouves).length,manq=l.filter(function(p){return !trouves[baseNom(p.nom)]&&!(p.variantes&&p.variantes.hd)});
+    if(!nb&&dejaEnvoyes&&!deja){$('liv-bilan').innerHTML='<span class="ok">'+dejaEnvoyes+' photo'+(dejaEnvoyes>1?'s retouchées sont':' retouchée est')+' déjà en ligne.'+(manq.length?' Ajoutez les manquantes ici ou continuez.':'')+' Cliquez sur « Continuer » pour choisir la couverture.</span>';$('liv-ok').disabled=false;$('liv-ok').innerHTML='Continuer';return}
     $('liv-bilan').innerHTML='<span class="'+(manq.length?'ko':'ok')+'">'+nb+' / '+(l.length-dejaEnvoyes)+' photos de la sélection reconnues</span>'+
       (manq.length&&nb?'<span class="note">Manquantes : '+manq.map(function(p){return p.nom.replace(/\.[^.]+$/,'')}).join(', ')+'</span>':'')+
       (extra&&extra.length?'<span class="note">Ignorés (hors sélection) : '+extra.map(esc).join(', ')+'</span>':'');
     $('liv-ok').disabled=!nb;
-    if(!deja)$('liv-ok').innerHTML=I.envoyer+(manq.length&&nb?'Livrer quand même':'Livrer au client');
+    if(!deja)$('liv-ok').innerHTML=manq.length&&nb?'Continuer quand même':'Téléverser et continuer';
   }
   lierDepot($('liv-depot'),$('liv-input'),function(fs){
     var extra=[];fs.forEach(function(f){var b=baseNom(f.name);if(attendus[b])trouves[b]=f;else extra.push(f.name)});bilan(extra);
   });
+  if(dejaEnvoyes&&!deja)bilan();
   if(!deja){
     var majEx=function(){var v=slugNom($('liv-prefixe').value)||prefixeDefaut(),w=l.length<100?2:3,z=function(i){return ('00'+i).slice(-w)};$('liv-ex').textContent='Une fois reconnues, les photos sont renommées dans l’ordre de prise de vue : '+v+'-'+z(1)+'.jpg, '+v+'-'+z(2)+'.jpg … '+v+'-'+z(l.length)+'.jpg. Vos fichiers DSC restent la référence de votre côté.'};
     $('liv-prefixe').oninput=majEx;majEx();
@@ -1860,11 +1882,7 @@ function fenetreLivrer(){
     fileEnvoi(fichiers,function(f){return envoyerUnePhoto(f,{final:true})},majProgression).then(function(r){
       if(r.erreurs.length){$('liv-bilan').innerHTML='<span class="err">'+r.erreurs.map(esc).join('<br>')+'</span>';b.disabled=false;b.textContent='Réessayer';return}
       if(deja){fermerFenetre();toast(r.fait+' photo'+(r.fait>1?'s':'')+' ajoutée'+(r.fait>1?'s':'')+'.');return recharger()}
-      return recharger().then(function(){return genererBanniere({net:true})}).then(function(){return api('collections/'+CID+'/livrer',{method:'POST',body:{prefixe:pf&&pf!==prefixeDefaut()?pf:null}})}).then(function(x){
-        fermerFenetre();
-        toast('Photos livrées ('+x.nb+')'+(x.statut==='envoyé'?' : le client a reçu l’e-mail « Vos photos sont prêtes ».':x.statut==='aucun destinataire'?'. Aucune adresse client : envoyez le lien avec Partager.':'.'));
-        return recharger().then(function(){genererMur()});
-      });
+      return recharger().then(function(){etapeCouvLivraison(pf)});
     }).catch(function(e){b.disabled=false;toast(e.message)});
   };
 }
