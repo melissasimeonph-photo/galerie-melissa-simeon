@@ -1118,6 +1118,9 @@ function rendreSetMainBase(){
   if(grille)main.onpointerdown=function(e){
     if(e.pointerType!=='mouse'||e.button!==0||e.target.closest('button,a,input,label,select,textarea,[contenteditable],.sel-adm,.pop'))return;
     var g=main.querySelector('.grille-adm');if(g!==grille)return;
+    // Glisser une photo déjà cochée : on emporte toute la sélection vers une catégorie de la colonne de gauche
+    var cellCochee=e.target.closest('.cell.coche');
+    if(cellCochee&&grille.contains(cellCochee)){glisserSel(e,cellCochee);return}
     var base=new Set(SELADM),cells=[].slice.call(grille.querySelectorAll('.cell')),boites=null,cadre=null,actif=false;
     var r0=grille.getBoundingClientRect(),x0=e.clientX-r0.left,y0=e.clientY-r0.top,cx=e.clientX,cy=e.clientY,defil=null,ot0=grille.offsetTop;
     var conteneur=(function(n){while(n&&n!==document.body){var s=getComputedStyle(n).overflowY;if((s==='auto'||s==='scroll')&&n.scrollHeight>n.clientHeight)return n;n=n.parentElement}return null})(grille.parentElement);
@@ -1147,6 +1150,36 @@ function rendreSetMainBase(){
     }
     addEventListener('pointermove',bouge);addEventListener('pointerup',fin);addEventListener('pointercancel',fin);
   };
+  function glisserSel(e,cell){
+    e.preventDefault();
+    var x0=e.clientX,y0=e.clientY,actif=false,fant=null,cible=null,n=SELADM.size;
+    function viser(x,y){
+      var el=document.elementFromPoint(x,y),li=el&&el.closest('.set[data-id]');
+      if(li&&li.dataset.id===admSet)li=null;
+      if(li!==cible){if(cible)cible.classList.remove('depot-ok');cible=li;if(cible)cible.classList.add('depot-ok')}
+      if(fant){fant.classList.toggle('vise',!!cible);fant.querySelector('span').textContent=cible?'Déposer dans « '+((dossierPar(cible.dataset.id)||{}).nom||'')+' »':'Déposez sur une catégorie'}
+    }
+    function bouge(ev){
+      if(!actif){if(Math.abs(ev.clientX-x0)<6&&Math.abs(ev.clientY-y0)<6)return;actif=true;document.body.classList.add('en-glisse-photos');
+        var img=cell.querySelector('img');
+        fant=document.createElement('div');fant.className='fantome-photos';
+        fant.innerHTML=(img?'<img src="'+img.src+'" alt="">':'')+'<b>'+n+'</b><span>Déposez sur une catégorie</span>';
+        document.body.appendChild(fant);
+        document.querySelectorAll('.set[data-id]').forEach(function(li){if(li.dataset.id!==admSet)li.classList.add('depot-possible')});
+      }
+      fant.style.transform='translate('+(ev.clientX+14)+'px,'+(ev.clientY+14)+'px)';
+      viser(ev.clientX,ev.clientY);
+    }
+    function fin(ev){
+      removeEventListener('pointermove',bouge);removeEventListener('pointerup',fin);removeEventListener('pointercancel',fin);
+      if(!actif)return;
+      document.body.classList.remove('en-glisse-photos');if(fant)fant.remove();
+      document.querySelectorAll('.set.depot-possible,.set.depot-ok').forEach(function(li){li.classList.remove('depot-possible','depot-ok')});
+      var stop=function(x){x.stopPropagation();x.preventDefault()};addEventListener('click',stop,true);setTimeout(function(){removeEventListener('click',stop,true)},0);
+      if(ev.type==='pointerup'&&cible)deplacerSel(cible.dataset.id);
+    }
+    addEventListener('pointermove',bouge);addEventListener('pointerup',fin);addEventListener('pointercancel',fin);
+  }
   $('sel-adm-tout').onclick=function(){ids.forEach(function(i){basculer(i,true)});majSel()};
   $('sel-adm-annuler').onclick=function(){SELADM.forEach(function(i){basculer(i,false)});SELADM.clear();majSel()};
   $('sel-adm-suppr').onclick=function(){supprimerPhotos(Array.from(SELADM).map(parId).filter(Boolean))};
