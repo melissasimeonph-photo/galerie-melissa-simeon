@@ -43,7 +43,9 @@ export function planZip(fichiers) {
 }
 
 export function fluxZip(env, plan) {
-  const { readable, writable } = new TransformStream();
+  // Flux natif de longueur fixe : les octets venant de R2 sont recopiés sans passer par du JavaScript,
+  // ce qui ne consomme quasiment pas de temps CPU (limite de 10 ms sur l'offre gratuite).
+  const { readable, writable } = typeof FixedLengthStream === 'function' ? new FixedLengthStream(plan.total) : new TransformStream();
   const [heure, jour] = dosDateHeure();
   (async () => {
     let w = writable.getWriter();
