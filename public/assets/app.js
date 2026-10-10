@@ -704,12 +704,13 @@ function rendreCollections(){
         '<div class="adm-actions"><button class="lienbtn" id="voir-presets">Voir les préréglages</button>'+
           '<div class="split"><button class="btn sauge" id="nouvelle">Nouvelle collection</button><button class="btn sauge" id="nouvelle-plus" aria-label="Créer à partir d’un préréglage" aria-haspopup="menu">'+I.caret+'</button></div></div>'+
       '</div>'+
-      [['moi','À faire de mon côté','Ce qui attend une action de votre part'],['client','En attente des clients','Ce que vos clients doivent encore faire']].map(function(g){return '<section class="suivi-groupe" aria-label="'+g[1]+'"><div class="suivi-tete"><h2>'+g[1]+'</h2><span>'+g[2]+'</span></div><div class="suivi">'+Object.keys(ALERTES).filter(function(k){return ALERTES[k].qui===g[0]}).map(function(k){
+      // Le suivi n'apparaît que sur la page Collections principale (pas dans un dossier ni dans Favoris)
+      (COLL.classeur||COLL.etoile?'':[['moi','À faire de mon côté','Ce qui attend une action de votre part'],['client','En attente des clients','Ce que vos clients doivent encore faire']].map(function(g){return '<section class="suivi-groupe" aria-label="'+g[1]+'"><div class="suivi-tete"><h2>'+g[1]+'</h2><span>'+g[2]+'</span></div><div class="suivi">'+Object.keys(ALERTES).filter(function(k){return ALERTES[k].qui===g[0]}).map(function(k){
         var A=ALERTES[k],l=compte[k];
         return '<div class="suivi-carte s-'+A.cls+(COLL.alerte===k?' actif':'')+(l.length?'':' vide')+'" data-alerte="'+k+'" role="button" tabindex="0" aria-pressed="'+(COLL.alerte===k)+'">'+
           '<span class="suivi-ico">'+I[A.ico]+'</span><b class="num">'+l.length+'</b><span class="suivi-titre">'+A.titre+'</span>'+
           '<small>'+(l.length?l.map(function(c){return esc(c.nom.replace(/^(Mariage|Séance couple|Séance famille|Séance maternité|Séance)\s+/,''))}).join(', '):'Rien à signaler')+'</small>'+((k==='album'||k==='selclient')&&l.length?'<button class="suivi-relance" data-relance="'+k+'">'+I.mail+'Relancer'+(l.length>1?' les '+l.length:'')+'</button><span class="suivi-auto">'+txtAuto(l)+'</span>':'')+'</div>';
-      }).join('')+'</div></section>'}).join('')+
+      }).join('')+'</div></section>'}).join(''))+
       '<div class="coll-filtres">'+
         '<div class="puces">'+
           chip('statut','Statut',COLL.statut!=='tout'?STATUTS[COLL.statut].nom:'')+
