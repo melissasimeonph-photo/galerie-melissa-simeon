@@ -1521,7 +1521,8 @@ function prenomsAdm(){var n=nomsCouple(ADM.nom);return /^Famille\s/i.test(ADM.no
 function texteInvitation(){
   var corps=SEANCE?(LIVRE()?'Vos photos retouchées sont prêtes ! Vous pouvez les découvrir et les télécharger en haute définition ici :':'Vos photos sont prêtes à être découvertes ! Choisissez celles que vous souhaitez recevoir retouchées : votre formule en comprend '+ADM.quota+'. Tout se passe ici :')
     :'Vos photos de mariage sont prêtes ! Vous pouvez les découvrir, les télécharger'+(ADM.albumActif!==false?' et choisir vos photos pour l’album':'')+' ici :';
-  return 'Bonjour '+prenomsAdm()+',\n\n'+corps+'\n'+lienGalerie()+'\n\nVotre code d’accès : '+ADM.code+(SEANCE&&!LIVRE()?'':'\nCode pour vos invités : '+ADM.codeInvite)+'\n\nLa galerie reste en ligne jusqu’au '+dateFr(ADM.expiration)+'.\n\nBelle découverte,\nMélissa';
+  var merci=SEANCE?'Merci encore pour votre confiance, c’était un vrai plaisir de vous photographier.':'Merci encore pour votre confiance : c’était un vrai bonheur de vivre et de photographier votre mariage à vos côtés.';
+  return 'Bonjour '+prenomsAdm()+',\n\n'+merci+'\n\n'+corps+'\n'+lienGalerie()+'\n\nVotre code d’accès : '+ADM.code+(SEANCE&&!LIVRE()?'':'\nCode pour vos invités : '+ADM.codeInvite)+'\n\nLa galerie reste en ligne jusqu’au '+dateFr(ADM.expiration)+'.\n\nBelle découverte,\nMélissa';
 }
 function fenetrePartageAdm(){
   fenetre(enteteFen('Partager la collection')+

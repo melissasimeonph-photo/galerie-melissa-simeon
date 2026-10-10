@@ -159,7 +159,7 @@ export function texteLivraison(env, coll, nb) {
   const g = coll.reglages;
   return {
     objet: 'Vos photos sont prêtes',
-    texte: `Bonjour ${prenomsDe(g.nom)},\n\nVos ${nb} photos retouchées sont prêtes ! Vous les retrouvez dans votre galerie, au même endroit et avec le même code, en haute définition et sans filigrane.\n\nElles restent disponibles jusqu’au ${dateFr(g.expiration)} : pensez à les télécharger pour les garder précieusement.\n\nCode d’accès : ${g.code}\n\nMerci encore pour votre confiance,\nMélissa`,
+    texte: `Bonjour ${prenomsDe(g.nom)},\n\nMerci encore pour votre confiance, c’était un vrai plaisir de vous photographier.\n\nVos ${nb} photos retouchées sont prêtes ! Vous les retrouvez dans votre galerie, au même endroit et avec le même code, en haute définition et sans filigrane.\n\nElles restent disponibles jusqu’au ${dateFr(g.expiration)} : pensez à les télécharger pour les garder précieusement.\n\nCode d’accès : ${g.code}\n\nBelle découverte,\nMélissa`,
     bouton: { texte: 'Voir mes photos', url: lienGalerie(env, coll) },
   };
 }
