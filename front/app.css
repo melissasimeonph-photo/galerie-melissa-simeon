@@ -679,3 +679,7 @@ body.en-glisse-photos,body.en-glisse-photos *{user-select:none;-webkit-user-sele
 .nom-modif .ico{width:16px;height:16px;flex:none;opacity:0;color:var(--brun-doux);transition:opacity .15s}
 .nom-modif:hover .ico,.nom-modif:focus-visible .ico{opacity:1}
 @media (hover:none){.nom-modif .ico{opacity:.6}}
+
+/* Couverture floutée pendant la sélection d'une séance */
+.couverture.couv-floue .ph{filter:blur(34px) saturate(1.15);transform:scale(1.18)}
+.couverture.couv-floue::after{background:linear-gradient(180deg,rgba(42,33,23,.30) 0%,rgba(42,33,23,.22) 40%,rgba(42,33,23,.60) 100%)}

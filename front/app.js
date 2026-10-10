@@ -129,6 +129,8 @@ function ouvrirGalerie(){
 function majCouv(){
   var c=ADM.couv&&parId(ADM.couv)?ADM.couv:(PHOTOS[0]&&PHOTOS[0].n);
   var el=$('ph-couv'),hd=urlCouvHd(c);
+  // Séance en sélection : les aperçus sont en basse qualité avec filigrane, la couverture est donc floutée (texte bien lisible)
+  var cv=el.closest('.couverture');if(cv)cv.classList.toggle('couv-floue',SELP());
   // HD par-dessus, version web en dessous : la web s'affiche tout de suite, la HD la recouvre dès qu'elle est chargée
   el.style.background='#2A2117';
   if(c){el.style.backgroundImage=(hd?'url('+hd+'),':'')+'url('+SRC(c)+')';el.style.backgroundPosition=ADM.couvPos+(hd?','+ADM.couvPos:'');el.style.backgroundSize='cover';el.style.backgroundRepeat='no-repeat'}
