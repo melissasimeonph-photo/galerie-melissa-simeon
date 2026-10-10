@@ -52,6 +52,12 @@ export async function routerClient(env, req, url, ctx) {
     return o ? new Response(o.body, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=3600' } }) : new Response(null, { status: 404 });
   }
 
+  // Bannière des e-mails (photo de couverture mise en forme) : visible sans code, comme dans l'e-mail
+  if (parts[0] === 'img' && parts[2] === 'email') {
+    const o = await env.PHOTOS.get(`c/${c.id}/email.jpg`);
+    return o ? new Response(o.body, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=86400' } }) : new Response(null, { status: 404 });
+  }
+
   if (parts[0] === 'api' && parts[3] === 'acces' && req.method === 'POST') {
     const { email = '', code = '' } = await lireJSON(req);
     const ip = req.headers.get('cf-connecting-ip') || 'local';

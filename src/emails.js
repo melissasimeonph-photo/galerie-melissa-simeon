@@ -1,9 +1,14 @@
 // E-mails envoyés par Resend (https://resend.com). Sans clé (en local), ils sont seulement journalisés.
 import { esc, dateFr } from './util.js';
+import { collectionParId } from './db.js';
 
 export async function envoyerEmail(env, { collectionId = null, a, objet, texte, bouton = null }) {
   const destinataires = (Array.isArray(a) ? a : [a]).filter(Boolean);
   if (!destinataires.length) return { ok: false, raison: 'aucun destinataire' };
+  const coll = collectionId ? await collectionParId(env, collectionId).catch(() => null) : null;
+  const pourMoi = destinataires.every((d) => d.toLowerCase() === String(env.ADMIN_EMAIL).toLowerCase());
+  // Un e-mail destiné au client a toujours son bouton vers la galerie
+  if (!bouton && coll && !pourMoi) bouton = { texte: coll.type === 'seance' ? 'Voir mes photos' : 'Ouvrir ma galerie', url: lienGalerie(env, coll) };
   let statut = 'simulé';
   if (env.RESEND_API_KEY) {
     const r = await fetch('https://api.resend.com/emails', {
@@ -11,7 +16,7 @@ export async function envoyerEmail(env, { collectionId = null, a, objet, texte, 
       headers: { authorization: 'Bearer ' + String(env.RESEND_API_KEY).replace(/\s+/g, ''), 'content-type': 'application/json' },
       body: JSON.stringify({
         from: env.EXPEDITEUR, to: destinataires, reply_to: env.REPONSE_A, subject: objet,
-        text: texte + (bouton ? '\n\n' + bouton.url : ''), html: gabarit(texte, bouton),
+        text: texte + (bouton ? '\n\n' + bouton.url : ''), html: gabarit(env, { objet, texte, bouton, coll }),
       }),
     });
     if (r.ok) statut = 'envoyé';
@@ -28,13 +33,73 @@ export async function envoyerEmail(env, { collectionId = null, a, objet, texte, 
   return { ok: !statut.startsWith('échec'), statut };
 }
 
-function gabarit(texte, bouton) {
-  const paras = esc(texte).split(/\n{2,}/).map((p) => `<p style="margin:0 0 16px;line-height:1.6">${p.replace(/\n/g, '<br>')}</p>`).join('');
-  const btn = bouton ? `<p style="margin:24px 0"><a href="${esc(bouton.url)}" style="display:inline-block;background:#362023;color:#F4EFE9;text-decoration:none;padding:13px 22px;border-radius:999px;font-weight:600">${esc(bouton.texte)}</a></p>` : '';
-  return `<!doctype html><html><body style="margin:0;background:#F4EFE9;font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif;color:#362023">
-<div style="max-width:560px;margin:0 auto;padding:32px 22px"><p style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#4D6E5F;margin:0 0 22px">Mélissa Siméon · Photographe</p>
-<div style="background:#FBF8F4;border:1px solid #E2D8CB;border-radius:18px;padding:26px 24px;font-size:15.5px">${paras}${btn}</div>
-<p style="font-size:12px;color:#6B5C48;margin:18px 4px">Martinique · melissasimeon.ph@gmail.com</p></div></body></html>`;
+/* ---------- Mise en page, sur le modèle des e-mails du questionnaire mariage ---------- */
+const C = { fond: '#F4EFE9', carte: '#FBF8F4', ligne: '#E2D8CB', encre: '#362023', gris: '#6B5C48', pale: '#9A8B77' };
+const TITRE = "'Bricolage Grotesque','Avenir Next','Helvetica Neue',Helvetica,Arial,sans-serif";
+const TEXTE = "'Hanken Grotesk','Helvetica Neue',Helvetica,Arial,sans-serif";
+const ligneT = (contenu, pad = '0 0 16px') => `<tr><td style="padding:${pad}">${contenu}</td></tr>`;
+const tableP = (contenu, style = '') => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="${style}">${contenu}</table>`;
+
+// Sépare le message en : paragraphes, infos pratiques (code, date) et signature
+function analyser(texte) {
+  const infos = [];
+  const garder = [];
+  for (const l of String(texte || '').split('\n')) {
+    const t = l.trim();
+    let m;
+    if ((m = t.match(/^(?:votre\s+)?code d[’']accès\s*:\s*(.+)$/i))) { infos.push(['Votre code d’accès', m[1]]); continue; }
+    if ((m = t.match(/^code (?:pour )?(?:vos )?invités\s*:\s*(.+)$/i))) { infos.push(['Code pour vos invités', m[1]]); continue; }
+    if ((m = t.match(/^la galerie reste en ligne jusqu[’']au (.+?)\.?$/i))) { infos.push(['En ligne jusqu’au', m[1]]); continue; }
+    if (/^(votre galerie\s*:\s*)?https?:\/\/\S+$/i.test(t)) continue;
+    garder.push(l);
+  }
+  const paras = garder.join('\n').split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  let signature = null;
+  const dernier = paras[paras.length - 1] || '';
+  if (/\n\s*Mélissa\s*$/.test(dernier) || /^Mélissa$/.test(dernier)) signature = paras.pop();
+  return { paras, infos, signature };
+}
+
+function gabarit(env, { objet, texte, bouton, coll }) {
+  const { paras, infos, signature } = analyser(texte);
+  const seance = coll && coll.type === 'seance';
+  const g = coll ? coll.reglages : {};
+  const base = `https://${env.DOMAINE}`;
+  const banniere = coll && g.banniere ? `${base}/img/${coll.slug}/email?v=${g.banniere}` : null;
+
+  const entete = `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td style="vertical-align:middle;padding-right:10px"><img src="${base}/assets/email/logo.png" width="30" alt="" style="display:block;width:30px;height:auto;border:0"></td>
+<td style="vertical-align:middle;font-family:${TEXTE}"><div style="font-family:${TITRE};font-weight:600;font-size:17px;line-height:1.15;color:${C.encre}">Mélissa Siméon</div>
+<div style="font-size:13px;line-height:1.3;color:${C.gris}">${seance ? 'Photographe, Martinique' : 'Photographe de mariage, Martinique'}</div></td></tr></table>`;
+
+  const photo = banniere ? `<a href="${esc(bouton ? bouton.url : base)}"><img src="${banniere}" width="560" alt="${esc(g.nom || '')}" style="display:block;width:100%;max-width:560px;height:auto;border:0"></a>` : '';
+  const titre = `<h1 style="margin:0;font-family:${TITRE};font-weight:400;font-size:38px;line-height:1.05;letter-spacing:-1px;color:${C.encre}">${esc(objet)}</h1>`;
+  const corps = paras.map((p) => `<p style="margin:0 0 14px;font-family:${TEXTE};font-size:17px;line-height:1.55;color:${C.gris}">${esc(p).replace(/\n/g, '<br>')}</p>`).join('');
+
+  const carte = infos.length ? tableP(`<tr><td style="padding:6px 18px">${tableP(infos.map(([k, v], i) =>
+    `<tr><td style="padding:12px 0;${i ? `border-top:1px solid ${C.ligne};` : ''}font-family:${TEXTE}"><div style="font-size:13px;color:${C.gris};margin-bottom:3px">${esc(k)}</div><div style="font-size:17px;font-weight:600;letter-spacing:.02em;color:${C.encre}">${esc(v)}</div></td></tr>`).join(''))}</td></tr>`,
+    `background:${C.carte};border:1px solid ${C.ligne};border-radius:18px`) : '';
+
+  const btn = bouton ? tableP(`<tr><td style="padding:0 8px 0 24px;vertical-align:middle"><a href="${esc(bouton.url)}" style="font-family:${TEXTE};font-weight:600;font-size:16px;color:${C.fond};text-decoration:none;display:block">${esc(bouton.texte)}</a></td>
+<td width="52" style="width:52px;padding:0;vertical-align:middle"><a href="${esc(bouton.url)}"><img src="${base}/assets/email/fleche.png" width="52" alt="" style="display:block;width:52px;height:52px;border:0;border-radius:0 999px 999px 0"></a></td></tr>`,
+    `background:${C.encre};border-radius:999px`) : '';
+
+  const sign = signature ? `<p style="margin:0;font-family:${TEXTE};font-size:16px;line-height:1.5;color:${C.encre}">${esc(signature).replace(/\n\s*Mélissa\s*$/, '<br><strong>Mélissa</strong>').replace(/\n/g, '<br>')}</p>` : '';
+
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet"></head>
+<body style="margin:0;padding:0;background:${C.fond}"><div style="display:none;max-height:0;overflow:hidden;color:${C.fond}">${esc(paras[1] || paras[0] || objet)}</div>
+${tableP(`<tr><td align="center" style="padding:28px 16px 40px">${tableP(
+    ligneT(entete, '0 0 22px') +
+    (photo ? ligneT(photo, '0 0 30px') : '') +
+    ligneT(titre, '0 0 18px') +
+    (corps ? ligneT(corps, '0 0 10px') : '') +
+    (carte ? ligneT(carte, '0 0 22px') : '') +
+    (btn ? ligneT(btn, '0 0 28px') : '') +
+    (sign ? ligneT(sign, '0') : '') +
+    ligneT(`<p style="margin:0;padding-top:26px;border-top:1px solid ${C.ligne};font-family:${TEXTE};font-size:13px;line-height:1.5;color:${C.pale}">Mélissa Siméon, photographe en Martinique · <a href="https://www.instagram.com/melissasimeon.ph/" style="color:${C.gris}">@melissasimeon.ph</a></p>`, '32px 0 0'),
+    'max-width:560px')}</td></tr>`, `background:${C.fond}`)}
+</body></html>`;
 }
 
 export function prenomsDe(nom) {
@@ -78,3 +143,4 @@ export function texteSelectionRecue(env, coll, etat, nomsPhotos) {
     bouton: { texte: 'Ouvrir dans ma vue photographe', url: `https://${env.DOMAINE}/admin/#c=${coll.id}` },
   };
 }
+export { gabarit as _gabaritPourApercu };
