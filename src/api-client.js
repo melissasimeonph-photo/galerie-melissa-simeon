@@ -146,7 +146,7 @@ export async function routerClient(env, req, url, ctx) {
     return json({
       perm,
       collection: {
-        nom: g.nom, type: c.type, dateEvt: g.dateEvt, slug: c.slug, expiration: g.expiration, phase: g.phase,
+        nom: g.nom, type: c.type, dateEvt: g.dateEvt, slug: c.slug, expiration: g.expiration, phase: g.phase, livre: g.livre || null,
         couv: g.couv, couvPos: g.couvPos, quota: g.quota, prixSupp: g.prixSupp, supp: g.supp !== false,
         dossiers: g.dossiers.map(({ id, nom, desc }) => ({ id, nom, desc })), domaine: env.DOMAINE,
       },

@@ -18,7 +18,9 @@ var SLUG=COLLPUB?COLLPUB.slug:null,CID=null,PERM={},VARS={};
 function SRC(n,v){
   v=v||'web';
   if(MODE==='admin'){var a=VARS[n]||{};if(SELP()||!a[v])v=a[v]&&!SELP()?v:a.apercu?'apercu':a.mini&&v!=='web'?'mini':a.web?'web':a.mini?'mini':'hd';return '/admin/api/img/'+CID+'/'+n+'/'+v}
-  return '/img/'+SLUG+'/'+n+'/'+v+(APERCU?'?apercu=1':'');
+  // Après la livraison, l'adresse change : le navigateur ne réutilise pas l'aperçu filigrané gardé en mémoire
+  var q=[];if(APERCU)q.push('apercu=1');if(ADM.phase==='livraison')q.push('l='+(ADM.livre||1));
+  return '/img/'+SLUG+'/'+n+'/'+v+(q.length?'?'+q.join('&'):'');
 }
 function api(chemin,opts){
   opts=opts||{};var o={method:opts.method||'GET',headers:{},credentials:'same-origin'};
@@ -80,7 +82,7 @@ function chargerClient(){
   return api('donnees').then(function(d){
     PERM=d.perm;SEANCE=d.collection.type==='seance';majTxt();iconesMode();
     var c=d.collection;
-    ADM={nom:c.nom,dateEvt:c.dateEvt,expiration:c.expiration,phase:c.phase,couv:c.couv,couvPos:c.couvPos||'50% 50%',quota:c.quota,prixSupp:c.prixSupp,supp:c.supp,
+    ADM={nom:c.nom,dateEvt:c.dateEvt,expiration:c.expiration,phase:c.phase,livre:c.livre||0,couv:c.couv,couvPos:c.couvPos||'50% 50%',quota:c.quota,prixSupp:c.prixSupp,supp:c.supp,
       dossiers:c.dossiers,albumActif:PERM.selection||LIVREC(c),hd:PERM.hd,hdInvite:PERM.hd,web:PERM.web,slug:c.slug,mur:COLLPUB?COLLPUB.mur:true};
     QUOTA=c.quota;DOSSIERS=ADM.dossiers;
     TOUTES=d.photos.map(function(p){return {id:p.id,n:p.id,nom:p.nom,dossier:p.dossier,w:p.w||3,h:p.h||2,mo:p.mo,web:p.web}});
