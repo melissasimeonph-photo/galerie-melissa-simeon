@@ -29,9 +29,9 @@ async function pageClient(env, req, url, slug) {
   html = html.replace('/*__COLLECTION__*/null', JSON.stringify(pub).replace(/</g, '\\u003c')).replace(/__TITRE__/g, esc(g.nom + ' · Mélissa Siméon'));
   return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 }
-async function pageSimple(env, titre, texte, status = 200) {
+async function pageSimple(env, titre, texte, status = 200, pied = '') {
   const html = `<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(titre)}</title>
-<link rel="stylesheet" href="/assets/simple.css"><main><img src="/assets/logo.svg" alt="" width="72"><h1>${esc(titre)}</h1><p>${esc(texte)}</p></main></html>`;
+<link rel="stylesheet" href="/assets/simple.css"><main><img src="/assets/logo.svg" alt="" width="72"><h1>${esc(titre)}</h1><p>${esc(texte)}</p></main>${pied}</html>`;
   return new Response(html, { status, headers: { 'content-type': 'text/html; charset=utf-8' } });
 }
 
@@ -50,7 +50,7 @@ export default {
         return avecSecurite(await env.ASSETS.fetch(new URL('/admin/index.html', url)));
       }
       if (/^\/(api\/g|img|dl|zip)\//.test(chemin)) return avecSecurite(await routerClient(env, req, url, ctx));
-      if (chemin === '/' ) return avecSecurite(await pageSimple(env, 'Galeries de Mélissa Siméon', 'Ouvrez le lien de votre galerie reçu par e-mail pour retrouver vos photos.'));
+      if (chemin === '/' ) return avecSecurite(await pageSimple(env, 'Galeries de Mélissa Siméon', 'Ouvrez le lien de votre galerie reçu par e-mail pour retrouver vos photos.', 200, '<a class="pied" href="/admin/">Espace photographe</a>'));
       if (chemin.startsWith('/assets/')) return env.ASSETS.fetch(req);
       const m = chemin.match(/^\/([a-z0-9-]+)(?:\/photo\/\d+)?\/?$/);
       if (m) return avecSecurite(await pageClient(env, req, url, m[1]));
