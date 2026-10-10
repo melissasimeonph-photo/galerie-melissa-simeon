@@ -14,13 +14,18 @@ export async function envoyerEmail(env, { collectionId = null, a, objet, texte, 
         text: texte + (bouton ? '\n\n' + bouton.url : ''), html: gabarit(texte, bouton),
       }),
     });
-    statut = r.ok ? 'envoyé' : 'échec (' + r.status + ')';
+    if (r.ok) statut = 'envoyé';
+    else {
+      let detail = '';
+      try { const j = await r.json(); detail = (j.message || j.name || '').slice(0, 160); } catch {}
+      statut = 'échec (' + r.status + (detail ? ' : ' + detail : '') + ')';
+    }
   }
   const ts = Date.now();
   for (const d of destinataires) {
     await env.DB.prepare('INSERT INTO emails (collection_id, ts, destinataire, objet, statut) VALUES (?,?,?,?,?)').bind(collectionId, ts, d, objet, statut).run();
   }
-  return { ok: statut !== 'échec', statut };
+  return { ok: !statut.startsWith('échec'), statut };
 }
 
 function gabarit(texte, bouton) {
