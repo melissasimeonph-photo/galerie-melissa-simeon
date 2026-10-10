@@ -53,6 +53,11 @@ export async function routerClient(env, req, url, ctx) {
   }
 
   // Bannière des e-mails (photo de couverture mise en forme) : visible sans code, comme dans l'e-mail
+  // Image d'aperçu des liens partagés (WhatsApp, Facebook, Messenger, X, Pinterest) : publique, comme dans l'e-mail
+  if (parts[0] === 'img' && parts[2] === 'partage') {
+    const o = await env.PHOTOS.get(`c/${c.id}/partage.jpg`);
+    return o ? new Response(o.body, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=86400' } }) : new Response(null, { status: 404 });
+  }
   if (parts[0] === 'img' && (parts[2] === 'email' || parts[2] === 'email-flou')) {
     const o = await env.PHOTOS.get(`c/${c.id}/${parts[2]}.jpg`);
     return o ? new Response(o.body, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=86400' } }) : new Response(null, { status: 404 });

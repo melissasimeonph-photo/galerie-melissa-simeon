@@ -26,6 +26,18 @@ async function pageClient(env, req, url, slug) {
   const pub = { nom: g.nom, type: c.type, dateEvt: g.dateEvt, slug: c.slug, mur: g.mur !== false, phase: g.phase || null };
   const r = await env.ASSETS.fetch(new URL('/client.html', url));
   let html = await r.text();
+  // Aperçu du lien dans les messageries et réseaux (Open Graph / X)
+  const titre = g.nom + ' · Mélissa Siméon';
+  const descr = c.type === 'seance' ? 'Votre galerie photo · Mélissa Siméon, photographe en Martinique' : `Les photos du mariage de ${String(g.nom).replace(/^mariage\s+(de\s+)?/i, '')} · Mélissa Siméon, photographe de mariage en Martinique`;
+  const lien = `${url.origin}/${c.slug}`;
+  const image = g.partage ? `${url.origin}/img/${c.slug}/partage?v=${g.partage.v}` : g.banniere ? `${url.origin}/img/${c.slug}/${c.type === 'seance' && g.phase !== 'livraison' ? 'email-flou' : 'email'}?v=${g.banniere}` : '';
+  const meta = [
+    ['og:type', 'website'], ['og:site_name', 'Mélissa Siméon · Photographe'], ['og:locale', 'fr_FR'], ['og:title', titre], ['og:description', descr], ['og:url', lien],
+    ...(image ? [['og:image', image], ['og:image:secure_url', image], ['og:image:type', 'image/jpeg'], ...(g.partage ? [['og:image:width', '1200'], ['og:image:height', '630']] : []), ['og:image:alt', titre]] : []),
+  ].map(([k, v]) => `<meta property="${k}" content="${esc(v)}">`).join('\n') +
+    `\n<meta name="description" content="${esc(descr)}">\n<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}">\n<meta name="twitter:title" content="${esc(titre)}">\n<meta name="twitter:description" content="${esc(descr)}">` +
+    (image ? `\n<meta name="twitter:image" content="${esc(image)}">` : '') + '\n';
+  html = html.replace('</head>', meta + '</head>');
   html = html.replace('/*__COLLECTION__*/null', JSON.stringify(pub).replace(/</g, '\\u003c')).replace(/__TITRE__/g, esc(g.nom + ' · Mélissa Siméon'));
   return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 }

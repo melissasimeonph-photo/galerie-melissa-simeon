@@ -203,7 +203,7 @@ export async function routerAdmin(env, req, url, ctx) {
   }
 
   if (m === 'POST' && action === 'dupliquer') {
-    const g2 = { ...g, nom: g.nom + ' (copie)', statut: 'cachee', couv: null, couvHd: null, banniere: null, banniereFlou: null, guideAlbum: null, phase: c.type === 'seance' ? 'selection' : null, livre: null, sauvegarde: null, rappelsEnvoyes: [], contacts: [] };
+    const g2 = { ...g, nom: g.nom + ' (copie)', statut: 'cachee', couv: null, couvHd: null, partage: null, banniere: null, banniereFlou: null, guideAlbum: null, phase: c.type === 'seance' ? 'selection' : null, livre: null, sauvegarde: null, rappelsEnvoyes: [], contacts: [] };
     const id = idAleatoire(12), now = Date.now(), slug = await slugLibre(env, c.slug + '-copie');
     await env.DB.prepare('INSERT INTO collections (id, slug, type, reglages, cree_le, maj_le) VALUES (?,?,?,?,?,?)').bind(id, slug, c.type, JSON.stringify(g2), now, now).run();
     return json({ id, slug });
@@ -248,6 +248,12 @@ export async function routerAdmin(env, req, url, ctx) {
     return json({ ok: true });
   }
 
+  if (m === 'PUT' && action === 'partage') {
+    await env.PHOTOS.put(`c/${c.id}/partage.jpg`, req.body, { httpMetadata: { contentType: 'image/jpeg' } });
+    g.partage = { n: parseInt(url.searchParams.get('n')) || 0, flou: url.searchParams.get('flou') === '1', pos: String(url.searchParams.get('pos') || '').slice(0, 20), v: Date.now() };
+    await enregistrerReglages(env, c);
+    return json({ ok: true, partage: g.partage });
+  }
   if (m === 'GET' && action === 'couverture') {
     const o = await env.PHOTOS.get(`c/${c.id}/couv.jpg`);
     return o ? new Response(o.body, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'private, max-age=604800' } }) : new Response(null, { status: 404 });
