@@ -8,7 +8,7 @@ export async function envoyerEmail(env, { collectionId = null, a, objet, texte, 
   if (env.RESEND_API_KEY) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { authorization: 'Bearer ' + env.RESEND_API_KEY, 'content-type': 'application/json' },
+      headers: { authorization: 'Bearer ' + String(env.RESEND_API_KEY).replace(/\s+/g, ''), 'content-type': 'application/json' },
       body: JSON.stringify({
         from: env.EXPEDITEUR, to: destinataires, reply_to: env.REPONSE_A, subject: objet,
         text: texte + (bouton ? '\n\n' + bouton.url : ''), html: gabarit(texte, bouton),
