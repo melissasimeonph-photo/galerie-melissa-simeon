@@ -927,6 +927,8 @@ function ouvrirCollection(id){
     },1500);
     if(location.hash!=='#c='+id)history.replaceState(null,'','#c='+id);
     rendreAdmin();
+    // Ouvrir une collection ramène toujours en haut de la page (on arrivait au milieu si la liste était défilée)
+    window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0;
     return true;
   }).catch(function(e){toast(e.message);return false});
 }
