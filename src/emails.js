@@ -39,7 +39,7 @@ export async function envoyerEmail(env, { collectionId = null, a, objet, texte, 
 
 /* ---------- Mise en page, sur le modèle des e-mails du questionnaire mariage ---------- */
 // Mêmes couleurs que les e-mails du questionnaire mariage
-const C = { fond: '#FFFFFF', carte: '#F5F5F4', ligne: '#EAEAE8', encre: '#2A2016', gris: '#6A6A6A', pale: '#9C9C9C' };
+const C = { fond: '#F4EFE9', carte: '#FBF8F4', ligne: '#E2D8CB', encre: '#2A2016', gris: '#6B5C48', pale: '#9A8B77' };
 const TITRE = "'Bricolage Grotesque','Avenir Next','Helvetica Neue',Helvetica,Arial,sans-serif";
 const TEXTE = "'Hanken Grotesk','Helvetica Neue',Helvetica,Arial,sans-serif";
 const ligneT = (contenu, pad = '0 0 16px') => `<tr><td style="padding:${pad}">${contenu}</td></tr>`;

@@ -922,8 +922,8 @@ function ouvrirCollection(id){
     ADM.journal=d.journal.map(function(j){return {t:j.ts,q:j.qui,a:j.quoi}}).reverse();
     admPage='collection';
     setTimeout(function(){if(CID!==d.id)return;if(!couvAJour())genererCouv();if(!partageAJour())genererPartage();
-      // Palette blanche (octobre 2026) : les bannières d'e-mail plus anciennes ont des coins beige, on les refait
-      var PALETTE=Date.UTC(2026,9,10,22,0);if(PHOTOS.length&&((ADM.banniere&&ADM.banniere<PALETTE)||(SELP()&&ADM.banniereFlou&&ADM.banniereFlou<PALETTE)))genererBanniere();
+      // E-mails revenus au beige (10 octobre 2026) : les bannières faites entre-temps ont des coins blancs, on les refait
+      var PALETTE=Date.UTC(2026,9,11,2,20);if(PHOTOS.length&&((ADM.banniere&&ADM.banniere<PALETTE)||(SELP()&&ADM.banniereFlou&&ADM.banniereFlou<PALETTE)))genererBanniere();
     },1500);
     if(location.hash!=='#c='+id)history.replaceState(null,'','#c='+id);
     rendreAdmin();
@@ -1426,7 +1426,7 @@ function genererBanniere(o){
   var polices=(document.fonts&&document.fonts.load)?Promise.all([document.fonts.load('600 64px "Bricolage Grotesque"'),document.fonts.load('500 26px "Hanken Grotesk"')]).catch(function(){}):Promise.resolve();
   return Promise.all([charger(src||SRC(n,'web')).then(function(im){return im||charger(SRC(n,'mini'))}),charger(logo),polices]).then(function(r){
     var im=r[0],lg=r[1];if(!im)return;
-    x.fillStyle='#FFFFFF';x.fillRect(0,0,W,H);
+    x.fillStyle='#F4EFE9';x.fillRect(0,0,W,H);
     x.save();x.beginPath();x.moveTo(R,0);x.arcTo(W,0,W,H,R);x.arcTo(W,H,0,H,R);x.arcTo(0,H,0,0,R);x.arcTo(0,0,W,0,R);x.closePath();x.clip();
     var pos=String(ADM.couvPos||'50% 50%').split(' ').map(function(v){return (parseFloat(v)||50)/100});
     var k=Math.max(W/im.naturalWidth,H/im.naturalHeight),dw=im.naturalWidth*k,dh=im.naturalHeight*k;
