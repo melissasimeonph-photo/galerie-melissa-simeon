@@ -189,7 +189,7 @@ export function texteGuideAlbum(env, coll) {
     objet: '📖 Votre livre photo',
     texte: `Bonjour ${prenomsDe(g.nom)},\n\nVoici comment se passe la sélection ⬇️\n\nVotre code d’accès : ${g.code}\n\nÀ très vite,\nMélissa`,
     etapes: [
-      { titre: 'Votre sélection', texte: `Dans la galerie, cliquez sur l’icône « album » de chaque photo que vous souhaitez voir dans votre livre. Vous pouvez en choisir jusqu’à ${g.quota}. Une jauge vous indique où vous en êtes, et vous pouvez ajouter ou retirer des photos autant que vous le souhaitez.` },
+      { titre: 'Votre sélection', texte: `Dans la galerie, cliquez sur le bouton « + Ajouter à l’album » en bas à droite de chaque photo que vous souhaitez voir dans votre livre. Vous pouvez en choisir jusqu’à ${g.quota}. Une jauge vous indique où vous en êtes, et vous pouvez ajouter ou retirer des photos autant que vous le souhaitez.` },
       { titre: 'La validation', texte: 'Une fois votre sélection terminée, pensez bien à cliquer sur « Valider » dans la galerie. C’est ce qui m’envoie votre sélection par e-mail : sans cette étape, je ne la reçois pas !' },
       { titre: 'Ma mise en page', texte: 'À partir de votre sélection, je construis le livre pour qu’il raconte votre journée comme une histoire.' },
       { titre: 'L’impression', texte: 'J’envoie ensuite le livre à l’impression. Les délais dépendent de l’imprimeur et de l’acheminement jusqu’en Martinique, je ne peux donc pas m’engager sur une date de livraison précise, mais je vous tiendrai informés à chaque étape.' },

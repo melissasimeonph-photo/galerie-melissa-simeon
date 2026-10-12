@@ -113,11 +113,38 @@ $('form-acces').addEventListener('submit',function(e){
   b.disabled=true;$('err-acces').textContent='';
   api('acces',{method:'POST',body:{email:em,code:c}}).then(function(r){
     return chargerClient().then(function(){
-      ouvrirGalerie();
+      ouvrirGalerie();guideALaConnexion(true);
       if(r.role==='invite')toast(PERM.hd?'Bienvenue ! Accès invité : photos en HD et en taille web.':'Bienvenue ! Accès invité : photos en taille web.');
     });
   }).catch(function(err){$('err-acces').textContent=err.message}).then(function(){b.disabled=false});
 });
+/* ---- Guide de la sélection (fenêtre à la connexion, rouvrable via « Comment ça marche ? ») ---- */
+function guideActif(){return MODE==='client'&&!etat.invite&&modeChoix()==='album'&&!etat.verrou}
+function cleGuide(){return 'guide-sel-'+SLUG}
+function guideSelection(){
+  var etapes=SEANCE?[
+    ['Votre sélection','Cliquez sur le bouton <b>« + Sélectionner »</b> en bas à droite de chaque photo que vous aimez. Votre formule en comprend <b>'+QUOTA+'</b>'+(ADM.supp!==false&&ADM.prixSupp?' ; au-delà, chaque photo supplémentaire est à '+ADM.prixSupp+' €':'')+'. Une jauge vous indique où vous en êtes, et vous pouvez ajouter ou retirer des photos autant que vous le souhaitez. Vous pouvez aussi me laisser une note sur une photo depuis l’affichage en grand.'],
+    ['La validation','Une fois votre choix terminé, cliquez sur <b>« Valider »</b> dans la barre en bas de l’écran. C’est ce qui m’envoie votre sélection : sans cette étape, je ne la reçois pas !'],
+    ['La retouche','Je retouche ensuite chacune des photos choisies avec soin.'],
+    ['La livraison','Vous recevez un e-mail dès qu’elles sont prêtes : vos photos retouchées apparaissent dans cette même galerie, en haute définition et sans filigrane.']
+  ]:[
+    ['Votre sélection','Cliquez sur le bouton <b>« + Ajouter à l’album »</b> en bas à droite de chaque photo que vous souhaitez voir dans votre livre. Vous pouvez en choisir jusqu’à <b>'+QUOTA+'</b>. Une jauge vous indique où vous en êtes, et vous pouvez ajouter ou retirer des photos autant que vous le souhaitez.'],
+    ['La validation','Une fois votre sélection terminée, pensez bien à cliquer sur <b>« Valider »</b> dans la barre en bas de l’écran. C’est ce qui m’envoie votre sélection : sans cette étape, je ne la reçois pas !'],
+    ['Ma mise en page','À partir de votre sélection, je construis le livre pour qu’il raconte votre journée comme une histoire.'],
+    ['L’impression','J’envoie ensuite le livre à l’impression. Les délais dépendent de l’imprimeur et de l’acheminement jusqu’en Martinique, je ne peux donc pas m’engager sur une date précise, mais je vous tiendrai informés à chaque étape.']
+  ];
+  fenetre('<div class="guide-sel"><span class="etiquette">'+(SEANCE?'Votre sélection':'📖 Votre livre photo')+'</span><h2>Comment se passe la sélection</h2>'+
+    '<ol class="guide-etapes">'+etapes.map(function(e,i){return '<li><i>'+(i+1)+'</i><div><b>'+e[0]+'</b><p>'+e[1]+'</p></div></li>'}).join('')+'</ol>'+
+    '<div class="ligne-btn"><button class="btn" data-ferme>'+(SEANCE?'Commencer ma sélection':'Commencer ma sélection')+'</button></div></div>');
+  $('fenetre').classList.add('guide-fen');
+  try{localStorage.setItem(cleGuide(),'1')}catch(_){}
+}
+function guideALaConnexion(viaFormulaire){
+  if(!guideActif()||APERCU&&!viaFormulaire)return;
+  var vu=false;try{vu=!!localStorage.getItem(cleGuide())}catch(_){}
+  if(viaFormulaire||!vu)setTimeout(guideSelection,400);
+}
+document.addEventListener('click',function(e){if(e.target.closest('[data-guide]')){e.preventDefault();guideSelection()}});
 function appliquerAlbum(){$('galerie').classList.toggle('sans-album',albumOff());$('galerie').classList.toggle('seance-sel',SELP());$('vision').classList.toggle('seance-sel',SELP());majBandeau()}
 function ouvrirGalerie(){
   appliquerAlbum();$('acces').hidden=true;$('galerie').hidden=false;window.scrollTo(0,0);rendre();agencer();
@@ -261,7 +288,7 @@ function rendre(){
   if(!liste.length){
     $('colonnes').innerHTML='';$('colonnes').style.height='';
     var v=document.createElement('div');v.className='vide';
-    v.innerHTML=etat.vue==='fav'?'<h3>Aucun favori pour l’instant</h3><span>Touchez le cœur sur une photo pour l’ajouter à cette liste.</span>':SEANCE?'<h3>Aucune photo sélectionnée</h3><span>Touchez le rond sur une photo pour la sélectionner. Votre formule en comprend '+QUOTA+'.</span>':'<h3>L’album est vide</h3><span>Touchez l’icône livre sur une photo pour la proposer pour votre album. Vous pouvez en choisir '+QUOTA+'.</span>';
+    v.innerHTML=etat.vue==='fav'?'<h3>Aucun favori pour l’instant</h3><span>Touchez le cœur sur une photo pour l’ajouter à cette liste.</span>':SEANCE?'<h3>Aucune photo sélectionnée</h3><span>Cliquez sur le bouton <b>« + Sélectionner »</b> en bas à droite d’une photo pour la choisir. Votre formule en comprend '+QUOTA+'.</span><button class="btn clair" data-guide>Comment ça marche ?</button>':'<h3>L’album est vide</h3><span>Cliquez sur le bouton <b>« + Ajouter à l’album »</b> en bas à droite d’une photo pour la proposer pour votre livre. Vous pouvez en choisir '+QUOTA+'.</span><button class="btn clair" data-guide>Comment ça marche ?</button>';
     $('colonnes').appendChild(v);
   }else{
     var h='';
@@ -2107,7 +2134,7 @@ if(MODE==='admin'){
   majNoms();majDateEvt();setTimeout(initOeil);
   if(APERCU){$('bandeau-apercu').hidden=false}
   // Déjà connecté (cookie valide) : on ouvre directement la galerie
-  chargerClient().then(function(){ouvrirGalerie()}).catch(function(e){
+  chargerClient().then(function(){ouvrirGalerie();guideALaConnexion(false)}).catch(function(e){
     if(APERCU){$('err-acces').textContent='Aperçu indisponible : ouvrez d’abord votre vue photographe.'}
     $('acces').hidden=false;majMur();
   });
