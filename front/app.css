@@ -730,3 +730,9 @@ body.en-glisse-photos,body.en-glisse-photos *{user-select:none;-webkit-user-sele
 .lien-guide:hover{opacity:1}
 @media (max-width:560px){.lien-guide{display:none}}
 .vide [data-guide]{margin-top:14px}
+
+/* Photo dans l'album / sélectionnée : bouton vert foncé, texte blanc, et cadre vert autour de la photo */
+.tchoix.on{background:var(--sauge-fonce);color:#fff}
+#v-album.on{background:var(--sauge-fonce);border-color:var(--sauge-fonce);color:#fff}
+.tuile.choisie{outline:4px solid var(--sauge-fonce);outline-offset:-4px}
+.tuile.choisie .ph{transform:none}

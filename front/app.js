@@ -294,7 +294,7 @@ function rendre(){
     var h='';
     liste.forEach(function(p,i){
       var f=estFav(p.id),a=estAlbum(p.id);
-      h+='<figure class="tuile" data-i="'+i+'" data-r="'+(p.w/p.h).toFixed(4)+'" tabindex="0" aria-label="'+p.nom+'">'+
+      h+='<figure class="tuile'+(a&&modeChoix()==='album'?' choisie':'')+'" data-i="'+i+'" data-r="'+(p.w/p.h).toFixed(4)+'" tabindex="0" aria-label="'+p.nom+'">'+
         '<img class="ph" loading="lazy" decoding="async" src="'+SRC(p.n,'mini')+'" srcset="'+SRC(p.n,'mini')+' 800w, '+SRC(p.n,'web')+' 2048w" sizes="33vw" alt="">'+
         '<div class="etats">'+(f?'<span title="Dans vos favoris">'+I.coeurPlein+'</span>':'')+(SELP()&&etat.notes[p.id]?'<span title="Note pour Mélissa">'+I.crayon+'</span>':'')+'</div>'+
         boutonChoix(p,f,a)+
