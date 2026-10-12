@@ -199,6 +199,7 @@ var I={
   oeil:SV+'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>',
   sortir:SV+'<path d="M14 4.5h4.5a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg>',
   check:SV+'<path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  croix:SV+'<path d="M12 5v14M5 12h14"/></svg>',
   image:SV+'<rect x="3.5" y="4.5" width="17" height="15" rx="1.8"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5.5-5 3.5 3 2.5-2 4.5 4"/></svg>',
   activite:SV+'<path d="M4 19.5V10M9.3 19.5V5M14.6 19.5v-7M20 19.5V8"/></svg>',
   reglages:SV+'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>',
@@ -269,6 +270,7 @@ function rendre(){
       h+='<figure class="tuile" data-i="'+i+'" data-r="'+(p.w/p.h).toFixed(4)+'" tabindex="0" aria-label="'+p.nom+'">'+
         '<img class="ph" loading="lazy" decoding="async" src="'+SRC(p.n,'mini')+'" srcset="'+SRC(p.n,'mini')+' 800w, '+SRC(p.n,'web')+' 2048w" sizes="33vw" alt="">'+
         '<div class="etats">'+(f?'<span title="Dans vos favoris">'+I.coeurPlein+'</span>':'')+(a?'<span class="al" title="'+TXT.dans+'">'+I.albumPlein+'</span>':'')+(SELP()&&etat.notes[p.id]?'<span title="Note pour Mélissa">'+I.crayon+'</span>':'')+'</div>'+
+        boutonChoix(p,f,a)+
         '<div class="outils">'+
         '<button class="tbtn" data-act="fav" data-id="'+p.id+'" title="'+(f?'Retirer des favoris':'Ajouter aux favoris')+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?I.coeurPlein:I.coeur)+'</button>'+
         '<button class="tbtn" data-act="album" data-id="'+p.id+'" title="'+(a?TXT.retirer:TXT.ajouter)+'" aria-label="Album" aria-pressed="'+a+'">'+(a?I.albumPlein:I.album)+'</button>'+
@@ -330,6 +332,19 @@ $('colonnes').addEventListener('click',function(e){
 });
 $('colonnes').addEventListener('keydown',function(e){var t=e.target.closest('.tuile');if(t&&e.key==='Enter')ouvrirVision(+t.dataset.i)});
 
+// Bouton toujours visible, avec libellé, en bas à droite de chaque photo : sélection (album / séance) ou favori
+function modeChoix(){return !albumOff()&&!etat.invite?'album':!etat.invite?'fav':null}
+function libelleChoix(m,on){
+  if(m==='album')return SEANCE?(on?'Sélectionnée':'Sélectionner'):(on?'Dans l’album':'Ajouter à l’album');
+  return on?'En favori':'Favori';
+}
+function boutonChoix(p,f,a){
+  var m=modeChoix();if(!m)return '';
+  var on=m==='album'?a:f;
+  if(m==='album'&&etat.verrou&&!on)return '';
+  var ico=m==='album'?(on?I.check:I.croix):(on?I.coeurPlein:I.coeur);
+  return '<button class="tchoix'+(on?' on':'')+(m==='fav'?' fav':'')+'" data-act="'+m+'" data-id="'+p.id+'" aria-pressed="'+on+'"'+(m==='album'&&etat.verrou?' disabled':'')+' title="'+(m==='album'?(on?TXT.retirer:TXT.ajouter):(on?'Retirer des favoris':'Ajouter aux favoris'))+'">'+ico+'<span>'+libelleChoix(m,on)+'</span></button>';
+}
 function basculer(act,id){
   if(APERCU){toast('Aperçu : vos clics ne sont pas enregistrés.');return}
   var avant=JSON.stringify({l:etat.listes,a:etat.album});
@@ -377,14 +392,19 @@ $('btn-valider').onclick=function(){
 /* ---------- Visionneuse ---------- */
 function ouvrirVision(i){fermerMenu();$('vision').classList.toggle('vision-sans-album',albumOff());$('vision').classList.toggle('seance-sel',SELP());$('v-note').hidden=!SELP()||!!etat.invite;$('vision').classList.toggle('vision-invite',!!etat.invite);etat.idx=i;$('vision').hidden=false;document.body.style.overflow='hidden';majVision();$('barre-sel').hidden=true;$('v-fermer').focus()}
 function fermerVision(){fermerMenu();$('vision').hidden=true;document.body.style.overflow='';var tu=document.querySelector('#colonnes .tuile[data-i="'+etat.idx+'"]');if(tu){tu.scrollIntoView({block:'center'});tu.focus({preventScroll:true})}rendreBarreSel()}
+var VCACHE={};
 function majVision(){
   var p=etat.courante[etat.idx];if(!p){fermerVision();return}
-  var ph=$('v-ph');ph.src=''+SRC(p.n)+'';ph.alt=p.nom;var nx=etat.courante[(etat.idx+1)%etat.courante.length];if(nx){(new Image()).src=''+SRC(nx.n)+''}
+  // Affichage immédiat : la miniature (déjà chargée dans la grille) s'affiche tout de suite, la version web la remplace dès qu'elle est prête
+  var ph=$('v-ph'),web=SRC(p.n),idx=etat.idx;ph.alt=p.nom;
+  if(VCACHE[web]){ph.src=web}else{ph.src=SRC(p.n,'mini');var im=new Image();im.onload=function(){VCACHE[web]=1;if(etat.idx===idx&&!$('vision').hidden)ph.src=web};im.src=web}
+  // Préchargement des photos voisines pour un défilement fluide au clavier
+  [1,2,-1].forEach(function(d){var q=etat.courante[(etat.idx+d+etat.courante.length)%etat.courante.length];if(q){var u=SRC(q.n);if(!VCACHE[u]){var i2=new Image();i2.onload=function(){VCACHE[u]=1};i2.src=u}}});
   if(SEANCE){var nt=!!etat.notes[p.id];poserIco('v-note',I.crayon);$('v-note').setAttribute('aria-pressed',nt);$('v-note').title=nt?'Voir ma note pour Mélissa':'Ajouter une note pour Mélissa'}
   $('v-info').innerHTML=p.nom+(SEANCE?'':' · '+nomDossier(p.dossier))+' · <span class="num">'+(etat.idx+1)+' / '+etat.courante.length+'</span>';
   var f=estFav(p.id),a=estAlbum(p.id);
-  poserIco('v-fav',f?I.coeurPlein:I.coeur);$('v-fav').setAttribute('aria-pressed',f);$('v-fav').title=f?'Retirer des favoris':'Ajouter aux favoris';
-  poserIco('v-album',a?I.albumPlein:I.album);$('v-album').setAttribute('aria-pressed',a);$('v-album').title=a?TXT.retirer:TXT.ajouter;
+  $('v-fav').innerHTML=(f?I.coeurPlein:I.coeur)+'<span>'+libelleChoix('fav',f)+'</span>';$('v-fav').setAttribute('aria-pressed',f);$('v-fav').title=f?'Retirer des favoris':'Ajouter aux favoris';
+  $('v-album').innerHTML=(a?I.check:I.croix)+'<span>'+libelleChoix('album',a)+'</span>';$('v-album').setAttribute('aria-pressed',a);$('v-album').title=a?TXT.retirer:TXT.ajouter;$('v-album').classList.toggle('on',a);$('v-fav').classList.toggle('on',f);
 }
 function nav(d){etat.idx=(etat.idx+d+etat.courante.length)%etat.courante.length;majVision()}
 $('v-prec').onclick=function(){nav(-1)};$('v-suiv').onclick=function(){nav(1)};$('v-fermer').onclick=fermerVision;$('v-croix').onclick=fermerVision;
