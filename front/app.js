@@ -296,11 +296,10 @@ function rendre(){
       var f=estFav(p.id),a=estAlbum(p.id);
       h+='<figure class="tuile" data-i="'+i+'" data-r="'+(p.w/p.h).toFixed(4)+'" tabindex="0" aria-label="'+p.nom+'">'+
         '<img class="ph" loading="lazy" decoding="async" src="'+SRC(p.n,'mini')+'" srcset="'+SRC(p.n,'mini')+' 800w, '+SRC(p.n,'web')+' 2048w" sizes="33vw" alt="">'+
-        '<div class="etats">'+(f?'<span title="Dans vos favoris">'+I.coeurPlein+'</span>':'')+(a?'<span class="al" title="'+TXT.dans+'">'+I.albumPlein+'</span>':'')+(SELP()&&etat.notes[p.id]?'<span title="Note pour Mélissa">'+I.crayon+'</span>':'')+'</div>'+
+        '<div class="etats">'+(f?'<span title="Dans vos favoris">'+I.coeurPlein+'</span>':'')+(SELP()&&etat.notes[p.id]?'<span title="Note pour Mélissa">'+I.crayon+'</span>':'')+'</div>'+
         boutonChoix(p,f,a)+
         '<div class="outils">'+
-        '<button class="tbtn" data-act="fav" data-id="'+p.id+'" title="'+(f?'Retirer des favoris':'Ajouter aux favoris')+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?I.coeurPlein:I.coeur)+'</button>'+
-        '<button class="tbtn" data-act="album" data-id="'+p.id+'" title="'+(a?TXT.retirer:TXT.ajouter)+'" aria-label="Album" aria-pressed="'+a+'">'+(a?I.albumPlein:I.album)+'</button>'+
+        (modeChoix()==='fav'?'':'<button class="tbtn" data-act="fav" data-id="'+p.id+'" title="'+(f?'Retirer des favoris':'Ajouter aux favoris')+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?I.coeurPlein:I.coeur)+'</button>')+
         '<button class="tbtn" data-act="dl" data-id="'+p.id+'" title="Télécharger" aria-label="Télécharger" aria-haspopup="menu">'+I.dl+'</button>'+
         '<button class="tbtn" data-act="partage" data-id="'+p.id+'" title="Partager" aria-label="Partager" aria-haspopup="dialog">'+I.partage+'</button>'+
         '</div></figure>';
