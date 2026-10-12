@@ -182,7 +182,7 @@ export function texteSelectionRecue(env, coll, etat, nomsPhotos) {
 }
 export { gabarit as _gabaritPourApercu };
 
-// Mariage : explication de la sélection pour le livre photo, envoyée 30 minutes après la galerie
+// Mariage : explication de la sélection pour le livre photo, envoyée 5 minutes après la galerie
 export function texteGuideAlbum(env, coll) {
   const g = coll.reglages;
   return {

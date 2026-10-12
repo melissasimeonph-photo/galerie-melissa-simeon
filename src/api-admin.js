@@ -285,12 +285,12 @@ export async function routerAdmin(env, req, url, ctx) {
     if (b.memoriser) { g.contacts = [...new Set([...(g.contacts || []), ...a])]; await enregistrerReglages(env, c); }
     const r = await envoyerEmail(env, { collectionId: c.id, a, objet: String(b.objet || '').slice(0, 200), texte: String(b.texte || ''), bouton: b.bouton ? { texte: 'Voir la galerie', url: `https://${env.DOMAINE}/${c.slug}` } : null });
     await journaliser(env, c.id, 'Vous', `avez envoyé : « ${b.objet} »`);
-    // Mariage : 30 minutes après la galerie, l'e-mail qui explique la sélection pour le livre (une seule fois par collection)
+    // Mariage : 5 minutes après la galerie, l'e-mail qui explique la sélection pour le livre (une seule fois par collection)
     let guide = null;
     if (c.type === 'mariage' && g.albumActif !== false && !g.guideAlbum && r.ok) {
       const etat = await etatDe(env, c.id);
       if (!etat.valide) {
-        const quand = Date.now() + 30 * 60e3;
+        const quand = Date.now() + 5 * 60e3;
         guide = await envoyerEmail(env, { collectionId: c.id, a, ...texteGuideAlbum(env, c), programmeA: quand });
         if (guide.ok) {
           g.guideAlbum = quand; await enregistrerReglages(env, c);
