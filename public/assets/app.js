@@ -1693,7 +1693,7 @@ function menuPartage(btn){
 /* ---- Onglet Activité ---- */
 function rendreActivite(){
   $('adm-side').innerHTML='<div class="sets-tete"><span class="etiquette">Activité</span></div><ul class="sets">'+
-    [['act-fil','Activité récente'],['act-chiffres','Vue d’ensemble'],['act-sauvegarde','Sauvegarde du couple'],['act-album',TXT.titreSel],['act-best','Meilleures photos'],['act-vis','Visiteurs']].map(function(s){return '<li class="set" tabindex="0" data-cible="'+s[0]+'"><span class="set-nom">'+s[1]+'</span></li>'}).join('')+'</ul>';
+    [['act-fil','Activité récente'],['act-chiffres','Vue d’ensemble'],['act-sauvegarde','Sauvegarde du couple'],['act-album',TXT.titreSel],['act-best','Meilleures photos'],['act-vis','Visiteurs'],['act-dl','Téléchargements']].map(function(s){return '<li class="set" tabindex="0" data-cible="'+s[0]+'"><span class="set-nom">'+s[1]+'</span></li>'}).join('')+'</ul>';
   $('adm-side').querySelectorAll('[data-cible]').forEach(function(li){li.onclick=function(){var c=$(li.dataset.cible);if(c)c.scrollIntoView({behavior:'smooth',block:'start'})}});
   var D=DONNEES||{visiteurs:[],telechargements:[],favoris:[]};
   var na=etat.album.length,maintenant=Date.now(),J=864e5;
@@ -1749,6 +1749,27 @@ function rendreActivite(){
   var blocVis='<div class="bloc" id="act-vis" style="grid-column:1/-1"><h2>Visiteurs</h2>'+(D.visiteurs.length?'<div class="tableau"><table><thead><tr><th>E-mail</th><th>Rôle</th><th style="text-align:right">Visites</th><th>Dernière visite</th><th>Téléchargé</th></tr></thead><tbody>'+
     D.visiteurs.map(function(v){var e=parEmail[v.email];return '<tr><td>'+esc(v.email)+'</td><td>'+(v.role==='couple'?'Couple':'Invité')+'</td><td class="n">'+v.visites+'</td><td>'+depuis(v.derniere)+'</td><td>'+(e?[e.hd?e.hd+' HD':'',e.web?e.web+' web':''].filter(Boolean).join(' · '):'—')+'</td></tr>'}).join('')+'</tbody></table></div>':'<p class="note">Personne n’a encore ouvert la galerie.</p>')+'</div>';
 
+  /* 6. Détail des téléchargements : qui a téléchargé quoi */
+  function quoiDl(x){
+    if(x.portee==='photo'||x.photo_id){var ph=parId(x.photo_id);return {img:ph?SRC(ph.n,'mini'):'',txt:ph?esc(ph.nom):'Photo supprimée'}}
+    var t=x.portee==='tout'?'Galerie complète':x.portee==='fav'?'Ses favoris':x.portee==='album'?(SEANCE?'Sa sélection':'Sa sélection album'):'Catégorie « '+esc(nomDossier(x.portee)||x.portee)+' »';
+    return {img:'',txt:'<b>'+t+'</b> · '+x.nb+' photo'+(x.nb>1?'s':'')+' (ZIP)'};
+  }
+  var pers=[];D.telechargements.forEach(function(x){if(x.email&&pers.indexOf(x.email)<0)pers.push(x.email)});
+  var roleDe={};D.visiteurs.forEach(function(v){roleDe[v.email]=v.role});
+  function lignesDl(f){
+    var l=D.telechargements.filter(function(x){return !f||x.email===f});
+    if(!l.length)return '<tr><td colspan="4" class="note">Aucun téléchargement.</td></tr>';
+    return l.map(function(x){var q=quoiDl(x),r=x.role||roleDe[x.email];
+      return '<tr><td>'+esc(x.email||'—')+'<br><small class="note">'+(r==='couple'?'Couple':r==='invite'?'Invité':'')+'</small></td>'+
+        '<td><div class="dl-quoi">'+(q.img?'<img loading="lazy" src="'+q.img+'" alt="">':'<span class="dl-zip">'+I.dl+'</span>')+'<span>'+q.txt+'</span></div></td>'+
+        '<td><span class="etat '+(x.qualite==='hd'?'ok':'cours')+'">'+(x.qualite==='hd'?'HD':'Web')+'</span></td>'+
+        '<td>'+dateHeure(x.ts)+'</td></tr>'}).join('');
+  }
+  var blocDl='<div class="bloc" id="act-dl" style="grid-column:1/-1"><div class="bloc-tete"><h2>Téléchargements</h2>'+
+    (pers.length>1?'<select id="dl-filtre" aria-label="Filtrer par personne"><option value="">Tout le monde ('+D.telechargements.length+')</option>'+pers.map(function(e){return '<option value="'+esc(e)+'">'+esc(e)+'</option>'}).join('')+'</select>':'')+'</div>'+
+    (D.telechargements.length?'<div class="tableau"><table><thead><tr><th>Qui</th><th>Quoi</th><th>Qualité</th><th>Quand</th></tr></thead><tbody id="dl-lignes">'+lignesDl('')+'</tbody></table></div>':'<p class="note">Personne n’a encore téléchargé de photo.</p>')+'</div>';
+
   $('adm-main').innerHTML=
    '<div class="adm-main-tete"><h2>Activité</h2><div class="outils-adm"><span class="etat '+(jours<30?'alerte':'ok')+'">'+STATUTS[ADM.statut].nom+' · '+(jours>=0?'expire dans '+jours+' jours':'expirée')+'</span><button class="action" id="prolonger">Prolonger de 3 mois</button></div></div>'+
    blocFil+
@@ -1758,7 +1779,8 @@ function rendreActivite(){
      '<div class="chiffre"><b class="num">'+hdDl+'</b><span>photos téléchargées en HD</span></div>'+
      '<div class="chiffre"><b class="num">'+Object.keys(favUniques).length+'</b><span>photos en favoris</span></div>'+
    '</div>'+
-   '<div class="grille-admin">'+blocSauvegarde+blocAlbum+blocBest+blocVis+'</div>';
+   '<div class="grille-admin">'+blocSauvegarde+blocAlbum+blocBest+blocVis+blocDl+'</div>';
+  if($('dl-filtre'))$('dl-filtre').onchange=function(){$('dl-lignes').innerHTML=lignesDl(this.value)};
 
   $('prolonger').onclick=function(){var d=new Date((ADM.expiration||new Date().toISOString().slice(0,10))+'T12:00:00');if(d<new Date())d=new Date();d.setMonth(d.getMonth()+3);ADM.expiration=d.toISOString().slice(0,10);if(ADM.statut==='archivee')ADM.statut='publiee';sauverAdm(true);rendreAdmin();toast('Galerie prolongée jusqu’au '+dateFr(ADM.expiration)+'.')};
   var aa=$('activer-album');if(aa)aa.onclick=function(){ADM.albumActif=true;sauverAdm(true);rendreActivite();toast('Album activé : le couple peut maintenant choisir ses photos.')};
