@@ -752,3 +752,9 @@ body.en-glisse-photos,body.en-glisse-photos *{user-select:none;-webkit-user-sele
   .selection .btn{padding:7px 14px;font-size:13.5px}
   .selection .lien-guide{font-size:12px}
 }
+/* Petites vignettes (affichage « petit ») : bouton et cadre plus discrets */
+@container (max-width:380px){
+  .tchoix{height:27px;padding:0 10px 0 8px;gap:4px;font-size:11.5px;right:7px;bottom:7px}
+  .tchoix .ico{width:13px;height:13px}
+  .tuile.choisie{outline-width:4px;outline-offset:-4px}
+}
