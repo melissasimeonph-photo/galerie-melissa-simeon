@@ -430,7 +430,7 @@ function majVision(){
   $('v-info').innerHTML=p.nom+(SEANCE?'':' · '+nomDossier(p.dossier))+' · <span class="num">'+(etat.idx+1)+' / '+etat.courante.length+'</span>';
   var f=estFav(p.id),a=estAlbum(p.id);
   $('v-fav').innerHTML=(f?I.coeurPlein:I.coeur)+'<span>'+libelleChoix('fav',f)+'</span>';$('v-fav').setAttribute('aria-pressed',f);$('v-fav').title=f?'Retirer des favoris':'Ajouter aux favoris';
-  $('v-album').innerHTML=(a?I.check:I.croix)+'<span>'+libelleChoix('album',a)+'</span>';$('v-album').setAttribute('aria-pressed',a);$('v-album').title=a?TXT.retirer:TXT.ajouter;$('v-album').classList.toggle('on',a);$('v-fav').classList.toggle('on',f);
+  $('v-album').innerHTML=(a?I.check:I.croix)+'<span>'+libelleChoix('album',a)+'</span>';$('v-album').setAttribute('aria-pressed',a);$('v-album').title=a?TXT.retirer:TXT.ajouter;$('v-album').classList.toggle('on',a);var vc=$('v-ph').parentNode;if(vc)vc.classList.toggle('choisie',a&&modeChoix()==='album');$('v-fav').classList.toggle('on',f);
 }
 function nav(d){etat.idx=(etat.idx+d+etat.courante.length)%etat.courante.length;majVision()}
 $('v-prec').onclick=function(){nav(-1)};$('v-suiv').onclick=function(){nav(1)};$('v-fermer').onclick=fermerVision;$('v-croix').onclick=fermerVision;
