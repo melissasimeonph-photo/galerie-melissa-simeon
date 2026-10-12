@@ -765,3 +765,8 @@ body.en-glisse-photos,body.en-glisse-photos *{user-select:none;-webkit-user-sele
 .dl-quoi .dl-zip{width:44px;height:44px;border-radius:6px;background:var(--sable-2);display:grid;place-items:center;flex:none}
 .dl-quoi .dl-zip .ico{width:18px;height:18px}
 #act-dl select{border:1px solid var(--ligne);border-radius:999px;padding:7px 12px;background:var(--papier);font:inherit;font-size:13.5px;max-width:100%}
+/* Ordinateur : « Ajouter à l'album » n'apparaît qu'au survol (« Dans l'album » reste visible). Tactile : toujours visible */
+@media (hover:hover) and (pointer:fine){
+  .tchoix:not(.on){opacity:0;transform:translateY(4px);transition:opacity .18s,transform .18s,background .15s}
+  .tuile:hover .tchoix,.tuile:focus-within .tchoix{opacity:1;transform:none}
+}
