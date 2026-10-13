@@ -1893,15 +1893,12 @@ function validerSeance(){
 }
 function fenetreNote(id){
   var p=parId(id),v=etat.notes[id]||'',ro=etat.verrou;
-  var EX=['En noir et blanc','Recadrer plus serré','Retirer un détail','Lisser la peau','Plus lumineuse'];
   fenetre('<h2>'+(ro?'Votre note pour Mélissa':'Une demande pour cette photo ?')+'</h2><p>'+(ro?'Votre sélection est envoyée, la note ne peut plus être modifiée.':'Écrivez-moi ce que vous souhaitez, je le lirai avant de retoucher la photo.')+'</p>'+
     '<div class="champ"><label for="note-txt">Votre note · '+esc(p.nom.replace(/\.jpe?g$/i,''))+'</label><textarea id="note-txt" rows="4" maxlength="400" placeholder="Ex. : en noir et blanc, recadrer plus serré, retirer un détail en arrière-plan…"'+(ro?' readonly':'')+'>'+esc(v)+'</textarea>'+
-    (ro?'':'<div class="note-ex" aria-label="Idées de demandes">'+EX.map(function(x){return '<button type="button" data-ex="'+x+'">+ '+x+'</button>'}).join('')+'</div>')+
     (ro||estAlbum(id)?'':'<p class="note">La photo sera ajoutée à votre sélection.</p>')+'</div>'+
     '<div class="ligne-btn">'+(ro?'<button class="btn" data-ferme>Fermer</button>':(v?'<button class="btn clair" id="sup-note">Supprimer la note</button>':'<button class="btn clair" data-ferme>Annuler</button>')+'<button class="btn" id="ok-note">Enregistrer</button>')+'</div>');
   if(ro)return;
   $('note-txt').focus();
-  $('fenetre').querySelectorAll('[data-ex]').forEach(function(x){x.onclick=function(){var ta=$('note-txt'),s=ta.value.trim();ta.value=(s?s+(/[.,;!?]$/.test(s)?' ':', '):'')+(s?x.dataset.ex.toLowerCase():x.dataset.ex);ta.focus()}});
   function fin(t){
     if(APERCU){fermerFenetre();return}
     api('note',{method:'POST',body:{photoId:id,texte:t}}).then(function(r){

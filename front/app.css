@@ -873,6 +873,3 @@ body.en-glisse-photos,body.en-glisse-photos *{user-select:none;-webkit-user-sele
 #v-note.on{background:var(--brun);border-color:var(--brun);color:#fff}
 #v-note .ico{width:18px;height:18px}
 @media (max-width:560px){#v-note{padding:0 12px 0 10px;font-size:13px}}
-.note-ex{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.note-ex button{border:1px solid var(--ligne);background:var(--papier);border-radius:999px;padding:6px 11px;font:500 13px var(--f-texte);color:var(--brun);cursor:pointer}
-.note-ex button:hover{background:var(--sable-2)}
