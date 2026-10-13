@@ -130,7 +130,7 @@ function illustration(t){
   var g=photosGuide(),cur='<span class="il-cur"><svg viewBox="0 0 24 24"><path d="M5 3l14 8.5-6.2 1.3L9.5 19z" fill="#fff" stroke="#2A2016" stroke-width="1.6" stroke-linejoin="round"/></svg></span>';
   var lib=SEANCE?['Sélectionner','Sélectionnée']:['Ajouter à l’album','Dans l’album'];
   if(t==='choix')return '<div class="il il-choix"><div class="il-ph" style="'+g[0]+'"><span class="il-badge"></span><span class="il-pill"><span class="a">+ '+lib[0]+'</span><span class="b">✓ '+lib[1]+'</span></span></div>'+cur+'</div>';
-  if(t==='note')return '<div class="il il-note"><div class="il-ph" style="'+g[1]+'"><span class="il-badge on"></span><span class="il-npill">✎ Ajouter une note</span></div><span class="il-bulle"><span>Noir &amp; blanc&nbsp;?</span></span>'+cur+'</div>';
+  if(t==='note')return '<div class="il il-note"><div class="il-ph" style="'+g[1]+'"><span class="il-badge on"></span><span class="il-npill">✎ Ajouter une note</span></div><span class="il-bulle"><span>Petite tache ici</span></span>'+cur+'</div>';
   if(t==='valider')return '<div class="il il-valider"><div class="il-barre"><div><b>Sélection</b><span class="il-jg"><i></i></span></div><span class="il-val">Valider</span></div><span class="il-ok">✓ Sélection envoyée</span>'+cur+'</div>';
   if(t==='livre')return '<div class="il il-livre"><div class="il-pages"><span class="s1"></span><span class="s2"></span><span class="s3"></span></div><span class="v v1" style="'+g[0]+'"></span><span class="v v2" style="'+g[1]+'"></span><span class="v v3" style="'+g[2]+'"></span></div>';
   if(t==='impression')return '<div class="il il-impr"><svg class="il-arc" viewBox="0 0 200 90"><path d="M14 74 Q100 -6 186 62" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 6" stroke-linecap="round"/></svg><span class="il-avion"><svg viewBox="0 0 24 24"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z" fill="currentColor"/></svg></span><span class="il-livreF" style="'+g[3]+'"><i></i></span><span class="il-ile">Martinique</span></div>';
@@ -141,7 +141,7 @@ function illustration(t){
 function guideSelection(){
   var etapes=SEANCE?[
     ['Votre sélection','Cliquez sur <b>« + Sélectionner »</b> en bas à droite de chaque photo que vous aimez. Votre formule en comprend <b>'+QUOTA+'</b>'+(ADM.supp!==false&&ADM.prixSupp?' ; au-delà, chaque photo supplémentaire est à '+ADM.prixSupp+' €':'')+'. Vous pouvez ajouter ou retirer des photos autant que vous le souhaitez.','choix'],
-    ['Une demande ? Laissez une note','Sur une photo sélectionnée, touchez <b>« ✎ Ajouter une note »</b> (en bas à gauche de la photo, ou dans l’affichage en grand) : noir et blanc, recadrage, détail à retoucher… Je la lirai avant la retouche.','note'],
+    ['Une demande ? Laissez une note','Sur une photo sélectionnée, touchez <b>« ✎ Ajouter une note »</b> (en bas à gauche de la photo, ou dans l’affichage en grand) pour me signaler un détail : une petite tache sur un vêtement, une imperfection passagère… Je la lirai avant la retouche.','note'],
     ['La validation','Une fois votre choix terminé, cliquez sur <b>« Valider »</b> dans la barre en bas de l’écran. C’est ce qui m’envoie votre sélection : sans cette étape, je ne la reçois pas !','valider'],
     ['La retouche','Je retouche ensuite chacune des photos choisies avec soin, en tenant compte de vos notes.','retouche'],
     ['La livraison','Vous recevez un e-mail dès qu’elles sont prêtes : vos photos retouchées apparaissent dans cette même galerie, en haute définition et sans filigrane.','livraison']
@@ -1894,7 +1894,7 @@ function validerSeance(){
 function fenetreNote(id){
   var p=parId(id),v=etat.notes[id]||'',ro=etat.verrou;
   fenetre('<h2>'+(ro?'Votre note pour Mélissa':'Une demande pour cette photo ?')+'</h2><p>'+(ro?'Votre sélection est envoyée, la note ne peut plus être modifiée.':'Écrivez-moi ce que vous souhaitez, je le lirai avant de retoucher la photo.')+'</p>'+
-    '<div class="champ"><label for="note-txt">Votre note · '+esc(p.nom.replace(/\.jpe?g$/i,''))+'</label><textarea id="note-txt" rows="4" maxlength="400" placeholder="Ex. : en noir et blanc, recadrer plus serré, retirer un détail en arrière-plan…"'+(ro?' readonly':'')+'>'+esc(v)+'</textarea>'+
+    '<div class="champ"><label for="note-txt">Votre note · '+esc(p.nom.replace(/\.jpe?g$/i,''))+'</label><textarea id="note-txt" rows="4" maxlength="400" placeholder="Ex. : une petite tache sur ma robe, un bouton à atténuer…"'+(ro?' readonly':'')+'>'+esc(v)+'</textarea>'+
     (ro||estAlbum(id)?'':'<p class="note">La photo sera ajoutée à votre sélection.</p>')+'</div>'+
     '<div class="ligne-btn">'+(ro?'<button class="btn" data-ferme>Fermer</button>':(v?'<button class="btn clair" id="sup-note">Supprimer la note</button>':'<button class="btn clair" data-ferme>Annuler</button>')+'<button class="btn" id="ok-note">Enregistrer</button>')+'</div>');
   if(ro)return;
