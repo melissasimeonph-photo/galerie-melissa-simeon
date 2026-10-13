@@ -770,3 +770,109 @@ body.en-glisse-photos,body.en-glisse-photos *{user-select:none;-webkit-user-sele
   .tchoix:not(.on){opacity:0;transform:translateY(4px);transition:opacity .18s,transform .18s,background .15s}
   .tuile:hover .tchoix,.tuile:focus-within .tchoix{opacity:1;transform:none}
 }
+
+/* Guide de sélection : étapes illustrées et animées */
+.guide-fen{width:min(640px,100%)}
+.guide-etapes li{grid-template-columns:150px 1fr;gap:18px;align-items:center}
+.guide-etapes li>div>b{display:flex;align-items:center;gap:10px}
+.guide-etapes li>div>b i{flex:none;width:24px;height:24px;font-size:12px}
+.ill{width:150px;height:112px;flex:none}
+.il{position:relative;width:150px;height:112px;border-radius:14px;background:var(--sable-2);overflow:hidden;--dur:4.4s}
+.il *{animation-duration:var(--dur);animation-iteration-count:infinite;animation-timing-function:cubic-bezier(.45,0,.2,1)}
+.il-ph{position:absolute;border-radius:6px;background:#d9d6d2 center/cover;box-shadow:0 4px 12px rgba(30,24,18,.18)}
+.il-cur{position:absolute;left:0;top:0;width:17px;height:17px;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+.il-cur svg{width:100%;height:100%;display:block}
+.il-badge{position:absolute;left:5px;top:5px;width:15px;height:15px;border-radius:50%;background:var(--sauge);border:1.5px solid #fff;transform:scale(0)}
+.il-badge::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:700 8px/1 var(--f-texte)}
+.il-badge.on{transform:none}
+/* 1 · choisir */
+.il-choix .il-ph{left:40px;top:9px;width:70px;height:94px;animation-name:il-cadre}
+.il-pill{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);display:grid;white-space:nowrap;border-radius:999px;padding:4px 7px;font:600 7.5px/1 var(--f-texte);color:var(--brun);background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);animation-name:il-pill}
+.il-pill span{grid-area:1/1}
+.il-pill .b{opacity:0;animation-name:il-on}.il-pill .a{animation-name:il-off}
+.il-choix .il-badge{animation-name:il-pop}
+.il-choix .il-cur{animation-name:il-cur1}
+@keyframes il-cadre{0%,42%{box-shadow:0 4px 12px rgba(30,24,18,.18),inset 0 0 0 0 var(--sauge)}47%,90%{box-shadow:0 4px 12px rgba(30,24,18,.18),inset 0 0 0 4px var(--sauge)}97%,100%{box-shadow:0 4px 12px rgba(30,24,18,.18),inset 0 0 0 0 var(--sauge)}}
+@keyframes il-pill{0%,42%{background:#fff;color:var(--brun)}45%,90%{background:var(--sauge);color:#fff}97%,100%{background:#fff;color:var(--brun)}}
+@keyframes il-on{0%,42%{opacity:0}45%,90%{opacity:1}97%,100%{opacity:0}}
+@keyframes il-off{0%,42%{opacity:1}45%,90%{opacity:0}97%,100%{opacity:1}}
+@keyframes il-pop{0%,44%{transform:scale(0)}52%{transform:scale(1.25)}57%,90%{transform:scale(1)}97%,100%{transform:scale(0)}}
+@keyframes il-cur1{0%{transform:translate(150px,120px);opacity:0}12%{opacity:1}36%{transform:translate(78px,93px) scale(1)}41%{transform:translate(78px,93px) scale(.8)}46%{transform:translate(78px,93px) scale(1)}70%{transform:translate(120px,118px);opacity:1}80%,100%{transform:translate(120px,118px);opacity:0}}
+/* 2 · note */
+.il-note .il-ph{left:8px;top:9px;width:70px;height:94px;box-shadow:0 4px 12px rgba(30,24,18,.18),inset 0 0 0 4px var(--sauge)}
+.il-npill{position:absolute;left:5px;bottom:6px;white-space:nowrap;border-radius:999px;padding:4px 6px;font:600 7px/1 var(--f-texte);background:#fff;color:var(--brun);box-shadow:0 1px 4px rgba(0,0,0,.2);animation-name:il-npill}
+.il-bulle{position:absolute;left:74px;top:16px;background:#fff;border-radius:10px 10px 10px 2px;padding:7px 6px;font:600 8px/1.2 var(--f-texte);color:var(--brun);box-shadow:0 4px 12px rgba(30,24,18,.15);transform-origin:0 100%;animation-name:il-bulle}
+.il-bulle span{display:block;overflow:hidden;white-space:nowrap;width:0;animation-name:il-tape;animation-timing-function:steps(16)}
+.il-note .il-cur{animation-name:il-cur2}
+@keyframes il-npill{0%,40%{background:#fff;color:var(--brun)}44%,92%{background:var(--brun);color:#fff}98%,100%{background:#fff;color:var(--brun)}}
+@keyframes il-bulle{0%,44%{transform:scale(0);opacity:0}52%{transform:scale(1.08);opacity:1}56%,92%{transform:scale(1);opacity:1}98%,100%{transform:scale(0);opacity:0}}
+@keyframes il-tape{0%,55%{width:0}80%,100%{width:56px}}
+@keyframes il-cur2{0%{transform:translate(140px,120px);opacity:0}12%{opacity:1}34%{transform:translate(24px,95px)}39%{transform:translate(24px,95px) scale(.8)}44%{transform:translate(24px,95px) scale(1)}68%{transform:translate(60px,118px);opacity:1}78%,100%{transform:translate(60px,118px);opacity:0}}
+/* 3 · valider */
+.il-barre{position:absolute;left:9px;right:9px;top:52px;height:36px;border-radius:10px;background:var(--brun);display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 10px;color:#fff;box-shadow:0 6px 14px rgba(30,24,18,.25)}
+.il-barre b{display:block;font:600 8px/1 var(--f-texte)}
+.il-jg{display:block;width:62px;height:4px;border-radius:9px;background:rgba(255,255,255,.22);margin-top:5px;overflow:hidden}
+.il-jg i{display:block;height:100%;background:var(--sauge);width:15%;animation-name:il-jauge}
+.il-val{background:var(--sauge);color:#fff;border-radius:999px;padding:6px 9px;font:700 8px/1 var(--f-texte);animation-name:il-val}
+.il-ok{position:absolute;left:50%;top:14px;transform:translateX(-50%);white-space:nowrap;background:#fff;color:var(--brun);border-radius:999px;padding:6px 10px;font:600 8.5px/1 var(--f-texte);box-shadow:0 4px 12px rgba(30,24,18,.15);opacity:0;animation-name:il-ok}
+.il-valider .il-cur{animation-name:il-cur3}
+@keyframes il-jauge{0%{width:15%}40%,94%{width:100%}100%{width:15%}}
+@keyframes il-val{0%,40%{transform:scale(1)}46%{transform:scale(1.12)}52%{transform:scale(1)}56%{transform:scale(.88)}62%,100%{transform:scale(1)}}
+@keyframes il-ok{0%,60%{opacity:0;transform:translate(-50%,8px)}66%,92%{opacity:1;transform:translate(-50%,0)}98%,100%{opacity:0}}
+@keyframes il-cur3{0%,30%{transform:translate(150px,120px);opacity:0}38%{opacity:1}52%{transform:translate(118px,68px)}56%{transform:translate(118px,68px) scale(.8)}61%{transform:translate(118px,68px) scale(1)}80%{transform:translate(140px,110px);opacity:1}88%,100%{transform:translate(140px,110px);opacity:0}}
+/* 4 · mise en page */
+.il-pages{position:absolute;left:15px;top:22px;width:120px;height:72px;background:#fff;border-radius:3px;box-shadow:0 6px 14px rgba(30,24,18,.2);background-image:linear-gradient(90deg,transparent 49.5%,rgba(0,0,0,.12) 50%,transparent 50.5%)}
+.il-pages span{position:absolute;border:1px dashed var(--ligne-forte);border-radius:2px}
+.il-pages .s1{left:6px;top:6px;width:48px;height:60px}.il-pages .s2{left:66px;top:6px;width:48px;height:28px}.il-pages .s3{left:66px;top:38px;width:48px;height:28px}
+.il-livre .v{position:absolute;background:#ccc center/cover;border-radius:2px;opacity:0;animation-name:il-vole}
+.il-livre .v1{left:21px;top:28px;width:48px;height:60px}.il-livre .v2{left:81px;top:28px;width:48px;height:28px;animation-delay:.45s}.il-livre .v3{left:81px;top:60px;width:48px;height:28px;animation-delay:.9s}
+@keyframes il-vole{0%{transform:translate(-70px,70px) rotate(-25deg) scale(1.3);opacity:0}8%{opacity:1}26%,82%{transform:none;opacity:1}92%,100%{transform:none;opacity:0}}
+/* 5 · impression */
+.il-impr{color:var(--brun-pale)}
+.il-arc{position:absolute;left:0;top:10px;width:150px;height:67.5px}
+.il-avion{position:absolute;left:0;top:0;width:18px;height:18px;color:var(--brun);offset-path:path('M10.5 65.5 Q75 5.5 139.5 56.5');offset-rotate:auto 90deg;animation-name:il-vol}
+.il-avion svg{width:100%;height:100%;display:block}
+.il-livreF{position:absolute;left:5px;top:66px;width:26px;height:34px;border-radius:2px 4px 4px 2px;background:#ccc center/cover;box-shadow:0 3px 8px rgba(30,24,18,.3);animation-name:il-livreF}
+.il-livreF i{position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(0,0,0,.25)}
+.il-ile{position:absolute;right:8px;bottom:12px;font:600 8.5px/1 var(--f-texte);color:var(--brun);display:flex;align-items:center;gap:4px}
+.il-ile::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--sauge);animation:il-ping var(--dur) infinite}
+@keyframes il-vol{0%,15%{offset-distance:0%;opacity:0}20%{opacity:1}75%{offset-distance:100%;opacity:1}85%,100%{offset-distance:100%;opacity:0}}
+@keyframes il-livreF{0%,10%{transform:translateY(0)}15%{transform:translateY(-4px)}20%,100%{transform:translateY(0)}}
+@keyframes il-ping{0%,70%{box-shadow:0 0 0 0 rgba(149,179,164,.7)}85%{box-shadow:0 0 0 7px rgba(149,179,164,0)}100%{box-shadow:0 0 0 0 rgba(149,179,164,0)}}
+/* Séance · retouche et livraison */
+.il-retouche .il-ph{left:35px;top:8px;width:80px;height:96px}
+.il-retouche .av{filter:grayscale(.7) brightness(.82) contrast(.85)}
+.il-retouche .ap{box-shadow:none;animation-name:il-rev}
+.il-trait{position:absolute;top:8px;left:35px;width:2px;height:96px;background:#fff;box-shadow:0 0 6px rgba(0,0,0,.3);animation-name:il-trait}
+@keyframes il-rev{0%,12%{clip-path:inset(0 100% 0 0)}58%,86%{clip-path:inset(0 0 0 0)}100%{clip-path:inset(0 100% 0 0)}}
+@keyframes il-trait{0%,12%{transform:translateX(0);opacity:1}58%{transform:translateX(79px);opacity:1}62%,86%{transform:translateX(79px);opacity:0}100%{transform:translateX(0);opacity:0}}
+.il-liv{color:var(--brun)}
+.il-env{position:absolute;left:45px;top:56px;width:60px;height:43px;z-index:2}
+.il-env svg{width:100%;height:100%;display:block}
+.il-sort{position:absolute;left:55px;top:52px;width:40px;height:52px;border-radius:3px;background:#ccc center/cover;box-shadow:0 4px 10px rgba(30,24,18,.25);z-index:1;animation-name:il-sort}
+.il-sort em{position:absolute;right:-6px;top:-6px;font:700 7px/1 var(--f-texte);font-style:normal;color:#fff;background:var(--sauge);border:1.5px solid #fff;border-radius:999px;padding:3px 4px;animation-name:il-pop}
+@keyframes il-sort{0%,15%{transform:translateY(0)}50%,88%{transform:translateY(-44px) rotate(-4deg)}100%{transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){.il *{animation:none!important}.il-pill .b,.il-ok{opacity:1}.il-pill .a,.il-cur{opacity:0}}
+@media (max-width:520px){
+  .guide-etapes li{grid-template-columns:112px 1fr;gap:12px}
+  .ill{width:112px;height:84px}
+  .ill .il{transform:scale(.7467);transform-origin:0 0}
+}
+
+/* Séance : bouton « Ajouter une note » bien visible sur les photos sélectionnées */
+.tnote{position:absolute;z-index:3;left:10px;bottom:10px;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px 0 10px;border:0;border-radius:999px;background:rgba(255,255,255,.94);color:var(--brun);font:600 13px/1 var(--f-texte);cursor:pointer;box-shadow:0 2px 10px rgba(30,24,18,.22);transition:background .15s,transform .1s}
+.tnote:hover{background:#fff;transform:translateY(-1px)}
+.tnote .ico{width:16px;height:16px}
+.tnote.on{background:var(--brun);color:#fff}
+.tnote .ct{display:none}
+@container (max-width:330px){.tnote .lg{display:none}.tnote .ct{display:inline}}
+@container (max-width:380px){.tnote{height:27px;padding:0 10px 0 8px;gap:4px;font-size:11.5px;left:7px;bottom:7px}.tnote .ico{width:13px;height:13px}}
+@container (max-width:200px){.tnote{height:30px;padding:0 10px 0 8px;gap:4px;font-size:11.5px;left:6px;bottom:6px}.tnote .lg{display:none}.tnote .ct{display:inline}}
+#v-note{width:auto;padding:0 16px 0 12px;gap:8px;border-radius:999px;display:inline-flex;align-items:center;font:600 14px/1 var(--f-texte);border:1px solid var(--ligne);background:var(--papier);color:var(--brun);height:40px}
+#v-note[hidden]{display:none}
+#v-note.on{background:var(--brun);border-color:var(--brun);color:#fff}
+#v-note .ico{width:18px;height:18px}
+@media (max-width:560px){#v-note{padding:0 12px 0 10px;font-size:13px}}
+.note-ex{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.note-ex button{border:1px solid var(--ligne);background:var(--papier);border-radius:999px;padding:6px 11px;font:500 13px var(--f-texte);color:var(--brun);cursor:pointer}
+.note-ex button:hover{background:var(--sable-2)}

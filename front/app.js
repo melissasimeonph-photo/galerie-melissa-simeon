@@ -121,20 +121,38 @@ $('form-acces').addEventListener('submit',function(e){
 /* ---- Guide de la sélection (fenêtre à la connexion, rouvrable via « Comment ça marche ? ») ---- */
 function guideActif(){return MODE==='client'&&!etat.invite&&modeChoix()==='album'&&!etat.verrou}
 function cleGuide(){return 'guide-sel-'+SLUG}
+/* Petites illustrations animées du guide (CSS pur, en boucle) : elles reprennent les vraies photos de la galerie */
+function photosGuide(){
+  var l=PHOTOS.filter(function(p){return p.h>p.w});if(l.length<4)l=PHOTOS.slice();
+  return [0,1,2,3].map(function(i){var p=l[Math.floor(i*l.length/4)];return p?'background-image:url('+SRC(p.n,'mini')+')':''});
+}
+function illustration(t){
+  var g=photosGuide(),cur='<span class="il-cur"><svg viewBox="0 0 24 24"><path d="M5 3l14 8.5-6.2 1.3L9.5 19z" fill="#fff" stroke="#2A2016" stroke-width="1.6" stroke-linejoin="round"/></svg></span>';
+  var lib=SEANCE?['Sélectionner','Sélectionnée']:['Ajouter à l’album','Dans l’album'];
+  if(t==='choix')return '<div class="il il-choix"><div class="il-ph" style="'+g[0]+'"><span class="il-badge"></span><span class="il-pill"><span class="a">+ '+lib[0]+'</span><span class="b">✓ '+lib[1]+'</span></span></div>'+cur+'</div>';
+  if(t==='note')return '<div class="il il-note"><div class="il-ph" style="'+g[1]+'"><span class="il-badge on"></span><span class="il-npill">✎ Ajouter une note</span></div><span class="il-bulle"><span>Noir &amp; blanc&nbsp;?</span></span>'+cur+'</div>';
+  if(t==='valider')return '<div class="il il-valider"><div class="il-barre"><div><b>Sélection</b><span class="il-jg"><i></i></span></div><span class="il-val">Valider</span></div><span class="il-ok">✓ Sélection envoyée</span>'+cur+'</div>';
+  if(t==='livre')return '<div class="il il-livre"><div class="il-pages"><span class="s1"></span><span class="s2"></span><span class="s3"></span></div><span class="v v1" style="'+g[0]+'"></span><span class="v v2" style="'+g[1]+'"></span><span class="v v3" style="'+g[2]+'"></span></div>';
+  if(t==='impression')return '<div class="il il-impr"><svg class="il-arc" viewBox="0 0 200 90"><path d="M14 74 Q100 -6 186 62" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 6" stroke-linecap="round"/></svg><span class="il-avion"><svg viewBox="0 0 24 24"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z" fill="currentColor"/></svg></span><span class="il-livreF" style="'+g[3]+'"><i></i></span><span class="il-ile">Martinique</span></div>';
+  if(t==='retouche')return '<div class="il il-retouche"><div class="il-ph av" style="'+g[2]+'"></div><div class="il-ph ap" style="'+g[2]+'"></div><span class="il-trait"></span></div>';
+  if(t==='livraison')return '<div class="il il-liv"><span class="il-env"><svg viewBox="0 0 48 34"><rect x="1.5" y="1.5" width="45" height="31" rx="4" fill="#fff" stroke="currentColor" stroke-width="2"/><path d="M3 4l21 15L45 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span><span class="il-sort" style="'+g[3]+'"><em>HD</em></span></div>';
+  return '';
+}
 function guideSelection(){
   var etapes=SEANCE?[
-    ['Votre sélection','Cliquez sur le bouton <b>« + Sélectionner »</b> en bas à droite de chaque photo que vous aimez. Votre formule en comprend <b>'+QUOTA+'</b>'+(ADM.supp!==false&&ADM.prixSupp?' ; au-delà, chaque photo supplémentaire est à '+ADM.prixSupp+' €':'')+'. Une jauge vous indique où vous en êtes, et vous pouvez ajouter ou retirer des photos autant que vous le souhaitez. Vous pouvez aussi me laisser une note sur une photo depuis l’affichage en grand.'],
-    ['La validation','Une fois votre choix terminé, cliquez sur <b>« Valider »</b> dans la barre en bas de l’écran. C’est ce qui m’envoie votre sélection : sans cette étape, je ne la reçois pas !'],
-    ['La retouche','Je retouche ensuite chacune des photos choisies avec soin.'],
-    ['La livraison','Vous recevez un e-mail dès qu’elles sont prêtes : vos photos retouchées apparaissent dans cette même galerie, en haute définition et sans filigrane.']
+    ['Votre sélection','Cliquez sur <b>« + Sélectionner »</b> en bas à droite de chaque photo que vous aimez. Votre formule en comprend <b>'+QUOTA+'</b>'+(ADM.supp!==false&&ADM.prixSupp?' ; au-delà, chaque photo supplémentaire est à '+ADM.prixSupp+' €':'')+'. Vous pouvez ajouter ou retirer des photos autant que vous le souhaitez.','choix'],
+    ['Une demande ? Laissez une note','Sur une photo sélectionnée, touchez <b>« ✎ Ajouter une note »</b> (en bas à gauche de la photo, ou dans l’affichage en grand) : noir et blanc, recadrage, détail à retoucher… Je la lirai avant la retouche.','note'],
+    ['La validation','Une fois votre choix terminé, cliquez sur <b>« Valider »</b> dans la barre en bas de l’écran. C’est ce qui m’envoie votre sélection : sans cette étape, je ne la reçois pas !','valider'],
+    ['La retouche','Je retouche ensuite chacune des photos choisies avec soin, en tenant compte de vos notes.','retouche'],
+    ['La livraison','Vous recevez un e-mail dès qu’elles sont prêtes : vos photos retouchées apparaissent dans cette même galerie, en haute définition et sans filigrane.','livraison']
   ]:[
-    ['Votre sélection','Cliquez sur le bouton <b>« + Ajouter à l’album »</b> en bas à droite de chaque photo que vous souhaitez voir dans votre livre. Vous pouvez en choisir jusqu’à <b>'+QUOTA+'</b>. Une jauge vous indique où vous en êtes, et vous pouvez ajouter ou retirer des photos autant que vous le souhaitez.'],
-    ['La validation','Une fois votre sélection terminée, pensez bien à cliquer sur <b>« Valider »</b> dans la barre en bas de l’écran. C’est ce qui m’envoie votre sélection : sans cette étape, je ne la reçois pas !'],
-    ['Ma mise en page','À partir de votre sélection, je construis le livre pour qu’il raconte votre journée comme une histoire.'],
-    ['L’impression','J’envoie ensuite le livre à l’impression. Les délais dépendent de l’imprimeur et de l’acheminement jusqu’en Martinique, je ne peux donc pas m’engager sur une date précise, mais je vous tiendrai informés à chaque étape.']
+    ['Votre sélection','Cliquez sur <b>« + Ajouter à l’album »</b> en bas à droite de chaque photo que vous souhaitez voir dans votre livre. Vous pouvez en choisir jusqu’à <b>'+QUOTA+'</b>, et en ajouter ou retirer autant que vous le souhaitez.','choix'],
+    ['La validation','Une jauge vous indique où vous en êtes. Une fois votre sélection terminée, pensez bien à cliquer sur <b>« Valider »</b> dans la barre en bas de l’écran : sans cette étape, je ne la reçois pas !','valider'],
+    ['Ma mise en page','À partir de votre sélection, je construis le livre pour qu’il raconte votre journée comme une histoire.','livre'],
+    ['L’impression','J’envoie ensuite le livre à l’impression. Les délais dépendent de l’imprimeur et de l’acheminement jusqu’en Martinique, je ne peux donc pas m’engager sur une date précise, mais je vous tiendrai informés à chaque étape.','impression']
   ];
-  fenetre('<div class="guide-sel"><span class="etiquette">'+(SEANCE?'Votre sélection':'📖 Votre livre photo')+'</span><h2>Comment se passe la sélection</h2>'+
-    '<ol class="guide-etapes">'+etapes.map(function(e,i){return '<li><i>'+(i+1)+'</i><div><b>'+e[0]+'</b><p>'+e[1]+'</p></div></li>'}).join('')+'</ol>'+
+  fenetre('<div class="guide-sel"><span class="etiquette">'+(SEANCE?'Votre sélection':'Votre livre photo')+'</span><h2>Comment se passe la sélection</h2>'+
+    '<ol class="guide-etapes">'+etapes.map(function(e,i){return '<li><div class="ill">'+illustration(e[2])+'</div><div><b><i>'+(i+1)+'</i>'+e[0]+'</b><p>'+e[1]+'</p></div></li>'}).join('')+'</ol>'+
     '<div class="ligne-btn"><button class="btn" data-ferme>'+(SEANCE?'Commencer ma sélection':'Commencer ma sélection')+'</button></div></div>');
   $('fenetre').classList.add('guide-fen');
   try{localStorage.setItem(cleGuide(),'1')}catch(_){}
@@ -296,8 +314,8 @@ function rendre(){
       var f=estFav(p.id),a=estAlbum(p.id);
       h+='<figure class="tuile'+(a&&modeChoix()==='album'?' choisie':'')+'" data-i="'+i+'" data-r="'+(p.w/p.h).toFixed(4)+'" tabindex="0" aria-label="'+p.nom+'">'+
         '<img class="ph" loading="lazy" decoding="async" src="'+SRC(p.n,'mini')+'" srcset="'+SRC(p.n,'mini')+' 800w, '+SRC(p.n,'web')+' 2048w" sizes="33vw" alt="">'+
-        '<div class="etats">'+(f?'<span title="Dans vos favoris">'+I.coeurPlein+'</span>':'')+(SELP()&&etat.notes[p.id]?'<span title="Note pour Mélissa">'+I.crayon+'</span>':'')+'</div>'+
-        boutonChoix(p,f,a)+
+        '<div class="etats">'+(f?'<span title="Dans vos favoris">'+I.coeurPlein+'</span>':'')+'</div>'+
+        boutonChoix(p,f,a)+boutonNote(p,a)+
         '<div class="outils">'+
         (modeChoix()==='fav'?'':'<button class="tbtn" data-act="fav" data-id="'+p.id+'" title="'+(f?'Retirer des favoris':'Ajouter aux favoris')+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?I.coeurPlein:I.coeur)+'</button>')+
         '<button class="tbtn" data-act="dl" data-id="'+p.id+'" title="Télécharger" aria-label="Télécharger" aria-haspopup="menu">'+I.dl+'</button>'+
@@ -353,7 +371,7 @@ function rendreListes(){
 }
 $('colonnes').addEventListener('click',function(e){
   var b=e.target.closest('[data-act]');
-  if(b){e.stopPropagation();if(b.dataset.act==='dl'){ouvrirMenu(b,parId(+b.dataset.id));return}if(b.dataset.act==='partage'){ouvrirPartage(parId(+b.dataset.id));return}basculer(b.dataset.act,+b.dataset.id);return}
+  if(b){e.stopPropagation();if(b.dataset.act==='dl'){ouvrirMenu(b,parId(+b.dataset.id));return}if(b.dataset.act==='partage'){ouvrirPartage(parId(+b.dataset.id));return}if(b.dataset.act==='note'){fenetreNote(+b.dataset.id);return}basculer(b.dataset.act,+b.dataset.id);return}
   var t=e.target.closest('.tuile');if(t)ouvrirVision(+t.dataset.i);
 });
 $('colonnes').addEventListener('keydown',function(e){var t=e.target.closest('.tuile');if(t&&e.key==='Enter')ouvrirVision(+t.dataset.i)});
@@ -371,6 +389,12 @@ function boutonChoix(p,f,a){
   var ico=m==='album'?(on?I.check:I.croix):(on?I.coeurPlein:I.coeur);
   return '<button class="tchoix'+(on?' on':'')+(m==='fav'?' fav':'')+'" data-act="'+m+'" data-id="'+p.id+'" aria-pressed="'+on+'"'+(m==='album'&&etat.verrou?' disabled':'')+' title="'+(m==='album'?(on?TXT.retirer:TXT.ajouter):(on?'Retirer des favoris':'Ajouter aux favoris'))+'">'+ico+'<span>'+libelleChoix(m,on)+'</span></button>';
 }
+function noteDispo(){return SELP()&&!etat.invite}
+function boutonNote(p,a){
+  if(!noteDispo())return '';var nt=etat.notes[p.id];
+  if(!a&&!nt)return '';if(etat.verrou&&!nt)return '';
+  return '<button class="tnote'+(nt?' on':'')+'" data-act="note" data-id="'+p.id+'" title="'+(nt?'Voir ma note pour Mélissa':'Laisser une note à Mélissa pour cette photo')+'">'+I.crayon+'<span class="lg">'+(nt?'Ma note':'Ajouter une note')+'</span><span class="ct">'+(nt?'Ma note':'Note')+'</span></button>';
+}
 function basculer(act,id){
   if(APERCU){toast('Aperçu : vos clics ne sont pas enregistrés.');return}
   var avant=JSON.stringify({l:etat.listes,a:etat.album});
@@ -387,6 +411,7 @@ function basculer(act,id){
     if(on2){
       if(etat.album.length>=QUOTA){if(!SEANCE||ADM.supp===false){toast(SEANCE?'Votre formule comprend '+QUOTA+' photos. Retirez-en une pour en choisir une autre.':'Vous avez atteint les '+QUOTA+' photos de votre album. Retirez-en une pour en ajouter une autre.');return}toast('Photo supplémentaire : '+ADM.prixSupp+' €')}
       etat.album.push(id);
+      if(noteDispo()){var cleN='astuce-note-'+SLUG,vu=false;try{vu=!!localStorage.getItem(cleN);localStorage.setItem(cleN,'1')}catch(_){}if(!vu)setTimeout(function(){toast('Photo sélectionnée. Une demande particulière ? Touchez « ✎ Ajouter une note » sur la photo.')},250)}
     }else etat.album.splice(j,1);
     reafficher();
     api('album',{method:'POST',body:{photoId:id,on:on2}}).catch(annuler);
@@ -426,7 +451,7 @@ function majVision(){
   if(VCACHE[web]){ph.src=web}else{ph.src=SRC(p.n,'mini');var im=new Image();im.onload=function(){VCACHE[web]=1;if(etat.idx===idx&&!$('vision').hidden)ph.src=web};im.src=web}
   // Préchargement des photos voisines pour un défilement fluide au clavier
   [1,2,-1].forEach(function(d){var q=etat.courante[(etat.idx+d+etat.courante.length)%etat.courante.length];if(q){var u=SRC(q.n);if(!VCACHE[u]){var i2=new Image();i2.onload=function(){VCACHE[u]=1};i2.src=u}}});
-  if(SEANCE){var nt=!!etat.notes[p.id];poserIco('v-note',I.crayon);$('v-note').setAttribute('aria-pressed',nt);$('v-note').title=nt?'Voir ma note pour Mélissa':'Ajouter une note pour Mélissa'}
+  if(SEANCE){var nt=!!etat.notes[p.id];$('v-note').innerHTML=I.crayon+'<span>'+(nt?'Ma note':'Ajouter une note')+'</span>';$('v-note').classList.toggle('on',nt);$('v-note').setAttribute('aria-pressed',nt);$('v-note').title=nt?'Voir ma note pour Mélissa':'Laisser une note à Mélissa pour cette photo';$('v-note').hidden=!SELP()||!!etat.invite||(etat.verrou&&!nt)}
   $('v-info').innerHTML=p.nom+(SEANCE?'':' · '+nomDossier(p.dossier))+' · <span class="num">'+(etat.idx+1)+' / '+etat.courante.length+'</span>';
   var f=estFav(p.id),a=estAlbum(p.id);
   $('v-fav').innerHTML=(f?I.coeurPlein:I.coeur)+'<span>'+libelleChoix('fav',f)+'</span>';$('v-fav').setAttribute('aria-pressed',f);$('v-fav').title=f?'Retirer des favoris':'Ajouter aux favoris';
@@ -1868,11 +1893,15 @@ function validerSeance(){
 }
 function fenetreNote(id){
   var p=parId(id),v=etat.notes[id]||'',ro=etat.verrou;
-  fenetre('<h2>Note pour Mélissa</h2><p>'+esc(p.nom)+(ro?' · votre sélection est envoyée, la note ne peut plus être modifiée.':' · une demande particulière pour cette photo : recadrage, noir et blanc, détail à retoucher…')+'</p>'+
-    '<div class="champ"><label for="note-txt">Votre note</label><textarea id="note-txt" rows="4" maxlength="400"'+(ro?' readonly':'')+'>'+esc(v)+'</textarea>'+(ro||estAlbum(id)?'':'<p class="note">La photo sera ajoutée à votre sélection.</p>')+'</div>'+
+  var EX=['En noir et blanc','Recadrer plus serré','Retirer un détail','Lisser la peau','Plus lumineuse'];
+  fenetre('<h2>'+(ro?'Votre note pour Mélissa':'Une demande pour cette photo ?')+'</h2><p>'+(ro?'Votre sélection est envoyée, la note ne peut plus être modifiée.':'Écrivez-moi ce que vous souhaitez, je le lirai avant de retoucher la photo.')+'</p>'+
+    '<div class="champ"><label for="note-txt">Votre note · '+esc(p.nom.replace(/\.jpe?g$/i,''))+'</label><textarea id="note-txt" rows="4" maxlength="400" placeholder="Ex. : en noir et blanc, recadrer plus serré, retirer un détail en arrière-plan…"'+(ro?' readonly':'')+'>'+esc(v)+'</textarea>'+
+    (ro?'':'<div class="note-ex" aria-label="Idées de demandes">'+EX.map(function(x){return '<button type="button" data-ex="'+x+'">+ '+x+'</button>'}).join('')+'</div>')+
+    (ro||estAlbum(id)?'':'<p class="note">La photo sera ajoutée à votre sélection.</p>')+'</div>'+
     '<div class="ligne-btn">'+(ro?'<button class="btn" data-ferme>Fermer</button>':(v?'<button class="btn clair" id="sup-note">Supprimer la note</button>':'<button class="btn clair" data-ferme>Annuler</button>')+'<button class="btn" id="ok-note">Enregistrer</button>')+'</div>');
   if(ro)return;
   $('note-txt').focus();
+  $('fenetre').querySelectorAll('[data-ex]').forEach(function(x){x.onclick=function(){var ta=$('note-txt'),s=ta.value.trim();ta.value=(s?s+(/[.,;!?]$/.test(s)?' ':', '):'')+(s?x.dataset.ex.toLowerCase():x.dataset.ex);ta.focus()}});
   function fin(t){
     if(APERCU){fermerFenetre();return}
     api('note',{method:'POST',body:{photoId:id,texte:t}}).then(function(r){
