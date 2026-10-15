@@ -1208,7 +1208,7 @@ function rendreSetMainBase(){
   var d=dossierPar(admSet),main=$('adm-main');
   if(selAdmCtx!==CID+'/'+admSet){SELADM.clear();selAdmCtx=CID+'/'+admSet}
   if(!d){
-    var seanceSel=SEANCE&&!LIVRE(),nomDef=SEANCE?'Séance':'Cérémonie';
+    var seanceSel=SEANCE&&!LIVRE(),nomDef=SEANCE?'Séance':EVT()?'Photos':'Cérémonie';
     main.innerHTML='<div class="vide"><h3>Aucune catégorie</h3><span>Créez une première catégorie pour y ranger vos photos.</span></div>'+
       '<label class="depot depot-vide" id="vide-depot"><input type="file" id="vide-input" multiple accept="'+(seanceSel?'.nef,.raf,.cr2,.cr3,.arw,.dng,.jpg,.jpeg,image/jpeg':'image/jpeg,.jpg,.jpeg')+'" hidden><b>'+(seanceSel?'Glissez vos RAW ici':'Glissez vos photos ici')+'</b>ou cliquez pour les choisir</label>'+
       '<p class="note depot-vide-note">Une catégorie « '+nomDef+' » est créée automatiquement. Vous pourrez la renommer ensuite.</p>';
