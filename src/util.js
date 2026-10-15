@@ -43,28 +43,39 @@ export function egalTempsConstant(a, b) {
   return r === 0;
 }
 
+// Galerie d'événement (entreprise, association…) : un seul code d'accès pour tout le monde.
+// Les anciennes collections sans indicateur sont reconnues à leur classeur « Événements ».
+export function estEvenement(c) {
+  if (!c || c.type === 'seance') return false;
+  const g = c.reglages || {};
+  return g.evenement === undefined ? g.classeur === 'Événements' : !!g.evenement;
+}
+
 // Réglages par défaut selon le type de collection
 export function reglagesParDefaut(type, base = {}) {
   const seance = type === 'seance';
+  const evt = !seance && !!base.evenement;
+  const code = base.code || String(1000 + (crypto.getRandomValues(new Uint16Array(1))[0] % 9000));
   const exp = new Date(Date.now() + (seance ? 90 : 182) * J).toISOString().slice(0, 10);
   return {
-    nom: base.nom || (seance ? 'Nouvelle séance' : 'Nouveau mariage'),
-    classeur: base.classeur ?? (seance ? 'Couple' : 'Mariages'),
+    nom: base.nom || (seance ? 'Nouvelle séance' : evt ? 'Nouvel événement' : 'Nouveau mariage'),
+    evenement: evt,
+    classeur: base.classeur ?? (seance ? 'Couple' : evt ? 'Événements' : 'Mariages'),
     dateEvt: base.dateEvt || new Date().toISOString().slice(0, 10),
     statut: 'cachee',
-    code: base.code || String(1000 + (crypto.getRandomValues(new Uint16Array(1))[0] % 9000)),
-    codeInvite: base.codeInvite || ('invites-' + idAleatoire(4)),
+    code,
+    codeInvite: evt ? code : base.codeInvite || ('invites-' + idAleatoire(4)),
     quota: Math.max(1, Math.min(500, parseInt(base.quota, 10) || (seance ? 15 : 60))),
     sousType: seance && ['couple', 'maternite', 'famille'].includes(base.sousType) ? base.sousType : null,
     prixSupp: 10, supp: true,
     hd: true, hdInvite: false, web: true,
-    albumActif: seance ? true : base.albumActif !== false,
+    albumActif: seance ? true : !evt && base.albumActif !== false,
     expiration: base.expiration || exp,
-    rappel: true, relanceAuto: seance || base.albumActif !== false, relanceJours: 14,
+    rappel: true, relanceAuto: seance || (!evt && base.albumActif !== false), relanceJours: 14,
     couv: null, couvPos: '50% 50%',
     mur: true, phase: seance ? 'selection' : null,
     prefixe: null, livre: null,
-    dossiers: seance ? [{ id: 'seance', nom: 'Séance', desc: '' }] : [{ id: 'ceremonie', nom: 'Cérémonie', desc: '' }],
+    dossiers: seance ? [{ id: 'seance', nom: 'Séance', desc: '' }] : evt ? [{ id: 'photos', nom: 'Photos', desc: '' }] : [{ id: 'ceremonie', nom: 'Cérémonie', desc: '' }],
     grille: 'grande', fichiers: true, tri: 'asc',
     contacts: base.contacts || [],
     rappelsEnvoyes: [],

@@ -32,7 +32,7 @@ function api(chemin,opts){
 var ADM={dossiers:[],statut:'cachee',grille:'grande',fichiers:true,tri:'asc',quota:60,hd:true,web:true,albumActif:true,couvPos:'50% 50%',mur:true};
 var DONNEES=null;                         // détail de la collection ouverte (vue photographe)
 var minuteurSauve=null;
-var CHAMPS=['nom','classeur','dateEvt','statut','code','codeInvite','quota','prixSupp','supp','hd','hdInvite','web','albumActif','expiration','rappel','relanceAuto','relanceJours','couv','couvPos','mur','prefixe','dossiers','grille','fichiers','tri','contacts'];
+var CHAMPS=['nom','evenement','classeur','dateEvt','statut','code','codeInvite','quota','prixSupp','supp','hd','hdInvite','web','albumActif','expiration','rappel','relanceAuto','relanceJours','couv','couvPos','mur','prefixe','dossiers','grille','fichiers','tri','contacts'];
 function sauverAdm(immediat){
   if(MODE!=='admin'||!CID)return Promise.resolve();
   clearTimeout(minuteurSauve);
@@ -65,6 +65,8 @@ function dateFr(iso){if(!iso)return '';var d=new Date(iso+'T12:00:00');return d.
 function nomDossier(id){for(var i=0;i<DOSSIERS.length;i++)if(DOSSIERS[i].id===id)return DOSSIERS[i].nom}
 function poidsTotal(liste,web){var s=0;liste.forEach(function(p){s+=web?(p.web||0.6):p.mo});return s}
 function fmtPoids(mo){return mo>=1000?(mo/1000).toFixed(1).replace('.',',')+' Go':Math.max(1,Math.round(mo))+' Mo'}
+// Galerie d'événement : un seul code d'accès, textes adaptés (pas de « couple » ni de « mariage »)
+function EVT(){if(SEANCE)return false;if(MODE!=='admin')return !!(COLLPUB&&COLLPUB.evenement);return ADM.evenement===undefined?ADM.classeur==='Événements':!!ADM.evenement}
 function nomsCouple(nom){return String(nom||'').replace(/^(Mariage|Séance couple|Séance famille|Séance maternité|Séance|Famille)\s+/i,'')}
 
 /* ---------- État du client ---------- */
@@ -186,7 +188,7 @@ function urlCouvHd(c){
   if(MODE==='admin')return CID?'/admin/api/collections/'+CID+'/couverture?v='+hd.v:null;
   return SLUG?'/img/'+SLUG+'/couv?v='+hd.v+(APERCU?'&apercu=1':''):null;
 }
-function majDateEvt(){var s=SEANCE||(COLLPUB&&COLLPUB.type==='seance');document.querySelectorAll('.date-evt').forEach(function(e){e.textContent=(s?'Séance photo · ':'Mariage · ')+(ADM.dateEvt||(COLLPUB&&COLLPUB.dateEvt)?dateFr(ADM.dateEvt||COLLPUB.dateEvt):'')})}
+function majDateEvt(){var s=SEANCE||(COLLPUB&&COLLPUB.type==='seance');document.querySelectorAll('.date-evt').forEach(function(e){e.textContent=(s?'Séance photo · ':EVT()?'Événement · ':'Mariage · ')+(ADM.dateEvt||(COLLPUB&&COLLPUB.dateEvt)?dateFr(ADM.dateEvt||COLLPUB.dateEvt):'')})}
 function majMur(){
   var a=$('acces');if(!a)return;var off=ADM.mur===false||!SLUG;a.classList.toggle('sans-mur',off);if(off)return;
   var pi=a.querySelector('.amur-piste');if(pi&&!pi.dataset.ok){pi.dataset.ok=1;var im=new Image();im.onload=function(){pi.style.backgroundImage='url('+im.src+')';a.dataset.ratio=im.naturalWidth/im.naturalHeight;majMur()};im.onerror=function(){a.classList.add('sans-mur')};im.src='/img/'+SLUG+'/mur'}
@@ -472,7 +474,7 @@ function slugifier(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').t
 function ouvrirPartage(photo){
   fermerMenu();
   var lien=photo?urlGalerie()+'/photo/'+photo.n:urlGalerie();
-  var nc=nomsCouple(ADM.nom),texte=SEANCE?(photo?'Une photo de notre séance avec Mélissa Siméon':'Les photos de notre séance avec Mélissa Siméon'):photo?'Une photo du mariage de '+nc:'Les photos du mariage de '+nc;
+  var nc=nomsCouple(ADM.nom),texte=SEANCE?(photo?'Une photo de notre séance avec Mélissa Siméon':'Les photos de notre séance avec Mélissa Siméon'):photo?'Une photo du mariage de '+nc:'Les photos du mariage de '+nc;if(EVT())texte=photo?'Une photo de '+ADM.nom:'Les photos de '+ADM.nom;
   if(!APERCU)api('partage',{method:'POST',body:{photo:!!photo}}).catch(function(){});
   var u=encodeURIComponent(lien),tx=encodeURIComponent(texte);
   $('partage-titre').textContent=photo?'Partager cette photo':'Partager la galerie';
@@ -984,6 +986,7 @@ function ouvrirCollection(id){
     DONNEES=d;CID=d.id;SEANCE=d.type==='seance';majTxt();iconesMode();
     ADM=Object.assign({},d.reglages,{slug:d.slug});
     DOSSIERS=ADM.dossiers;QUOTA=ADM.quota;
+    if(EVT()&&ADM.codeInvite!==ADM.code){ADM.codeInvite=ADM.code;sauverAdm(true)}
     VARS={};TOUTES=d.photos.map(function(p){VARS[p.id]=p.variantes;return {id:p.id,n:p.id,nom:p.nom,dossier:p.dossier,w:p.w||3,h:p.h||2,ordre:p.ordre,mo:p.variantes.hd?p.variantes.hd.o/1e6:0,variantes:p.variantes}});
     recalc();
     etat.album=d.etat.album||[];etat.verrou=!!d.etat.verrou;etat.notes=d.etat.notes||{};
@@ -1061,7 +1064,7 @@ function menuFiltre(btn,k){
     m.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){COLL[k]=b.dataset.a;rendreCollections()}});
   });
 }
-var PRESETS={'Mariage':{type:'mariage',classeur:'Mariages',sous:'6 mois · sélection de 60 photos si l’album est inclus'},'Séance photo':{type:'seance',classeur:'Couple',sous:'3 mois · sélection filigranée par le client'},'Événement':{type:'mariage',classeur:'Événements',albumActif:false,sous:'3 mois · sans album'}};
+var PRESETS={'Mariage':{type:'mariage',classeur:'Mariages',sous:'6 mois · sélection de 60 photos si l’album est inclus'},'Séance photo':{type:'seance',classeur:'Couple',sous:'3 mois · sélection filigranée par le client'},'Événement':{type:'mariage',classeur:'Événements',albumActif:false,evenement:true,sous:'3 mois · sans album · un seul code d’accès pour tout le monde'}};
 function fenetreNouvelle(preset){
   preset=PRESETS[preset]?preset:'Mariage';
   fenetre(enteteFen('Nouvelle collection')+
@@ -1077,7 +1080,7 @@ function fenetreNouvelle(preset){
     '<div class="champ"><label for="nc-date">Date de l’événement</label><input type="date" id="nc-date"></div>'+
     '<div class="champ"><label for="nc-dossier">Dossier</label><select id="nc-dossier">'+CLASSEURS.map(function(c){return '<option'+(c===PRESETS[preset].classeur?' selected':'')+'>'+esc(c)+'</option>'}).join('')+'<option value="">Aucun dossier</option></select></div>'+
     '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn" id="nc-ok">Créer la collection</button></div>');
-  function maj(){var P=PRESETS[$('nc-preset').value];$('nc-album-champ').hidden=!(P.type==='mariage'&&P.albumActif!==false);$('nc-seance-champ').hidden=$('nc-quota-champ').hidden=P.type!=='seance';$('nc-sous').textContent=P.sous+'. Vous pourrez tout modifier ensuite dans les réglages.';$('nc-dossier').value=P.classeur;$('nc-nom').placeholder=P.type==='seance'?'Par exemple : Séance famille Joseph':'Par exemple : Mariage Léa & Thomas'}
+  function maj(){var P=PRESETS[$('nc-preset').value];$('nc-album-champ').hidden=!(P.type==='mariage'&&P.albumActif!==false);$('nc-seance-champ').hidden=$('nc-quota-champ').hidden=P.type!=='seance';$('nc-sous').textContent=P.sous+'. Vous pourrez tout modifier ensuite dans les réglages.';$('nc-dossier').value=P.classeur;$('nc-nom').placeholder=P.type==='seance'?'Par exemple : Séance famille Joseph':P.evenement?'Par exemple : Soirée de gala Kopa':'Par exemple : Mariage Léa & Thomas'}
   $('nc-preset').onchange=maj;maj();$('nc-nom').focus();
   var DOSSIER_SEANCE={couple:'Couple',maternite:'Maternité',famille:'Famille'},EX_SEANCE={couple:'Séance couple Cendrine & Thierry',maternite:'Séance maternité Laura',famille:'Famille Joseph'};
   document.querySelectorAll('[name=nc-seance]').forEach(function(r){r.onchange=function(){
@@ -1097,7 +1100,7 @@ function fenetreNouvelle(preset){
     var mois=P.type==='seance'||P.albumActif===false?3:6,e=new Date(d+'T12:00:00');e.setMonth(e.getMonth()+mois);
     if(e<new Date()){e=new Date();e.setMonth(e.getMonth()+mois)}
     b.disabled=true;
-    api('collections',{method:'POST',body:{nom:nom,type:P.type,classeur:classeur,dateEvt:d,expiration:e.toISOString().slice(0,10),albumActif:albumActif,sousType:sousType,quota:quota}}).then(function(r){
+    api('collections',{method:'POST',body:{nom:nom,type:P.type,classeur:classeur,dateEvt:d,expiration:e.toISOString().slice(0,10),albumActif:albumActif,sousType:sousType,quota:quota,evenement:!!P.evenement}}).then(function(r){
       fermerFenetre();toast('Collection créée, en statut cachée. Ajoutez-y vos photos.');return ouvrirCollection(r.id);
     }).catch(function(err){b.disabled=false;toast(err.message)});
   };
@@ -1519,7 +1522,7 @@ function genererBanniere(o){
     do{x.font='600 '+t+'px "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif';t-=2}while(x.measureText(titre).width>W-60-60-lw-30&&t>34);
     x.fillText(titre,60,H-104);
     x.font='500 27px "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif';x.globalAlpha=.88;
-    x.fillText((SEANCE?'Séance photo':'Mariage')+(ADM.dateEvt?' · '+dateFr(ADM.dateEvt):''),62,H-58);
+    x.fillText((SEANCE?'Séance photo':EVT()?'Événement':'Mariage')+(ADM.dateEvt?' · '+dateFr(ADM.dateEvt):''),62,H-58);
     x.restore();
     return new Promise(function(ok){c.toBlob(ok,'image/jpeg',.86)}).then(function(bl){return fetch('/admin/api/collections/'+cid+'/banniere'+(flou?'?flou=1':''),{method:'PUT',body:bl,credentials:'same-origin'})});
   }).catch(function(){});
@@ -1670,6 +1673,7 @@ function fenetreStyle(){
 /* ---- Partage côté photographe ---- */
 function prenomsAdm(){var n=nomsCouple(ADM.nom);return /^Famille\s/i.test(ADM.nom)?'à toute la famille '+ADM.nom.replace(/^Famille\s+/i,''):n.replace(/\s*&\s*/,' et ')}
 function texteInvitation(){
+  if(EVT())return 'Bonjour,\n\nMerci encore pour votre confiance, ce fut un plaisir de couvrir '+ADM.nom+'.\n\nLes photos sont en ligne ! Vous pouvez les découvrir et les télécharger ici :\n'+lienGalerie()+'\n\nCode d’accès : '+ADM.code+'\n\nCe lien et ce code peuvent être partagés librement avec vos équipes, vos partenaires et les participants : chacun accède à la galerie avec le même code.\n\nLa galerie reste en ligne jusqu’au '+dateFr(ADM.expiration)+'.\n\nBelle découverte,\nMélissa';
   var corps=SEANCE?(LIVRE()?'Vos photos retouchées sont prêtes ! Vous pouvez les découvrir et les télécharger en haute définition ici :':'Vos photos sont prêtes à être découvertes ! Choisissez celles que vous souhaitez recevoir retouchées : votre formule en comprend '+ADM.quota+'. Tout se passe ici :')
     :'Vos photos de mariage sont prêtes ! Vous pouvez les découvrir, les télécharger'+(ADM.albumActif!==false?' et choisir vos photos pour l’album':'')+' ici :';
   var merci=SEANCE?'Merci encore pour votre confiance, c’était un vrai plaisir de vous photographier.':'Merci encore pour votre confiance : c’était un vrai bonheur de vivre et de photographier votre mariage à vos côtés.';
@@ -1679,16 +1683,17 @@ function fenetrePartageAdm(){
   fenetre(enteteFen('Partager la collection')+
     (ADM.statut!=='publiee'?'<div class="indic attente">'+I.oeilBarre+'<div><b>Collection '+STATUTS[ADM.statut].nom.toLowerCase()+'</b><span>Publiez-la pour que vos clients puissent l’ouvrir</span></div><button class="btn clair" id="pa-publier">Publier</button></div>':'')+
     '<div class="champ"><label>Lien de la galerie</label><div class="lien"><input type="text" readonly value="'+lienGalerie()+'" aria-label="Lien de la galerie"><button class="btn" id="pa-lien">Copier</button></div></div>'+
-    '<div class="codes"><div><span class="etiquette">Code couple</span><b class="num">'+esc(ADM.code)+'</b><button class="txtbtn" id="pa-c1">Copier</button></div><div><span class="etiquette">Code invités</span><b class="num">'+esc(ADM.codeInvite)+'</b><button class="txtbtn" id="pa-c2">Copier</button></div></div>'+
+    (EVT()?'<div class="codes"><div><span class="etiquette">Code d’accès unique</span><b class="num">'+esc(ADM.code)+'</b><button class="txtbtn" id="pa-c1">Copier</button></div><div><p class="note" style="margin:0">Le même code pour tout le monde : organisateurs, équipes, partenaires et participants.</p></div></div>':
+    '<div class="codes"><div><span class="etiquette">Code couple</span><b class="num">'+esc(ADM.code)+'</b><button class="txtbtn" id="pa-c1">Copier</button></div><div><span class="etiquette">Code invités</span><b class="num">'+esc(ADM.codeInvite)+'</b><button class="txtbtn" id="pa-c2">Copier</button></div></div>')+
     '<div class="champ"><label for="pa-a">Envoyer par e-mail à</label><input type="text" id="pa-a" value="'+esc((ADM.contacts||[]).join(', '))+'" placeholder="prenom@exemple.fr, autre@exemple.fr"><p class="note">Ces adresses sont mémorisées : elles recevront aussi les relances, les rappels et l’avis de livraison.</p></div>'+
-    '<div class="champ"><label for="pa-o">Objet</label><input type="text" id="pa-o" value="'+esc(SEANCE?(LIVRE()?'Vos photos sont prêtes':'Vos photos vous attendent'):'Vos photos de mariage sont prêtes')+'"></div>'+
+    '<div class="champ"><label for="pa-o">Objet</label><input type="text" id="pa-o" value="'+esc(SEANCE?(LIVRE()?'Vos photos sont prêtes':'Vos photos vous attendent'):EVT()?'Les photos de '+ADM.nom+' sont en ligne':'Vos photos de mariage sont prêtes')+'"></div>'+
     '<div class="champ"><label for="pa-m">Message</label><textarea id="pa-m" rows="10">'+esc(texteInvitation())+'</textarea></div>'+
     '<div class="ligne-btn"><button class="btn clair" data-ferme>Fermer</button><button class="btn" id="pa-envoi">'+I.envoyer+'Envoyer</button></div>');
   $('fenetre').classList.add('large-fen');
   if($('pa-publier'))$('pa-publier').onclick=function(){ADM.statut='publiee';sauverAdm(true).then(function(){genererMur()});rendreAdmin();fenetrePartageAdm();toast('Collection publiée.')};
   $('pa-lien').onclick=function(){copier(lienGalerie(),'Lien copié.')};
-  $('pa-c1').onclick=function(){copier(ADM.code,'Code couple copié.')};
-  $('pa-c2').onclick=function(){copier(ADM.codeInvite,'Code invités copié.')};
+  $('pa-c1').onclick=function(){copier(ADM.code,EVT()?'Code d’accès copié.':'Code couple copié.')};
+  if($('pa-c2'))$('pa-c2').onclick=function(){copier(ADM.codeInvite,'Code invités copié.')};
   $('pa-envoi').onclick=function(){
     var dest=$('pa-a').value.split(/[,;\s]+/).map(function(s){return s.trim()}).filter(function(s){return /^\S+@\S+\.\S+$/.test(s)});
     if(!dest.length){toast('Ajoutez au moins une adresse e-mail valide.');return}
@@ -1706,10 +1711,11 @@ function envoyerSimple(objet,texte,msg){
   api('collections/'+CID+'/email',{method:'POST',body:{a:a,objet:objet,texte:texte,bouton:true}}).then(function(){toast(msg);recharger()}).catch(function(e){toast(e.message)});
 }
 function menuPartage(btn){
-  var h=itemPop('lien',I.lien,'Copier le lien de la galerie')+itemPop('invite',I.partage,'Copier le lien et le code invités')+itemPop('rappel',I.mail,'Envoyer un rappel d’expiration');
+  var h=itemPop('lien',I.lien,'Copier le lien de la galerie')+itemPop('invite',I.partage,EVT()?'Copier le lien et le code d’accès':'Copier le lien et le code invités')+itemPop('rappel',I.mail,'Envoyer un rappel d’expiration');
   pop(btn,h,function(m){m.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){
     fermerPop();var a=b.dataset.a;
     if(a==='lien')copier(lienGalerie(),'Lien copié.');
+    else if(a==='invite'&&EVT())copier('Les photos de '+ADM.nom+' : '+lienGalerie()+' (code : '+ADM.code+')','Lien et code copiés : prêts à coller dans un message.');
     else if(a==='invite')copier('Les photos '+(SEANCE?'de notre séance':'du mariage de '+nomsCouple(ADM.nom))+' : '+lienGalerie()+' (code : '+ADM.codeInvite+')','Lien et code invités copiés : prêts à coller dans un message.');
     else envoyerSimple('Votre galerie ferme le '+dateFr(ADM.expiration),'Bonjour '+prenomsAdm()+',\n\nVotre galerie photo reste en ligne jusqu’au '+dateFr(ADM.expiration)+'. Pensez à télécharger vos photos en haute définition d’ici là pour les garder en sécurité.\n\nCode d’accès : '+ADM.code+'\n\nMélissa','Rappel d’expiration envoyé.');
   }})});
@@ -1772,7 +1778,7 @@ function rendreActivite(){
   /* 5. Visiteurs */
   var parEmail={};D.telechargements.forEach(function(x){var e=parEmail[x.email]=parEmail[x.email]||{hd:0,web:0};e[x.qualite==='hd'?'hd':'web']+=x.nb});
   var blocVis='<div class="bloc" id="act-vis" style="grid-column:1/-1"><h2>Visiteurs</h2>'+(D.visiteurs.length?'<div class="tableau"><table><thead><tr><th>E-mail</th><th>Rôle</th><th style="text-align:right">Visites</th><th>Dernière visite</th><th>Téléchargé</th></tr></thead><tbody>'+
-    D.visiteurs.map(function(v){var e=parEmail[v.email];return '<tr><td>'+esc(v.email)+'</td><td>'+(v.role==='couple'?'Couple':'Invité')+'</td><td class="n">'+v.visites+'</td><td>'+depuis(v.derniere)+'</td><td>'+(e?[e.hd?e.hd+' HD':'',e.web?e.web+' web':''].filter(Boolean).join(' · '):'—')+'</td></tr>'}).join('')+'</tbody></table></div>':'<p class="note">Personne n’a encore ouvert la galerie.</p>')+'</div>';
+    D.visiteurs.map(function(v){var e=parEmail[v.email];return '<tr><td>'+esc(v.email)+'</td><td>'+(EVT()?'Visiteur':v.role==='couple'?'Couple':'Invité')+'</td><td class="n">'+v.visites+'</td><td>'+depuis(v.derniere)+'</td><td>'+(e?[e.hd?e.hd+' HD':'',e.web?e.web+' web':''].filter(Boolean).join(' · '):'—')+'</td></tr>'}).join('')+'</tbody></table></div>':'<p class="note">Personne n’a encore ouvert la galerie.</p>')+'</div>';
 
   /* 6. Détail des téléchargements : qui a téléchargé quoi */
   function quoiDl(x){
@@ -1786,7 +1792,7 @@ function rendreActivite(){
     var l=D.telechargements.filter(function(x){return !f||x.email===f});
     if(!l.length)return '<tr><td colspan="4" class="note">Aucun téléchargement.</td></tr>';
     return l.map(function(x){var q=quoiDl(x),r=x.role||roleDe[x.email];
-      return '<tr><td>'+esc(x.email||'—')+'<br><small class="note">'+(r==='couple'?'Couple':r==='invite'?'Invité':'')+'</small></td>'+
+      return '<tr><td>'+esc(x.email||'—')+'<br><small class="note">'+(EVT()?'':r==='couple'?'Couple':r==='invite'?'Invité':'')+'</small></td>'+
         '<td><div class="dl-quoi">'+(q.img?'<img loading="lazy" src="'+q.img+'" alt="">':'<span class="dl-zip">'+I.dl+'</span>')+'<span>'+q.txt+'</span></div></td>'+
         '<td><span class="etat '+(x.qualite==='hd'?'ok':'cours')+'">'+(x.qualite==='hd'?'HD':'Web')+'</span></td>'+
         '<td>'+dateHeure(x.ts)+'</td></tr>'}).join('');
@@ -1819,7 +1825,7 @@ function rendreActivite(){
 /* ---- Onglet Réglages ---- */
 function rendreReglages(){
   $('adm-side').innerHTML='<div class="sets-tete"><span class="etiquette">Réglages</span></div><ul class="sets">'+
-    [['reg-general','Général'],['reg-acces','Accès'],['reg-dl','Téléchargements'],['reg-album',SEANCE?'Sélection':'Album'],['reg-exp','Expiration']].map(function(s){return '<li class="set" tabindex="0" data-cible="'+s[0]+'"><span class="set-nom">'+s[1]+'</span></li>'}).join('')+'</ul>';
+    [['reg-general','Général'],['reg-acces','Accès'],['reg-dl','Téléchargements'],['reg-album',SEANCE?'Sélection':'Album'],['reg-exp','Expiration']].filter(function(s){return !(EVT()&&s[0]==='reg-album')}).map(function(s){return '<li class="set" tabindex="0" data-cible="'+s[0]+'"><span class="set-nom">'+s[1]+'</span></li>'}).join('')+'</ul>';
   $('adm-side').querySelectorAll('[data-cible]').forEach(function(li){li.onclick=function(){var c=$(li.dataset.cible);if(c)c.scrollIntoView({behavior:'smooth',block:'start'})}});
   function bascule(id,txt,on,sous){return '<label class="reg-ligne interrupteur"><span>'+txt+(sous?'<small>'+sous+'</small>':'')+'</span><input type="checkbox" id="'+id+'"'+(on?' checked':'')+'><i></i></label>'}
   $('adm-main').innerHTML='<div class="adm-main-tete"><h2>Réglages</h2></div><div class="reglages">'+
@@ -1827,14 +1833,15 @@ function rendreReglages(){
       '<div class="url-champ"><span>'+DOMAINE+'</span><input type="text" id="r-slug" value="'+esc(ADM.slug)+'" spellcheck="false" autocomplete="off"></div>'+
       '<p class="note">Choisissez une adresse unique pour que vos clients accèdent à la collection. Lettres, chiffres et tirets uniquement.</p>'+
       '<p class="note" id="r-slug-apercu"></p></div>'+
-      '<div class="champ"><label for="r-date">'+(SEANCE?'Date de la séance':'Date du mariage')+'</label><input type="date" id="r-date" value="'+esc(ADM.dateEvt||'')+'"><p class="note">Affichée sur la page d’accès et en couverture de la galerie client.</p></div>'+bascule('r-mur','Aperçu animé sur la page d’accès',ADM.mur!==false,'Les photos défilent en petit, floutées, derrière le formulaire de connexion.')+'</section>'+
+      '<div class="champ"><label for="r-date">'+(SEANCE?'Date de la séance':EVT()?'Date de l’événement':'Date du mariage')+'</label><input type="date" id="r-date" value="'+esc(ADM.dateEvt||'')+'"><p class="note">Affichée sur la page d’accès et en couverture de la galerie client.</p></div>'+bascule('r-mur','Aperçu animé sur la page d’accès',ADM.mur!==false,'Les photos défilent en petit, floutées, derrière le formulaire de connexion.')+'</section>'+
     '<section class="bloc" id="reg-acces"><h2>Accès</h2>'+
+      (EVT()?'<div class="champ"><label for="r-code">Code d’accès unique</label><input type="text" id="r-code" value="'+esc(ADM.code)+'"><p class="note">Le même code pour tout le monde : organisateurs, équipes, partenaires et participants.</p></div><input type="hidden" id="r-invite" value="'+esc(ADM.code)+'">':
       '<div class="champ"><label for="r-code">Code couple</label><input type="text" id="r-code" value="'+esc(ADM.code)+'"><p class="note">Accès complet : HD, favoris, sélection d’album.</p></div>'+
-      '<div class="champ"><label for="r-invite">Code invités</label><input type="text" id="r-invite" value="'+esc(ADM.codeInvite)+'"><p class="note">Pour la famille et les amis : photos visibles, téléchargement selon les réglages ci-contre. Pas de favoris ni de sélection d’album.</p></div></section>'+
-    '<section class="bloc" id="reg-dl"><h2>Téléchargements</h2>'+'<p class="etiquette reg-sous">Couple</p>'+bascule('r-hd','Haute définition',ADM.hd,'Fichiers originaux, pour les tirages et l’album.')+'<p class="etiquette reg-sous">Invités</p>'+bascule('r-hdi','Haute définition',ADM.hdInvite,'Les invités peuvent aussi récupérer les fichiers originaux.')+bascule('r-web','Taille web',ADM.web!==false,'Version 2048 px pour les réseaux et les messages.')+'</section>'+
-    (SEANCE?'<section class="bloc" id="reg-album"><h2>Sélection du client</h2><input type="checkbox" id="r-album" checked hidden>'+'<div class="champ" id="r-quota-champ"><label for="r-quota">Photos retouchées incluses dans la formule</label><input type="number" id="r-quota" min="1" max="500" value="'+ADM.quota+'"></div>'+bascule('r-supp','Photos supplémentaires',ADM.supp!==false,'Le client peut en choisir au-delà de sa formule.')+'<div class="champ" id="r-prix-champ"><label for="r-prix">Prix par photo supplémentaire (€)</label><input type="number" id="r-prix" min="0" max="500" value="'+(ADM.prixSupp||0)+'"></div>'+reglageRelanceHTML()+'</section>':'<section class="bloc" id="reg-album"><h2>Album</h2>'+bascule('r-album','Sélection de photos pour l’album',ADM.albumActif!==false,'Le couple choisit ses photos et valide sa sélection. Désactivez-la si le client n’a pas pris l’option album.')+
+      '<div class="champ"><label for="r-invite">Code invités</label><input type="text" id="r-invite" value="'+esc(ADM.codeInvite)+'"><p class="note">Pour la famille et les amis : photos visibles, téléchargement selon les réglages ci-contre. Pas de favoris ni de sélection d’album.</p></div>')+'</section>'+
+    '<section class="bloc" id="reg-dl"><h2>Téléchargements</h2>'+(EVT()?bascule('r-hd','Haute définition',ADM.hd,'Fichiers originaux, pour les impressions et les supports de communication.')+'<input type="checkbox" id="r-hdi" hidden>':'<p class="etiquette reg-sous">Couple</p>'+bascule('r-hd','Haute définition',ADM.hd,'Fichiers originaux, pour les tirages et l’album.')+'<p class="etiquette reg-sous">Invités</p>'+bascule('r-hdi','Haute définition',ADM.hdInvite,'Les invités peuvent aussi récupérer les fichiers originaux.'))+bascule('r-web','Taille web',ADM.web!==false,'Version 2048 px pour les réseaux et les messages.')+'</section>'+
+    (SEANCE?'<section class="bloc" id="reg-album"><h2>Sélection du client</h2><input type="checkbox" id="r-album" checked hidden>'+'<div class="champ" id="r-quota-champ"><label for="r-quota">Photos retouchées incluses dans la formule</label><input type="number" id="r-quota" min="1" max="500" value="'+ADM.quota+'"></div>'+bascule('r-supp','Photos supplémentaires',ADM.supp!==false,'Le client peut en choisir au-delà de sa formule.')+'<div class="champ" id="r-prix-champ"><label for="r-prix">Prix par photo supplémentaire (€)</label><input type="number" id="r-prix" min="0" max="500" value="'+(ADM.prixSupp||0)+'"></div>'+reglageRelanceHTML()+'</section>':'<section class="bloc" id="reg-album"'+(EVT()?' hidden':'')+'><h2>Album</h2>'+bascule('r-album','Sélection de photos pour l’album',ADM.albumActif!==false,'Le couple choisit ses photos et valide sa sélection. Désactivez-la si le client n’a pas pris l’option album.')+
       '<div class="champ" id="r-quota-champ"><label for="r-quota">Nombre de photos à choisir</label><input type="number" id="r-quota" min="1" max="500" value="'+ADM.quota+'"></div>'+reglageRelanceHTML()+'</section>')+
-    '<section class="bloc" id="reg-exp"><h2>Expiration</h2><div class="champ"><label for="r-exp">Galerie en ligne jusqu’au</label><input type="date" id="r-exp" value="'+ADM.expiration+'"></div>'+bascule('r-rappel','Rappel au couple 30 et 7 jours avant',ADM.rappel)+'</section>'+
+    '<section class="bloc" id="reg-exp"><h2>Expiration</h2><div class="champ"><label for="r-exp">Galerie en ligne jusqu’au</label><input type="date" id="r-exp" value="'+ADM.expiration+'"></div>'+bascule('r-rappel',EVT()?'Rappel par e-mail 30 et 7 jours avant':'Rappel au couple 30 et 7 jours avant',ADM.rappel)+'</section>'+
     '</div><div class="ligne-btn" style="justify-content:flex-start;margin-top:16px"><button class="btn" id="r-ok">Enregistrer les réglages</button></div>';
   function majSlug(){var v=slugifier($('r-slug').value)||'…';$('r-slug-apercu').innerHTML='Lien complet : <b>https://'+DOMAINE+esc(v)+'</b>'+(v!==ADM.slug?' · l’ancien lien redirigera automatiquement vers celui-ci.':'')}
   $('r-slug').oninput=majSlug;$('r-slug').onblur=function(){var v=slugifier(this.value);if(v)this.value=v;majSlug()};majSlug();
@@ -1844,9 +1851,10 @@ function rendreReglages(){
   $('r-album').onchange=majAlbumReg;majAlbumReg();
   function majRel(){$('r-relj').disabled=!$('r-relance').checked;$('r-relj-champ').style.opacity=$('r-relance').checked?1:.45}$('r-relance').onchange=majRel;majRel();
   $('r-ok').onclick=function(){
-    var c=$('r-code').value.trim(),ci=$('r-invite').value.trim(),q=parseInt($('r-quota').value,10);
-    if(!c||!ci){toast('Les deux codes doivent être remplis.');return}
-    if(c===ci){toast('Le code invités doit être différent du code couple.');return}
+    var c=$('r-code').value.trim(),ci=EVT()?c:$('r-invite').value.trim(),q=parseInt($('r-quota').value,10);
+    if(EVT()&&!c){toast('Le code d’accès doit être rempli.');return}
+    if(!EVT()&&(!c||!ci)){toast('Les deux codes doivent être remplis.');return}
+    if(!EVT()&&c===ci){toast('Le code invités doit être différent du code couple.');return}
     var sl=slugifier($('r-slug').value);if(!sl){toast('L’adresse de la collection ne peut pas être vide.');return}
     var ancien=ADM.slug;
     ADM.code=c;ADM.codeInvite=ci;ADM.hd=$('r-hd').checked;ADM.hdInvite=$('r-hdi').checked;ADM.web=$('r-web').checked;ADM.quota=q>0?q:60;ADM.albumActif=$('r-album').checked;ADM.expiration=$('r-exp').value||ADM.expiration;ADM.rappel=$('r-rappel').checked;ADM.dateEvt=$('r-date').value||ADM.dateEvt;ADM.mur=$('r-mur').checked;ADM.relanceAuto=$('r-relance').checked;ADM.relanceJours=Math.max(1,Math.min(90,parseInt($('r-relj').value,10)||14));if(SEANCE){ADM.supp=$('r-supp').checked;ADM.prixSupp=Math.max(0,+$('r-prix').value||0)}

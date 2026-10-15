@@ -1,5 +1,5 @@
 // Galerie Mélissa Siméon — point d'entrée du Worker Cloudflare
-import { erreur, esc } from './util.js';
+import { erreur, esc, estEvenement } from './util.js';
 import { pageLegale } from './legal.js';
 import { exigerAdmin, verifierAdmin } from './auth.js';
 import { routerAdmin } from './api-admin.js';
@@ -24,12 +24,13 @@ async function pageClient(env, req, url, slug) {
   if (!c) return pageSimple(env, 'Galerie introuvable', 'Vérifiez l’adresse reçue par e-mail, ou contactez Mélissa (melissasimeon.ph@gmail.com).', 404);
   if (c.redirige) return Response.redirect(`${url.origin}/${c.slug}${url.pathname.replace(/^\/[^/]+/, '')}`, 301);
   const g = c.reglages;
-  const pub = { nom: g.nom, type: c.type, dateEvt: g.dateEvt, slug: c.slug, mur: g.mur !== false, phase: g.phase || null };
+  const evt = estEvenement(c);
+  const pub = { nom: g.nom, type: c.type, evenement: evt, dateEvt: g.dateEvt, slug: c.slug, mur: g.mur !== false, phase: g.phase || null };
   const r = await env.ASSETS.fetch(new URL('/client.html', url));
   let html = await r.text();
   // Aperçu du lien dans les messageries et réseaux (Open Graph / X)
   const titre = g.nom + ' · Mélissa Siméon';
-  const descr = c.type === 'seance' ? 'Votre galerie photo · Mélissa Siméon, photographe en Martinique' : `Les photos du mariage de ${String(g.nom).replace(/^mariage\s+(de\s+)?/i, '')} · Mélissa Siméon, photographe de mariage en Martinique`;
+  const descr = c.type === 'seance' ? 'Votre galerie photo · Mélissa Siméon, photographe en Martinique' : evt ? `Les photos de ${g.nom} · Mélissa Siméon, photographe en Martinique` : `Les photos du mariage de ${String(g.nom).replace(/^mariage\s+(de\s+)?/i, '')} · Mélissa Siméon, photographe de mariage en Martinique`;
   const lien = `${url.origin}/${c.slug}`;
   const image = g.partage ? `${url.origin}/img/${c.slug}/partage?v=${g.partage.v}` : g.banniere ? `${url.origin}/img/${c.slug}/${c.type === 'seance' && g.phase !== 'livraison' ? 'email-flou' : 'email'}?v=${g.banniere}` : '';
   const meta = [

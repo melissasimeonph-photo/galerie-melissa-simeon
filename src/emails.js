@@ -1,5 +1,5 @@
 // E-mails envoyés par Resend (https://resend.com). Sans clé (en local), ils sont seulement journalisés.
-import { esc, dateFr } from './util.js';
+import { esc, dateFr, estEvenement } from './util.js';
 import { collectionParId } from './db.js';
 
 export async function envoyerEmail(env, { collectionId = null, a, objet, texte, bouton = null, etapes = null, programmeA = null }) {
@@ -86,6 +86,7 @@ function gabarit(env, { objet, texte, bouton, coll, etapes = null }, pieces = nu
   // Avec « pieces », chaque image est jointe à l'e-mail et affichée sans téléchargement (cid:)
   const img = (url, id, nom) => { if (!pieces) return url; pieces.push({ path: url, filename: nom, content_id: id }); return 'cid:' + id; };
   const seance = coll && coll.type === 'seance';
+  const evt = estEvenement(coll);
   const g = coll ? coll.reglages : {};
   const base = `https://${env.DOMAINE}`;
   // Séance en cours de sélection : photo floutée ; mariage ou séance livrée : photo nette
@@ -96,7 +97,7 @@ function gabarit(env, { objet, texte, bouton, coll, etapes = null }, pieces = nu
   const entete = `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
 <td style="vertical-align:middle;padding-right:10px"><img src="${img(`${base}/assets/email/logo.png`, 'logo', 'logo.png')}" width="30" alt="" style="display:block;width:30px;height:auto;border:0"></td>
 <td style="vertical-align:middle;font-family:${TEXTE}"><div style="font-family:${TITRE};font-weight:600;font-size:17px;line-height:1.15;color:${C.encre}">Mélissa Siméon</div>
-<div style="font-size:13px;line-height:1.3;color:${C.gris}">${seance ? 'Photographe, Martinique' : 'Photographe de mariage, Martinique'}</div></td></tr></table>`;
+<div style="font-size:13px;line-height:1.3;color:${C.gris}">${seance || evt ? 'Photographe, Martinique' : 'Photographe de mariage, Martinique'}</div></td></tr></table>`;
 
   const photo = banniere ? `<a href="${esc(bouton ? bouton.url : base)}"><img src="${img(banniere, 'photo', 'photo.jpg')}" width="560" alt="${esc(g.nom || '')}" style="display:block;width:100%;max-width:560px;height:auto;border:0"></a>` : '';
   const titre = `<h1 style="margin:0;font-family:${TITRE};font-weight:700;font-size:40px;line-height:1.02;letter-spacing:-1.4px;color:${C.encre}">${esc(objet)}</h1>`;
@@ -134,7 +135,7 @@ ${tableP(`<tr><td align="center" style="padding:28px 16px 40px">${tableP(
     (carte ? ligneT(carte, '0 0 22px') : '') +
     (btn ? ligneT(btn, '0 0 28px') : '') +
     (sign ? ligneT(sign, '0') : '') +
-    ligneT(`<p style="margin:0;padding-top:26px;border-top:1px solid ${C.ligne};font-family:${TEXTE};font-size:13px;line-height:1.5;color:${C.pale}">Mélissa Siméon, ${seance ? 'photographe' : 'photographe de mariage'} en Martinique · <a href="https://www.instagram.com/melissasimeon.ph/" style="color:${C.gris}">@melissasimeon.ph</a></p>`, '32px 0 0'),
+    ligneT(`<p style="margin:0;padding-top:26px;border-top:1px solid ${C.ligne};font-family:${TEXTE};font-size:13px;line-height:1.5;color:${C.pale}">Mélissa Siméon, ${seance || evt ? 'photographe' : 'photographe de mariage'} en Martinique · <a href="https://www.instagram.com/melissasimeon.ph/" style="color:${C.gris}">@melissasimeon.ph</a></p>`, '32px 0 0'),
     'max-width:560px')}</td></tr>`, `background:${C.fond}`)}
 </body></html>`;
 }

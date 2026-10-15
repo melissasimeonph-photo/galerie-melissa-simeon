@@ -1,9 +1,9 @@
 // Vue photographe : toutes les routes /api/admin/* (protégées par Cloudflare Access + vérification ici)
-import { json, erreur, lireJSON, slugifier, idAleatoire, reglagesParDefaut, J } from './util.js';
+import { json, erreur, lireJSON, slugifier, idAleatoire, reglagesParDefaut, estEvenement, J } from './util.js';
 import { collectionParId, enregistrerReglages, journaliser, photosDe, etatDe, enregistrerEtat, cleR2, supprimerPrefixeR2 } from './db.js';
 import { envoyerEmail, texteRelance, texteLivraison, texteGuideAlbum } from './emails.js';
 
-const CHAMPS_MODIFIABLES = ['nom', 'classeur', 'dateEvt', 'statut', 'code', 'codeInvite', 'quota', 'prixSupp', 'supp', 'hd', 'hdInvite', 'web', 'albumActif',
+const CHAMPS_MODIFIABLES = ['nom', 'evenement', 'classeur', 'dateEvt', 'statut', 'code', 'codeInvite', 'quota', 'prixSupp', 'supp', 'hd', 'hdInvite', 'web', 'albumActif',
   'expiration', 'rappel', 'relanceAuto', 'relanceJours', 'couv', 'couvPos', 'mur', 'prefixe', 'dossiers', 'grille', 'fichiers', 'tri', 'contacts', 'etoile'];
 
 async function slugLibre(env, base, idActuel = null) {
@@ -177,8 +177,14 @@ export async function routerAdmin(env, req, url, ctx) {
       for (const k of CHAMPS_MODIFIABLES) if (k in b) g[k] = b[k];
       if (c.type === 'mariage' && g.albumActif === false) g.relanceAuto = false; // sans album, pas de relance de sélection
       if (g.statut === 'publiee' && !g.publieLe) g.publieLe = Date.now();
-      if (!g.code || !g.codeInvite) return erreur('Les deux codes doivent être remplis.');
-      if (g.code === g.codeInvite) return erreur('Le code invités doit être différent du code couple.');
+      if (estEvenement(c)) {
+        // Événement : un code unique, le même pour tout le monde
+        if (!g.code) return erreur('Le code d’accès doit être rempli.');
+        g.codeInvite = g.code;
+      } else {
+        if (!g.code || !g.codeInvite) return erreur('Les deux codes doivent être remplis.');
+        if (g.code === g.codeInvite) return erreur('Le code invités doit être différent du code couple.');
+      }
       if (b.slug !== undefined) {
         const s = slugifier(b.slug);
         if (!s) return erreur('L’adresse de la collection ne peut pas être vide.');
