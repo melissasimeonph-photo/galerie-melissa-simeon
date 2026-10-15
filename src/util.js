@@ -51,6 +51,17 @@ export function estEvenement(c) {
   return g.evenement === undefined ? g.classeur === 'Événements' : !!g.evenement;
 }
 
+// Galerie sans code : le lien suffit, les lignes et mentions de code disparaissent des e-mails
+export function sansMentionCode(texte) {
+  return String(texte || '')
+    .replace(/Ce lien et ce code peuvent être partagés librement([^:\n]*?)\s*:[^\n]*/g, 'Ce lien peut être partagé librement$1.')
+    .replace(/,? au même endroit et avec le même code/g, ', au même endroit')
+    .split('\n').filter((l) => !/^\s*(votre\s+)?code\b[^:]*:/i.test(l)).join('\n')
+    .replace(/\n{3,}/g, '\n\n');
+}
+// Code qui « signe » une session client : sans code, une valeur fixe (réactiver le code déconnecte tout le monde)
+export function codeSession(g, role) { return g.sansCode ? '·libre·' : role === 'invite' ? g.codeInvite : g.code; }
+
 // Réglages par défaut selon le type de collection
 export function reglagesParDefaut(type, base = {}) {
   const seance = type === 'seance';
@@ -63,7 +74,7 @@ export function reglagesParDefaut(type, base = {}) {
     classeur: base.classeur ?? (seance ? 'Couple' : evt ? 'Événements' : 'Mariages'),
     dateEvt: base.dateEvt || new Date().toISOString().slice(0, 10),
     statut: 'cachee',
-    code,
+    code, sansCode: !!base.sansCode,
     codeInvite: evt ? code : base.codeInvite || ('invites-' + idAleatoire(4)),
     quota: Math.max(1, Math.min(500, parseInt(base.quota, 10) || (seance ? 15 : 60))),
     sousType: seance && ['couple', 'maternite', 'famille'].includes(base.sousType) ? base.sousType : null,

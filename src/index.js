@@ -25,7 +25,7 @@ async function pageClient(env, req, url, slug) {
   if (c.redirige) return Response.redirect(`${url.origin}/${c.slug}${url.pathname.replace(/^\/[^/]+/, '')}`, 301);
   const g = c.reglages;
   const evt = estEvenement(c);
-  const pub = { nom: g.nom, type: c.type, evenement: evt, dateEvt: g.dateEvt, slug: c.slug, mur: g.mur !== false, phase: g.phase || null };
+  const pub = { nom: g.nom, type: c.type, evenement: evt, sansCode: !!g.sansCode, dateEvt: g.dateEvt, slug: c.slug, mur: g.mur !== false, phase: g.phase || null };
   const r = await env.ASSETS.fetch(new URL('/client.html', url));
   let html = await r.text();
   // Aperçu du lien dans les messageries et réseaux (Open Graph / X)

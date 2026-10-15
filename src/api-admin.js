@@ -3,7 +3,7 @@ import { json, erreur, lireJSON, slugifier, idAleatoire, reglagesParDefaut, estE
 import { collectionParId, enregistrerReglages, journaliser, photosDe, etatDe, enregistrerEtat, cleR2, supprimerPrefixeR2 } from './db.js';
 import { envoyerEmail, texteRelance, texteLivraison, texteGuideAlbum } from './emails.js';
 
-const CHAMPS_MODIFIABLES = ['nom', 'evenement', 'classeur', 'dateEvt', 'statut', 'code', 'codeInvite', 'quota', 'prixSupp', 'supp', 'hd', 'hdInvite', 'web', 'albumActif',
+const CHAMPS_MODIFIABLES = ['nom', 'evenement', 'sansCode', 'classeur', 'dateEvt', 'statut', 'code', 'codeInvite', 'quota', 'prixSupp', 'supp', 'hd', 'hdInvite', 'web', 'albumActif',
   'expiration', 'rappel', 'relanceAuto', 'relanceJours', 'couv', 'couvPos', 'mur', 'prefixe', 'dossiers', 'grille', 'fichiers', 'tri', 'contacts', 'etoile'];
 
 async function slugLibre(env, base, idActuel = null) {
@@ -177,7 +177,10 @@ export async function routerAdmin(env, req, url, ctx) {
       for (const k of CHAMPS_MODIFIABLES) if (k in b) g[k] = b[k];
       if (c.type === 'mariage' && g.albumActif === false) g.relanceAuto = false; // sans album, pas de relance de sélection
       if (g.statut === 'publiee' && !g.publieLe) g.publieLe = Date.now();
-      if (estEvenement(c)) {
+      if (g.sansCode) {
+        // Sans code : rien à vérifier, les codes restent en mémoire pour une éventuelle réactivation
+        if (estEvenement(c)) g.codeInvite = g.code;
+      } else if (estEvenement(c)) {
         // Événement : un code unique, le même pour tout le monde
         if (!g.code) return erreur('Le code d’accès doit être rempli.');
         g.codeInvite = g.code;

@@ -1,5 +1,5 @@
 // Accès : jetons clients signés (cookie) et vérification Cloudflare Access pour la vue photographe
-import { erreur } from './util.js';
+import { erreur, codeSession } from './util.js';
 
 const enc = new TextEncoder();
 const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -57,7 +57,7 @@ export async function empreinteCode(code) {
 export async function sessionClient(env, req, coll) {
   const d = await lireJeton(env, lireCookie(req, nomCookie(coll.id)));
   if (!d || d.c !== coll.id) return null;
-  const code = d.r === 'invite' ? coll.reglages.codeInvite : coll.reglages.code;
+  const code = codeSession(coll.reglages, d.r);
   if (d.v !== await empreinteCode(code)) return null;
   return d;
 }

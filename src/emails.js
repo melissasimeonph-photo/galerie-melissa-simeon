@@ -1,11 +1,12 @@
 // E-mails envoyés par Resend (https://resend.com). Sans clé (en local), ils sont seulement journalisés.
-import { esc, dateFr, estEvenement } from './util.js';
+import { esc, dateFr, estEvenement, sansMentionCode } from './util.js';
 import { collectionParId } from './db.js';
 
 export async function envoyerEmail(env, { collectionId = null, a, objet, texte, bouton = null, etapes = null, programmeA = null }) {
   const destinataires = (Array.isArray(a) ? a : [a]).filter(Boolean);
   if (!destinataires.length) return { ok: false, raison: 'aucun destinataire' };
   const coll = collectionId ? await collectionParId(env, collectionId).catch(() => null) : null;
+  if (coll && coll.reglages.sansCode) texte = sansMentionCode(texte);
   const pourMoi = destinataires.every((d) => d.toLowerCase() === String(env.ADMIN_EMAIL).toLowerCase());
   // Un e-mail destiné au client a toujours son bouton vers la galerie
   if (!bouton && coll && !pourMoi) bouton = { texte: coll.type === 'seance' ? 'Voir mes photos' : 'Ouvrir ma galerie', url: lienGalerie(env, coll) };

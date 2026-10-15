@@ -1,5 +1,5 @@
 // Côté client : accès à la galerie, favoris, sélection, téléchargements
-import { json, erreur, lireJSON, egalTempsConstant, J, slugNom } from './util.js';
+import { json, erreur, lireJSON, egalTempsConstant, J, slugNom, codeSession } from './util.js';
 import { signerJeton, nomCookie, empreinteCode, sessionClient, tentativeAutorisee, verifierAdmin } from './auth.js';
 import { collectionParSlug, journaliser, photosDe, etatDe, enregistrerEtat, cleR2 } from './db.js';
 import { envoyerEmail, texteSelectionRecue } from './emails.js';
@@ -70,12 +70,13 @@ export async function routerClient(env, req, url, ctx) {
     const em = String(email).trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(em)) return erreur('Indiquez votre adresse e-mail pour accéder à la galerie.');
     const cd = String(code).trim();
-    const role = egalTempsConstant(cd, g.code) ? 'couple' : egalTempsConstant(cd, g.codeInvite) ? 'invite' : null;
+    // Galerie sans code : le lien suffit, tout le monde a l'accès complet
+    const role = g.sansCode ? 'couple' : egalTempsConstant(cd, g.code) ? 'couple' : egalTempsConstant(cd, g.codeInvite) ? 'invite' : null;
     if (!role) return erreur('Ce code ne correspond pas. Vérifiez l’e-mail envoyé par Mélissa.', 401);
     if (g.statut === 'cachee') return erreur('Cette galerie n’est pas disponible pour le moment. Contactez Mélissa pour en savoir plus (melissasimeon.ph@gmail.com).', 403);
     if (g.statut === 'archivee') return erreur('Cette galerie a expiré. Contactez Mélissa si vous souhaitez la rouvrir (melissasimeon.ph@gmail.com).', 403);
     if (role === 'invite' && estSeanceSel(c)) return erreur('Les photos ne sont pas encore prêtes. Revenez quand elles seront livrées.', 403);
-    const jeton = await signerJeton(env, { c: c.id, e: em, r: role, x: Date.now() + 30 * J, v: await empreinteCode(role === 'couple' ? g.code : g.codeInvite) });
+    const jeton = await signerJeton(env, { c: c.id, e: em, r: role, x: Date.now() + 30 * J, v: await empreinteCode(codeSession(g, role)) });
     const now = Date.now();
     await env.DB.prepare(`INSERT INTO visiteurs (collection_id, email, role, premiere, derniere) VALUES (?,?,?,?,?)
       ON CONFLICT(collection_id, email) DO UPDATE SET derniere=excluded.derniere, visites=visites+1, role=excluded.role`).bind(c.id, em, role, now, now).run();

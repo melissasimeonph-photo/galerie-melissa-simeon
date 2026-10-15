@@ -32,7 +32,7 @@ function api(chemin,opts){
 var ADM={dossiers:[],statut:'cachee',grille:'grande',fichiers:true,tri:'asc',quota:60,hd:true,web:true,albumActif:true,couvPos:'50% 50%',mur:true};
 var DONNEES=null;                         // détail de la collection ouverte (vue photographe)
 var minuteurSauve=null;
-var CHAMPS=['nom','evenement','classeur','dateEvt','statut','code','codeInvite','quota','prixSupp','supp','hd','hdInvite','web','albumActif','expiration','rappel','relanceAuto','relanceJours','couv','couvPos','mur','prefixe','dossiers','grille','fichiers','tri','contacts'];
+var CHAMPS=['nom','evenement','sansCode','classeur','dateEvt','statut','code','codeInvite','quota','prixSupp','supp','hd','hdInvite','web','albumActif','expiration','rappel','relanceAuto','relanceJours','couv','couvPos','mur','prefixe','dossiers','grille','fichiers','tri','contacts'];
 function sauverAdm(immediat){
   if(MODE!=='admin'||!CID)return Promise.resolve();
   clearTimeout(minuteurSauve);
@@ -107,11 +107,13 @@ function majNoms(){
 }
 
 /* ---------- Accès ---------- */
+// Galerie sans code : seul l'e-mail est demandé
+if(COLLPUB&&COLLPUB.sansCode&&$('code')){$('code').closest('.champ').style.display='none'}
 $('form-acces').addEventListener('submit',function(e){
   e.preventDefault();
   var em=$('email').value.trim(),c=$('code').value.trim(),b=this.querySelector('button[type=submit]');
   if(!/^\S+@\S+\.\S+$/.test(em)){$('err-acces').textContent='Indiquez votre adresse e-mail pour accéder à la galerie.';return}
-  if(!c){$('err-acces').textContent='Saisissez le code reçu par e-mail.';return}
+  if(!c&&!(COLLPUB&&COLLPUB.sansCode)){$('err-acces').textContent='Saisissez le code reçu par e-mail.';return}
   b.disabled=true;$('err-acces').textContent='';
   api('acces',{method:'POST',body:{email:em,code:c}}).then(function(r){
     return chargerClient().then(function(){
@@ -494,7 +496,7 @@ function ouvrirPartage(photo){
     return r[2]?'<a class="reseau" href="'+r[2]+'" target="_blank" rel="noopener"><span>'+r[1]+'</span>'+r[0]+'</a>'
                :'<button class="reseau" id="partage-plus" type="button"><span>'+r[1]+'</span>'+r[0]+'</button>';
   }).join('');
-  $('partage-note').textContent=etat.invite?'Vos proches devront saisir le code invité pour voir les photos.':'Vos proches devront saisir le code invité, que vous trouverez dans l’e-mail de Mélissa.';
+  $('partage-note').textContent=COLLPUB&&COLLPUB.sansCode?'Le lien suffit : aucun code n’est demandé, seulement une adresse e-mail.':EVT()?'Les personnes avec qui vous partagez le lien devront saisir le code d’accès de la galerie.':etat.invite?'Vos proches devront saisir le code invité pour voir les photos.':'Vos proches devront saisir le code invité, que vous trouverez dans l’e-mail de Mélissa.';
   $('partage-plus').onclick=function(){
     if(navigator.share){navigator.share({title:texte,url:lien}).catch(function(){})}
     else toast('Sur téléphone, ce bouton ouvre le menu de partage du téléphone (SMS, Instagram, AirDrop…).');
@@ -1073,6 +1075,10 @@ function fenetreNouvelle(preset){
     '<div class="champ" id="nc-seance-champ"><span class="etiquette-champ" id="nc-seance-lab">Type de séance</span><div class="options" role="radiogroup" aria-labelledby="nc-seance-lab" style="grid-template-columns:repeat(3,1fr)">'+
       [['couple','Couple'],['maternite','Maternité'],['famille','Famille']].map(function(t){return '<label class="option"><span class="g"><input type="radio" name="nc-seance" id="nc-seance-'+t[0]+'" value="'+t[0]+'"><span>'+t[1]+'</span></span></label>'}).join('')+'</div></div>'+
     '<div class="champ" id="nc-quota-champ"><label for="nc-quota">Photos retouchées incluses dans la formule</label><input type="number" id="nc-quota" min="1" max="500" value="15" inputmode="numeric"><p class="note">Le client choisit ce nombre de photos dans sa sélection. Au-delà, chaque photo supplémentaire est facturée (10 € par défaut, modifiable dans les réglages).</p></div>'+
+    '<div class="champ"><span class="etiquette-champ" id="nc-code-lab">Accès à la galerie</span><div class="options" role="radiogroup" aria-labelledby="nc-code-lab" style="grid-template-columns:1fr 1fr">'+
+      '<label class="option"><span class="g"><input type="radio" name="nc-code" id="nc-code-oui" value="oui" checked><span>Avec code</span></span></label>'+
+      '<label class="option"><span class="g"><input type="radio" name="nc-code" id="nc-code-non" value="non"><span>Sans code</span></span></label></div>'+
+      '<p class="note" id="nc-code-note"></p></div>'+
     '<div class="champ" id="nc-album-champ"><span class="etiquette-champ" id="nc-album-lab">Album photo inclus dans la prestation ?</span><div class="options" role="radiogroup" aria-labelledby="nc-album-lab" style="grid-template-columns:1fr 1fr">'+
       '<label class="option"><span class="g"><input type="radio" name="nc-album" id="nc-album-oui" value="oui"><span>Oui, avec album</span></span></label>'+
       '<label class="option"><span class="g"><input type="radio" name="nc-album" id="nc-album-non" value="non"><span>Non, sans album</span></span></label></div>'+
@@ -1081,7 +1087,9 @@ function fenetreNouvelle(preset){
     '<div class="champ"><label for="nc-dossier">Dossier</label><select id="nc-dossier">'+CLASSEURS.map(function(c){return '<option'+(c===PRESETS[preset].classeur?' selected':'')+'>'+esc(c)+'</option>'}).join('')+'<option value="">Aucun dossier</option></select></div>'+
     '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn" id="nc-ok">Créer la collection</button></div>');
   function maj(){var P=PRESETS[$('nc-preset').value];$('nc-album-champ').hidden=!(P.type==='mariage'&&P.albumActif!==false);$('nc-seance-champ').hidden=$('nc-quota-champ').hidden=P.type!=='seance';$('nc-sous').textContent=P.sous+'. Vous pourrez tout modifier ensuite dans les réglages.';$('nc-dossier').value=P.classeur;$('nc-nom').placeholder=P.type==='seance'?'Par exemple : Séance famille Joseph':P.evenement?'Par exemple : Soirée de gala Kopa':'Par exemple : Mariage Léa & Thomas'}
-  $('nc-preset').onchange=maj;maj();$('nc-nom').focus();
+  function majCode(){var sans=$('nc-code-non').checked,P=PRESETS[$('nc-preset').value];$('nc-code-note').textContent=sans?'Le lien suffit : seul l’e-mail du visiteur est demandé, et tout le monde a le même accès.':P.evenement?'Un code unique, le même pour tout le monde.':P.type==='seance'?'Un code d’accès est créé pour votre client.':'Un code pour le couple et un code pour les invités.'}
+  document.querySelectorAll('[name=nc-code]').forEach(function(r){r.onchange=majCode});
+  $('nc-preset').onchange=function(){maj();majCode()};maj();majCode();$('nc-nom').focus();
   var DOSSIER_SEANCE={couple:'Couple',maternite:'Maternité',famille:'Famille'},EX_SEANCE={couple:'Séance couple Cendrine & Thierry',maternite:'Séance maternité Laura',famille:'Famille Joseph'};
   document.querySelectorAll('[name=nc-seance]').forEach(function(r){r.onchange=function(){
     var sel=$('nc-dossier'),v=DOSSIER_SEANCE[r.value];
@@ -1100,7 +1108,7 @@ function fenetreNouvelle(preset){
     var mois=P.type==='seance'||P.albumActif===false?3:6,e=new Date(d+'T12:00:00');e.setMonth(e.getMonth()+mois);
     if(e<new Date()){e=new Date();e.setMonth(e.getMonth()+mois)}
     b.disabled=true;
-    api('collections',{method:'POST',body:{nom:nom,type:P.type,classeur:classeur,dateEvt:d,expiration:e.toISOString().slice(0,10),albumActif:albumActif,sousType:sousType,quota:quota,evenement:!!P.evenement}}).then(function(r){
+    api('collections',{method:'POST',body:{nom:nom,type:P.type,classeur:classeur,dateEvt:d,expiration:e.toISOString().slice(0,10),albumActif:albumActif,sousType:sousType,quota:quota,evenement:!!P.evenement,sansCode:$('nc-code-non').checked}}).then(function(r){
       fermerFenetre();toast('Collection créée, en statut cachée. Ajoutez-y vos photos.');return ouvrirCollection(r.id);
     }).catch(function(err){b.disabled=false;toast(err.message)});
   };
@@ -1629,7 +1637,7 @@ function menuPlus(btn){
 }
 function enteteFen(t){return '<div class="partage-tete"><h2>'+t+'</h2><button class="ibtn" data-ferme aria-label="Fermer">'+I.fermer+'</button></div>'}
 function fenetreLien(){
-  fenetre(enteteFen('Lien direct')+'<p>Le lien qui ouvre directement cette collection. Vos clients devront saisir leur code d’accès.</p>'+
+  fenetre(enteteFen('Lien direct')+'<p>Le lien qui ouvre directement cette collection.'+(ADM.sansCode?' Aucun code n’est demandé : seulement l’e-mail du visiteur.':' Vos clients devront saisir leur code d’accès.')+'</p>'+
     '<div class="lien"><input type="text" id="lien-direct" readonly value="'+lienGalerie()+'" aria-label="Lien direct"><button class="btn" id="lien-copier">Copier</button></div>');
   $('lien-copier').onclick=function(){copier(lienGalerie(),'Lien copié.')};
 }
@@ -1672,7 +1680,13 @@ function fenetreStyle(){
 
 /* ---- Partage côté photographe ---- */
 function prenomsAdm(){var n=nomsCouple(ADM.nom);return /^Famille\s/i.test(ADM.nom)?'à toute la famille '+ADM.nom.replace(/^Famille\s+/i,''):n.replace(/\s*&\s*/,' et ')}
-function texteInvitation(){
+function sansMentionCode(t){
+  if(!ADM.sansCode)return t;
+  return String(t||'').replace(/Ce lien et ce code peuvent être partagés librement([^:\n]*?)\s*:[^\n]*/g,'Ce lien peut être partagé librement$1.').replace(/,? au même endroit et avec le même code/g,', au même endroit')
+    .split('\n').filter(function(l){return !/^\s*(votre\s+)?code\b[^:]*:/i.test(l)}).join('\n').replace(/\n{3,}/g,'\n\n');
+}
+function texteInvitation(){return sansMentionCode(texteInvitationBrut())}
+function texteInvitationBrut(){
   if(EVT())return 'Bonjour,\n\nMerci encore pour votre confiance, ce fut un plaisir de couvrir '+ADM.nom+'.\n\nLes photos sont en ligne ! Vous pouvez les découvrir et les télécharger ici :\n'+lienGalerie()+'\n\nCode d’accès : '+ADM.code+'\n\nCe lien et ce code peuvent être partagés librement avec vos équipes, vos partenaires et les participants : chacun accède à la galerie avec le même code.\n\nLa galerie reste en ligne jusqu’au '+dateFr(ADM.expiration)+'.\n\nBelle découverte,\nMélissa';
   var corps=SEANCE?(LIVRE()?'Vos photos retouchées sont prêtes ! Vous pouvez les découvrir et les télécharger en haute définition ici :':'Vos photos sont prêtes à être découvertes ! Choisissez celles que vous souhaitez recevoir retouchées : votre formule en comprend '+ADM.quota+'. Tout se passe ici :')
     :'Vos photos de mariage sont prêtes ! Vous pouvez les découvrir, les télécharger'+(ADM.albumActif!==false?' et choisir vos photos pour l’album':'')+' ici :';
@@ -1683,7 +1697,7 @@ function fenetrePartageAdm(){
   fenetre(enteteFen('Partager la collection')+
     (ADM.statut!=='publiee'?'<div class="indic attente">'+I.oeilBarre+'<div><b>Collection '+STATUTS[ADM.statut].nom.toLowerCase()+'</b><span>Publiez-la pour que vos clients puissent l’ouvrir</span></div><button class="btn clair" id="pa-publier">Publier</button></div>':'')+
     '<div class="champ"><label>Lien de la galerie</label><div class="lien"><input type="text" readonly value="'+lienGalerie()+'" aria-label="Lien de la galerie"><button class="btn" id="pa-lien">Copier</button></div></div>'+
-    (EVT()?'<div class="codes"><div><span class="etiquette">Code d’accès unique</span><b class="num">'+esc(ADM.code)+'</b><button class="txtbtn" id="pa-c1">Copier</button></div><div><p class="note" style="margin:0">Le même code pour tout le monde : organisateurs, équipes, partenaires et participants.</p></div></div>':
+    (ADM.sansCode?'<div class="indic ok">'+I.lien+'<div><b>Galerie sans code</b><span>Toute personne qui a le lien ouvre la galerie : seul son e-mail lui est demandé.</span></div></div>':EVT()?'<div class="codes"><div><span class="etiquette">Code d’accès unique</span><b class="num">'+esc(ADM.code)+'</b><button class="txtbtn" id="pa-c1">Copier</button></div><div><p class="note" style="margin:0">Le même code pour tout le monde : organisateurs, équipes, partenaires et participants.</p></div></div>':
     '<div class="codes"><div><span class="etiquette">Code couple</span><b class="num">'+esc(ADM.code)+'</b><button class="txtbtn" id="pa-c1">Copier</button></div><div><span class="etiquette">Code invités</span><b class="num">'+esc(ADM.codeInvite)+'</b><button class="txtbtn" id="pa-c2">Copier</button></div></div>')+
     '<div class="champ"><label for="pa-a">Envoyer par e-mail à</label><input type="text" id="pa-a" value="'+esc((ADM.contacts||[]).join(', '))+'" placeholder="prenom@exemple.fr, autre@exemple.fr"><p class="note">Ces adresses sont mémorisées : elles recevront aussi les relances, les rappels et l’avis de livraison.</p></div>'+
     '<div class="champ"><label for="pa-o">Objet</label><input type="text" id="pa-o" value="'+esc(SEANCE?(LIVRE()?'Vos photos sont prêtes':'Vos photos vous attendent'):EVT()?'Les photos de '+ADM.nom+' sont en ligne':'Vos photos de mariage sont prêtes')+'"></div>'+
@@ -1692,7 +1706,7 @@ function fenetrePartageAdm(){
   $('fenetre').classList.add('large-fen');
   if($('pa-publier'))$('pa-publier').onclick=function(){ADM.statut='publiee';sauverAdm(true).then(function(){genererMur()});rendreAdmin();fenetrePartageAdm();toast('Collection publiée.')};
   $('pa-lien').onclick=function(){copier(lienGalerie(),'Lien copié.')};
-  $('pa-c1').onclick=function(){copier(ADM.code,EVT()?'Code d’accès copié.':'Code couple copié.')};
+  if($('pa-c1'))$('pa-c1').onclick=function(){copier(ADM.code,EVT()?'Code d’accès copié.':'Code couple copié.')};
   if($('pa-c2'))$('pa-c2').onclick=function(){copier(ADM.codeInvite,'Code invités copié.')};
   $('pa-envoi').onclick=function(){
     var dest=$('pa-a').value.split(/[,;\s]+/).map(function(s){return s.trim()}).filter(function(s){return /^\S+@\S+\.\S+$/.test(s)});
@@ -1711,7 +1725,7 @@ function envoyerSimple(objet,texte,msg){
   api('collections/'+CID+'/email',{method:'POST',body:{a:a,objet:objet,texte:texte,bouton:true}}).then(function(){toast(msg);recharger()}).catch(function(e){toast(e.message)});
 }
 function menuPartage(btn){
-  var h=itemPop('lien',I.lien,'Copier le lien de la galerie')+itemPop('invite',I.partage,EVT()?'Copier le lien et le code d’accès':'Copier le lien et le code invités')+itemPop('rappel',I.mail,'Envoyer un rappel d’expiration');
+  var h=itemPop('lien',I.lien,'Copier le lien de la galerie')+(ADM.sansCode?'':itemPop('invite',I.partage,EVT()?'Copier le lien et le code d’accès':'Copier le lien et le code invités'))+itemPop('rappel',I.mail,'Envoyer un rappel d’expiration');
   pop(btn,h,function(m){m.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){
     fermerPop();var a=b.dataset.a;
     if(a==='lien')copier(lienGalerie(),'Lien copié.');
@@ -1834,10 +1848,10 @@ function rendreReglages(){
       '<p class="note">Choisissez une adresse unique pour que vos clients accèdent à la collection. Lettres, chiffres et tirets uniquement.</p>'+
       '<p class="note" id="r-slug-apercu"></p></div>'+
       '<div class="champ"><label for="r-date">'+(SEANCE?'Date de la séance':EVT()?'Date de l’événement':'Date du mariage')+'</label><input type="date" id="r-date" value="'+esc(ADM.dateEvt||'')+'"><p class="note">Affichée sur la page d’accès et en couverture de la galerie client.</p></div>'+bascule('r-mur','Aperçu animé sur la page d’accès',ADM.mur!==false,'Les photos défilent en petit, floutées, derrière le formulaire de connexion.')+'</section>'+
-    '<section class="bloc" id="reg-acces"><h2>Accès</h2>'+
+    '<section class="bloc" id="reg-acces"><h2>Accès</h2>'+bascule('r-avec-code','Protéger la galerie par un code',!ADM.sansCode,'Désactivé : le lien suffit, seul l’e-mail du visiteur est demandé et tout le monde a le même accès.')+'<div id="r-codes">'+
       (EVT()?'<div class="champ"><label for="r-code">Code d’accès unique</label><input type="text" id="r-code" value="'+esc(ADM.code)+'"><p class="note">Le même code pour tout le monde : organisateurs, équipes, partenaires et participants.</p></div><input type="hidden" id="r-invite" value="'+esc(ADM.code)+'">':
       '<div class="champ"><label for="r-code">Code couple</label><input type="text" id="r-code" value="'+esc(ADM.code)+'"><p class="note">Accès complet : HD, favoris, sélection d’album.</p></div>'+
-      '<div class="champ"><label for="r-invite">Code invités</label><input type="text" id="r-invite" value="'+esc(ADM.codeInvite)+'"><p class="note">Pour la famille et les amis : photos visibles, téléchargement selon les réglages ci-contre. Pas de favoris ni de sélection d’album.</p></div>')+'</section>'+
+      '<div class="champ"><label for="r-invite">Code invités</label><input type="text" id="r-invite" value="'+esc(ADM.codeInvite)+'"><p class="note">Pour la famille et les amis : photos visibles, téléchargement selon les réglages ci-contre. Pas de favoris ni de sélection d’album.</p></div>')+'</div></section>'+
     '<section class="bloc" id="reg-dl"><h2>Téléchargements</h2>'+(EVT()?bascule('r-hd','Haute définition',ADM.hd,'Fichiers originaux, pour les impressions et les supports de communication.')+'<input type="checkbox" id="r-hdi" hidden>':'<p class="etiquette reg-sous">Couple</p>'+bascule('r-hd','Haute définition',ADM.hd,'Fichiers originaux, pour les tirages et l’album.')+'<p class="etiquette reg-sous">Invités</p>'+bascule('r-hdi','Haute définition',ADM.hdInvite,'Les invités peuvent aussi récupérer les fichiers originaux.'))+bascule('r-web','Taille web',ADM.web!==false,'Version 2048 px pour les réseaux et les messages.')+'</section>'+
     (SEANCE?'<section class="bloc" id="reg-album"><h2>Sélection du client</h2><input type="checkbox" id="r-album" checked hidden>'+'<div class="champ" id="r-quota-champ"><label for="r-quota">Photos retouchées incluses dans la formule</label><input type="number" id="r-quota" min="1" max="500" value="'+ADM.quota+'"></div>'+bascule('r-supp','Photos supplémentaires',ADM.supp!==false,'Le client peut en choisir au-delà de sa formule.')+'<div class="champ" id="r-prix-champ"><label for="r-prix">Prix par photo supplémentaire (€)</label><input type="number" id="r-prix" min="0" max="500" value="'+(ADM.prixSupp||0)+'"></div>'+reglageRelanceHTML()+'</section>':'<section class="bloc" id="reg-album"'+(EVT()?' hidden':'')+'><h2>Album</h2>'+bascule('r-album','Sélection de photos pour l’album',ADM.albumActif!==false,'Le couple choisit ses photos et valide sa sélection. Désactivez-la si le client n’a pas pris l’option album.')+
       '<div class="champ" id="r-quota-champ"><label for="r-quota">Nombre de photos à choisir</label><input type="number" id="r-quota" min="1" max="500" value="'+ADM.quota+'"></div>'+reglageRelanceHTML()+'</section>')+
@@ -1850,11 +1864,14 @@ function rendreReglages(){
     var r=$('r-relance');if(r){if(!on)r.checked=false;else if(e)r.checked=true;r.disabled=!on;r.closest('label').style.opacity=on?1:.45;majRel()}}
   $('r-album').onchange=majAlbumReg;majAlbumReg();
   function majRel(){$('r-relj').disabled=!$('r-relance').checked;$('r-relj-champ').style.opacity=$('r-relance').checked?1:.45}$('r-relance').onchange=majRel;majRel();
+  function majAvecCode(){var on=$('r-avec-code').checked;$('r-codes').hidden=!on}$('r-avec-code').onchange=majAvecCode;majAvecCode();
   $('r-ok').onclick=function(){
+    var sansCode=!$('r-avec-code').checked;
     var c=$('r-code').value.trim(),ci=EVT()?c:$('r-invite').value.trim(),q=parseInt($('r-quota').value,10);
-    if(EVT()&&!c){toast('Le code d’accès doit être rempli.');return}
-    if(!EVT()&&(!c||!ci)){toast('Les deux codes doivent être remplis.');return}
-    if(!EVT()&&c===ci){toast('Le code invités doit être différent du code couple.');return}
+    if(!sansCode&&EVT()&&!c){toast('Le code d’accès doit être rempli.');return}
+    if(!sansCode&&!EVT()&&(!c||!ci)){toast('Les deux codes doivent être remplis.');return}
+    if(!sansCode&&!EVT()&&c===ci){toast('Le code invités doit être différent du code couple.');return}
+    ADM.sansCode=sansCode;if(sansCode){c=c||ADM.code;ci=ci||ADM.codeInvite}
     var sl=slugifier($('r-slug').value);if(!sl){toast('L’adresse de la collection ne peut pas être vide.');return}
     var ancien=ADM.slug;
     ADM.code=c;ADM.codeInvite=ci;ADM.hd=$('r-hd').checked;ADM.hdInvite=$('r-hdi').checked;ADM.web=$('r-web').checked;ADM.quota=q>0?q:60;ADM.albumActif=$('r-album').checked;ADM.expiration=$('r-exp').value||ADM.expiration;ADM.rappel=$('r-rappel').checked;ADM.dateEvt=$('r-date').value||ADM.dateEvt;ADM.mur=$('r-mur').checked;ADM.relanceAuto=$('r-relance').checked;ADM.relanceJours=Math.max(1,Math.min(90,parseInt($('r-relj').value,10)||14));if(SEANCE){ADM.supp=$('r-supp').checked;ADM.prixSupp=Math.max(0,+$('r-prix').value||0)}
