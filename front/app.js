@@ -113,7 +113,7 @@ $('form-acces').addEventListener('submit',function(e){
   e.preventDefault();
   var em=$('email').value.trim(),c=$('code').value.trim(),b=this.querySelector('button[type=submit]');
   if(!/^\S+@\S+\.\S+$/.test(em)){$('err-acces').textContent='Indiquez votre adresse e-mail pour accéder à la galerie.';return}
-  if(!c&&!(COLLPUB&&COLLPUB.sansCode)){$('err-acces').textContent='Saisissez le code reçu par e-mail.';return}
+  if(!c&&!(COLLPUB&&COLLPUB.sansCode)){$('err-acces').textContent='Saisissez votre code d’accès.';return}
   b.disabled=true;$('err-acces').textContent='';
   api('acces',{method:'POST',body:{email:em,code:c}}).then(function(r){
     return chargerClient().then(function(){

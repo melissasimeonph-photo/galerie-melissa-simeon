@@ -72,7 +72,7 @@ export async function routerClient(env, req, url, ctx) {
     const cd = String(code).trim();
     // Galerie sans code : le lien suffit, tout le monde a l'accès complet
     const role = g.sansCode ? 'couple' : egalTempsConstant(cd, g.code) ? 'couple' : egalTempsConstant(cd, g.codeInvite) ? 'invite' : null;
-    if (!role) return erreur('Ce code ne correspond pas. Vérifiez l’e-mail envoyé par Mélissa.', 401);
+    if (!role) return erreur('Ce code ne correspond pas. Vérifiez le code qui vous a été transmis.', 401);
     if (g.statut === 'cachee') return erreur('Cette galerie n’est pas disponible pour le moment. Contactez Mélissa pour en savoir plus (melissasimeon.ph@gmail.com).', 403);
     if (g.statut === 'archivee') return erreur('Cette galerie a expiré. Contactez Mélissa si vous souhaitez la rouvrir (melissasimeon.ph@gmail.com).', 403);
     if (role === 'invite' && estSeanceSel(c)) return erreur('Les photos ne sont pas encore prêtes. Revenez quand elles seront livrées.', 403);
