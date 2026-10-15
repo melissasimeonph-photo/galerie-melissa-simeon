@@ -205,7 +205,9 @@ $('btn-voir').addEventListener('click',function(){document.querySelector('.barre
 /* ---------- Onglets ---------- */
 function rendreOnglets(){
   var h='<button class="onglet" data-v="tout">Tout<span class="num">'+photosClient().length+'</span></button>';
-  if(!SEANCE)DOSSIERS.forEach(function(d){if(d.n)h+='<button class="onglet" data-v="'+d.id+'">'+esc(d.nom)+'<span class="num">'+d.n+'</span></button>'});
+  // Une seule catégorie avec des photos : inutile de l'afficher à côté de « Tout »
+  var pleins=DOSSIERS.filter(function(d){return d.n});
+  if(!SEANCE&&pleins.length>1)DOSSIERS.forEach(function(d){if(d.n)h+='<button class="onglet" data-v="'+d.id+'">'+esc(d.nom)+'<span class="num">'+d.n+'</span></button>'});
   $('onglets').innerHTML=h;
   $('onglets').querySelectorAll('.onglet').forEach(function(b){
     b.setAttribute('aria-pressed',b.dataset.v===etat.vue);
@@ -291,7 +293,7 @@ function rendre(){
   if(['tout','fav','album'].indexOf(etat.vue)<0){var dv=dossierPar(etat.vue);if(!dv||!dv.n)etat.vue='tout'}
   if(LIVRE()&&etat.vue==='album')etat.vue='tout';
   if(SEANCE)majBandeau();
-  $('meta-nb').textContent=SEANCE?(SELP()?(etat.verrou?photosClient().length+' photos sélectionnées':PHOTOS.length+' photos à découvrir'):PHOTOS.length+' photos retouchées'):PHOTOS.length+' photos · '+(function(n){return n+' catégorie'+(n>1?'s':'')})(DOSSIERS.filter(function(d){return d.n}).length);
+  $('meta-nb').textContent=SEANCE?(SELP()?(etat.verrou?photosClient().length+' photos sélectionnées':PHOTOS.length+' photos à découvrir'):PHOTOS.length+' photos retouchées'):(function(n){return PHOTOS.length+' photos'+(n>1?' · '+n+' catégories':'')})(DOSSIERS.filter(function(d){return d.n}).length);
   rendreOnglets();
   $('btn-fav').setAttribute('aria-pressed',etat.vue==='fav');
   $('btn-album').setAttribute('aria-pressed',etat.vue==='album');
