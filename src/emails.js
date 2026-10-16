@@ -141,6 +141,8 @@ ${tableP(`<tr><td align="center" style="padding:28px 16px 40px">${tableP(
 </body></html>`;
 }
 
+// Salutation : prénoms pour un mariage ou une séance, simple « Bonjour, » pour un événement (client professionnel)
+function salut(coll) { return estEvenement(coll) ? 'Bonjour,' : `Bonjour ${prenomsDe(coll.reglages.nom)},`; }
 export function prenomsDe(nom) {
   const n = String(nom || '').replace(/^(Mariage|Séance couple|Séance famille|Séance maternité|Séance)\s+/i, '');
   return /^Famille\s/i.test(n) ? 'à toute la famille ' + n.replace(/^Famille\s+/i, '') : n.replace(/\s*&\s*/, ' et ');
@@ -154,14 +156,14 @@ export function texteRelance(env, coll, etat) {
     : `Petit rappel : la sélection des photos pour votre album vous attend. ${n ? `Vous en avez déjà choisi ${n} sur ${q}, plus que ${Math.max(0, q - n)} !` : `Vous pouvez en choisir ${q}, directement depuis votre galerie.`} Dès que vous l’aurez validée, je commence la mise en page.`;
   return {
     objet: seance ? 'Vos photos attendent votre sélection' : 'Votre sélection pour l’album vous attend',
-    texte: `Bonjour ${prenomsDe(g.nom)},\n\n${corps}\n\nVotre galerie : ${lienGalerie(env, coll)}\nCode d’accès : ${g.code}\n\nÀ très vite,\nMélissa`,
+    texte: `${salut(coll)}\n\n${corps}\n\nVotre galerie : ${lienGalerie(env, coll)}\nCode d’accès : ${g.code}\n\nÀ très vite,\nMélissa`,
   };
 }
 export function texteLivraison(env, coll, nb) {
   const g = coll.reglages;
   return {
     objet: 'Vos photos sont prêtes',
-    texte: `Bonjour ${prenomsDe(g.nom)},\n\nMerci encore pour votre confiance, c’était un vrai plaisir de vous photographier.\n\nVos ${nb} photos retouchées sont prêtes ! Vous les retrouvez dans votre galerie, au même endroit et avec le même code, en haute définition et sans filigrane.\n\nElles restent disponibles jusqu’au ${dateFr(g.expiration)} : pensez à les télécharger pour les garder précieusement.\n\nCode d’accès : ${g.code}\n\nBelle découverte,\nMélissa`,
+    texte: `${salut(coll)}\n\nMerci encore pour votre confiance, c’était un vrai plaisir de vous photographier.\n\nVos ${nb} photos retouchées sont prêtes ! Vous les retrouvez dans votre galerie, au même endroit et avec le même code, en haute définition et sans filigrane.\n\nElles restent disponibles jusqu’au ${dateFr(g.expiration)} : pensez à les télécharger pour les garder précieusement.\n\nCode d’accès : ${g.code}\n\nBelle découverte,\nMélissa`,
     bouton: { texte: 'Voir mes photos', url: lienGalerie(env, coll) },
   };
 }
@@ -169,7 +171,7 @@ export function texteExpiration(env, coll, jours) {
   const g = coll.reglages;
   return {
     objet: jours <= 7 ? 'Votre galerie ferme dans quelques jours' : 'Votre galerie ferme dans un mois',
-    texte: `Bonjour ${prenomsDe(g.nom)},\n\nVotre galerie photo reste en ligne jusqu’au ${dateFr(g.expiration)}. Pensez à télécharger vos photos en haute définition d’ici là pour les garder en sécurité.\n\nCode d’accès : ${g.code}\n\nSi vous avez besoin de plus de temps, répondez simplement à cet e-mail.\n\nMélissa`,
+    texte: `${salut(coll)}\n\nVotre galerie photo reste en ligne jusqu’au ${dateFr(g.expiration)}. Pensez à télécharger vos photos en haute définition d’ici là pour les garder en sécurité.\n\nCode d’accès : ${g.code}\n\nSi vous avez besoin de plus de temps, répondez simplement à cet e-mail.\n\nMélissa`,
     bouton: { texte: 'Ouvrir ma galerie', url: lienGalerie(env, coll) },
   };
 }
@@ -189,7 +191,7 @@ export function texteGuideAlbum(env, coll) {
   const g = coll.reglages;
   return {
     objet: '📖 Votre livre photo',
-    texte: `Bonjour ${prenomsDe(g.nom)},\n\nVoici comment se passe la sélection ⬇️\n\nVotre code d’accès : ${g.code}\n\nÀ très vite,\nMélissa`,
+    texte: `${salut(coll)}\n\nVoici comment se passe la sélection ⬇️\n\nVotre code d’accès : ${g.code}\n\nÀ très vite,\nMélissa`,
     etapes: [
       { titre: 'Votre sélection', texte: `Dans la galerie, cliquez sur le bouton « + Ajouter à l’album » en bas à droite de chaque photo que vous souhaitez voir dans votre livre. Vous pouvez en choisir jusqu’à ${g.quota}. Une jauge vous indique où vous en êtes, et vous pouvez ajouter ou retirer des photos autant que vous le souhaitez.` },
       { titre: 'La validation', texte: 'Une fois votre sélection terminée, pensez bien à cliquer sur « Valider » dans la galerie. C’est ce qui m’envoie votre sélection par e-mail : sans cette étape, je ne la reçois pas !' },

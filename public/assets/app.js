@@ -1681,6 +1681,7 @@ function fenetreStyle(){
 }
 
 /* ---- Partage côté photographe ---- */
+function salutAdm(){return EVT()?'Bonjour,':salutAdm()+''}
 function prenomsAdm(){var n=nomsCouple(ADM.nom);return /^Famille\s/i.test(ADM.nom)?'à toute la famille '+ADM.nom.replace(/^Famille\s+/i,''):n.replace(/\s*&\s*/,' et ')}
 function sansMentionCode(t){
   if(!ADM.sansCode)return t;
@@ -1693,7 +1694,7 @@ function texteInvitationBrut(){
   var corps=SEANCE?(LIVRE()?'Vos photos retouchées sont prêtes ! Vous pouvez les découvrir et les télécharger en haute définition ici :':'Vos photos sont prêtes à être découvertes ! Choisissez celles que vous souhaitez recevoir retouchées : votre formule en comprend '+ADM.quota+'. Tout se passe ici :')
     :'Vos photos de mariage sont prêtes ! Vous pouvez les découvrir, les télécharger'+(ADM.albumActif!==false?' et choisir vos photos pour l’album':'')+' ici :';
   var merci=SEANCE?'Merci encore pour votre confiance, c’était un vrai plaisir de vous photographier.':'Merci encore pour votre confiance : c’était un vrai bonheur de vivre et de photographier votre mariage à vos côtés.';
-  return 'Bonjour '+prenomsAdm()+',\n\n'+merci+'\n\n'+corps+'\n'+lienGalerie()+'\n\nVotre code d’accès : '+ADM.code+(SEANCE&&!LIVRE()?'':'\nCode pour vos invités : '+ADM.codeInvite)+'\n\nLa galerie reste en ligne jusqu’au '+dateFr(ADM.expiration)+'.\n\nBelle découverte,\nMélissa';
+  return salutAdm()+'\n\n'+merci+'\n\n'+corps+'\n'+lienGalerie()+'\n\nVotre code d’accès : '+ADM.code+(SEANCE&&!LIVRE()?'':'\nCode pour vos invités : '+ADM.codeInvite)+'\n\nLa galerie reste en ligne jusqu’au '+dateFr(ADM.expiration)+'.\n\nBelle découverte,\nMélissa';
 }
 function fenetrePartageAdm(){
   fenetre(enteteFen('Partager la collection')+
@@ -1733,14 +1734,14 @@ function menuPartage(btn){
     if(a==='lien')copier(lienGalerie(),'Lien copié.');
     else if(a==='invite'&&EVT())copier('Les photos de '+ADM.nom+' : '+lienGalerie()+' (code : '+ADM.code+')','Lien et code copiés : prêts à coller dans un message.');
     else if(a==='invite')copier('Les photos '+(SEANCE?'de notre séance':'du mariage de '+nomsCouple(ADM.nom))+' : '+lienGalerie()+' (code : '+ADM.codeInvite+')','Lien et code invités copiés : prêts à coller dans un message.');
-    else envoyerSimple('Votre galerie ferme le '+dateFr(ADM.expiration),'Bonjour '+prenomsAdm()+',\n\nVotre galerie photo reste en ligne jusqu’au '+dateFr(ADM.expiration)+'. Pensez à télécharger vos photos en haute définition d’ici là pour les garder en sécurité.\n\nCode d’accès : '+ADM.code+'\n\nMélissa','Rappel d’expiration envoyé.');
+    else envoyerSimple('Votre galerie ferme le '+dateFr(ADM.expiration),salutAdm()+'\n\nVotre galerie photo reste en ligne jusqu’au '+dateFr(ADM.expiration)+'. Pensez à télécharger vos photos en haute définition d’ici là pour les garder en sécurité.\n\nCode d’accès : '+ADM.code+'\n\nMélissa','Rappel d’expiration envoyé.');
   }})});
 }
 
 /* ---- Onglet Activité ---- */
 function rendreActivite(){
   $('adm-side').innerHTML='<div class="sets-tete"><span class="etiquette">Activité</span></div><ul class="sets">'+
-    [['act-fil','Activité récente'],['act-chiffres','Vue d’ensemble'],['act-sauvegarde','Sauvegarde du couple'],['act-album',TXT.titreSel],['act-best','Meilleures photos'],['act-vis','Visiteurs'],['act-dl','Téléchargements']].map(function(s){return '<li class="set" tabindex="0" data-cible="'+s[0]+'"><span class="set-nom">'+s[1]+'</span></li>'}).join('')+'</ul>';
+    [['act-fil','Activité récente'],['act-chiffres','Vue d’ensemble'],['act-sauvegarde',EVT()?'Sauvegarde du client':'Sauvegarde du couple'],['act-album',TXT.titreSel],['act-best','Meilleures photos'],['act-vis','Visiteurs'],['act-dl','Téléchargements']].filter(function(s){return !(EVT()&&s[0]==='act-album')}).map(function(s){return '<li class="set" tabindex="0" data-cible="'+s[0]+'"><span class="set-nom">'+s[1]+'</span></li>'}).join('')+'</ul>';
   $('adm-side').querySelectorAll('[data-cible]').forEach(function(li){li.onclick=function(){var c=$(li.dataset.cible);if(c)c.scrollIntoView({behavior:'smooth',block:'start'})}});
   var D=DONNEES||{visiteurs:[],telechargements:[],favoris:[]};
   var na=etat.album.length,maintenant=Date.now(),J=864e5;
@@ -1752,10 +1753,11 @@ function rendreActivite(){
 
   /* 1. Sauvegarde HD du couple */
   var sv=ADM.sauvegarde;
-  var blocSauvegarde='<div class="bloc" id="act-sauvegarde"><h2>Sauvegarde du couple</h2>'+
-    (sv?'<div class="indic ok">'+I.check+'<div><b>Galerie complète téléchargée en HD</b><span>le '+dateHeure(sv)+'</span></div></div><p class="note">Le couple a récupéré tous ses fichiers originaux. Vous pouvez archiver la galerie sereinement à son expiration.</p>'
+  var leClient=EVT()?'Le client':'Le couple';
+  var blocSauvegarde='<div class="bloc" id="act-sauvegarde"'+(EVT()?' style="grid-column:1/-1"':'')+'><h2>'+(EVT()?'Sauvegarde du client':'Sauvegarde du couple')+'</h2>'+
+    (sv?'<div class="indic ok">'+I.check+'<div><b>Galerie complète téléchargée en HD</b><span>le '+dateHeure(sv)+'</span></div></div><p class="note">'+leClient+' a récupéré tous ses fichiers originaux. Vous pouvez archiver la galerie sereinement à son expiration.</p>'
        :'<div class="indic '+(jours<=30?'alerte':'attente')+'">'+I.dl+'<div><b>Pas encore téléchargée</b><span>La galerie expire dans '+jours+' jours</span></div></div>'+
-        '<p class="note">Le couple n’a pas encore téléchargé la galerie complète en HD. '+(jours<=30?'L’expiration approche : pensez à le relancer.':(ADM.rappel!==false?'Un rappel automatique partira 30 jours avant l’expiration.':''))+'</p>'+
+        '<p class="note">'+leClient+' n’a pas encore téléchargé la galerie complète en HD. '+(jours<=30?'L’expiration approche : pensez à le relancer.':(ADM.rappel!==false?'Un rappel automatique partira 30 jours avant l’expiration.':''))+'</p>'+
         '<button class="btn clair" id="relance-sauvegarde">'+I.mail+'Envoyer un rappel de téléchargement</button>')+
     '</div>';
 
@@ -1780,7 +1782,7 @@ function rendreActivite(){
 
   /* 3. Fil d'activité */
   var fil=(ADM.journal||[]).slice(-14).reverse();
-  var blocFil='<div class="bloc" id="act-fil"><div class="bloc-tete"><h2>Activité récente</h2><span class="etat cours">'+(couple?'Dernière visite du couple : '+depuis(couple):'Le couple n’a pas encore ouvert la galerie')+'</span></div>'+
+  var blocFil='<div class="bloc" id="act-fil"><div class="bloc-tete"><h2>Activité récente</h2><span class="etat cours">'+(EVT()?(couple?'Dernière visite : '+depuis(couple):'Personne n’a encore ouvert la galerie'):couple?'Dernière visite du couple : '+depuis(couple):'Le couple n’a pas encore ouvert la galerie')+'</span></div>'+
     (fil.length?'<ul class="fil">'+fil.map(function(e){return '<li><span class="puce-fil vraie"></span><div><b>'+esc(e.q)+'</b> '+esc(e.a)+'</div><time>'+depuis(e.t)+'</time></li>'}).join('')+'</ul>':'<p class="note">Rien pour l’instant : l’activité de vos clients apparaîtra ici.</p>')+'</div>';
 
   /* 4. Meilleures photos selon les clients */
@@ -1826,12 +1828,12 @@ function rendreActivite(){
      '<div class="chiffre"><b class="num">'+hdDl+'</b><span>photos téléchargées en HD</span></div>'+
      '<div class="chiffre"><b class="num">'+Object.keys(favUniques).length+'</b><span>photos en favoris</span></div>'+
    '</div>'+
-   '<div class="grille-admin">'+blocSauvegarde+blocAlbum+blocBest+blocVis+blocDl+'</div>';
+   '<div class="grille-admin">'+blocSauvegarde+(EVT()?'':blocAlbum)+blocBest+blocVis+blocDl+'</div>';
   if($('dl-filtre'))$('dl-filtre').onchange=function(){$('dl-lignes').innerHTML=lignesDl(this.value)};
 
   $('prolonger').onclick=function(){var d=new Date((ADM.expiration||new Date().toISOString().slice(0,10))+'T12:00:00');if(d<new Date())d=new Date();d.setMonth(d.getMonth()+3);ADM.expiration=d.toISOString().slice(0,10);if(ADM.statut==='archivee')ADM.statut='publiee';sauverAdm(true);rendreAdmin();toast('Galerie prolongée jusqu’au '+dateFr(ADM.expiration)+'.')};
   var aa=$('activer-album');if(aa)aa.onclick=function(){ADM.albumActif=true;sauverAdm(true);rendreActivite();toast('Album activé : le couple peut maintenant choisir ses photos.')};
-  var rs=$('relance-sauvegarde');if(rs)rs.onclick=function(){envoyerSimple('Pensez à télécharger vos photos','Bonjour '+prenomsAdm()+',\n\nPetit rappel : pensez à télécharger vos photos en haute définition pour les garder précieusement. Votre galerie reste en ligne jusqu’au '+dateFr(ADM.expiration)+'.\n\nCode d’accès : '+ADM.code+'\n\nMélissa','Rappel de téléchargement envoyé.')};
+  var rs=$('relance-sauvegarde');if(rs)rs.onclick=function(){envoyerSimple('Pensez à télécharger vos photos',salutAdm()+'\n\nPetit rappel : pensez à télécharger vos photos en haute définition pour les garder précieusement. Votre galerie reste en ligne jusqu’au '+dateFr(ADM.expiration)+'.\n\nCode d’accès : '+ADM.code+'\n\nMélissa','Rappel de téléchargement envoyé.')};
   var ra=$('relance-album');if(ra)ra.onclick=function(){fenetreRelance([collCourante()])};
   var ro=$('rouvrir-sel');if(ro)ro.onclick=function(){api('collections/'+CID+'/rouvrir',{method:'POST',body:{}}).then(function(){toast('Sélection rouverte : le client peut à nouveau la modifier.');return recharger()}).catch(function(e){toast(e.message)})};
   var ex=$('export-lr');if(ex)ex.onclick=function(){copier(selection().map(function(p){return p.nom.replace(/\.[^.]+$/,'')}).join(', '),'Liste copiée : '+etat.album.length+' noms de fichiers.')};
