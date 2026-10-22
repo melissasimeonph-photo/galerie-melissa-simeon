@@ -1631,8 +1631,8 @@ function supprimerPhoto(p){
 /* ---- Menu Plus ---- */
 function menuPlus(btn){
   var h=itemPop('lien',I.lien,'Obtenir le lien direct')+itemPop('emails',I.historique,'Historique des e-mails')+itemPop('presets',I.reglages,'Gérer les préréglages')+
-    itemPop('deplacer',I.deplacer,'Déplacer vers')+itemPop('dupliquer',I.dupliquer,'Dupliquer')+itemPop('supprimer',I.corbeille,'Supprimer la collection')+
-    '<div class="pop-sep"></div>'+itemPop('style',I.style,'Créer un style');
+    itemPop('deplacer',I.deplacer,'Déplacer vers')+itemPop('dupliquer',I.dupliquer,'Dupliquer')+itemPop('supprimer',I.corbeille,'Supprimer la collection');
+    // « Créer un style » : masqué pour le moment (fenetreStyle reste disponible pour plus tard)
   pop(btn,h,function(m){m.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){fermerPop();({
     lien:fenetreLien,emails:fenetreEmails,presets:fenetrePresets,deplacer:fenetreDeplacer,dupliquer:fenetreDupliquer,supprimer:fenetreSupprimer,style:fenetreStyle
   })[b.dataset.a]()}})});
