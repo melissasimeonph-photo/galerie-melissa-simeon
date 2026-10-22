@@ -2,6 +2,7 @@
 import { json, erreur, lireJSON, slugifier, idAleatoire, reglagesParDefaut, estEvenement, J } from './util.js';
 import { collectionParId, enregistrerReglages, journaliser, photosDe, etatDe, enregistrerEtat, cleR2, supprimerPrefixeR2 } from './db.js';
 import { envoyerEmail, texteRelance, texteLivraison, texteGuideAlbum } from './emails.js';
+import { routerDemandes, cleAffichee } from './demandes.js';
 
 const CHAMPS_MODIFIABLES = ['nom', 'evenement', 'sansCode', 'classeur', 'dateEvt', 'statut', 'code', 'codeInvite', 'quota', 'prixSupp', 'supp', 'hd', 'hdInvite', 'web', 'albumActif',
   'expiration', 'rappel', 'relanceAuto', 'relanceJours', 'couv', 'couvPos', 'mur', 'prefixe', 'dossiers', 'grille', 'fichiers', 'tri', 'contacts', 'etoile'];
@@ -74,6 +75,12 @@ export async function routerAdmin(env, req, url, ctx) {
 
   // Requêtes du jour sur le compte Cloudflare (limite de l'offre gratuite : 100 000 par jour, remise à zéro à minuit UTC)
   if (m === 'GET' && p[0] === 'usage') return json(await requetesDuJour(env));
+
+  // Demandes de devis et de réservation
+  if (p[0] === 'demandes') {
+    if (p[1] === 'cle' && m === 'GET') return json({ cle: await cleAffichee(env) });
+    return routerDemandes(env, req, p);
+  }
 
   if (p[0] === 'prefs') {
     if (m === 'GET') {

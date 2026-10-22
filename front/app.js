@@ -257,6 +257,9 @@ var I={
   plusRond:SV+'<circle cx="12" cy="12" r="8.5"/><path d="M12 8.5v7M8.5 12h7"/></svg>',
   poignee:SV+'<path d="M5 9.5h14M5 14.5h14"/></svg>',
   points:SV+'<circle cx="6" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18" cy="12" r="1.2" fill="currentColor"/></svg>',
+  calendrier:SV+'<rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',
+  tel:SV+'<path d="M6.5 4h3l1.5 4-2 1.3a10 10 0 0 0 5.7 5.7L16 13l4 1.5v3A2 2 0 0 1 18 19.5 15.5 15.5 0 0 1 4.5 6 2 2 0 0 1 6.5 4z"/></svg>',
+  boite:SV+'<path d="M4 13l2.5-7h11L20 13v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 13h4.5l1 2h5l1-2H20"/></svg>',
   crayon:SV+'<path d="M15.5 5l3.5 3.5L9 18.5H5.5V15z"/><path d="M13.5 7l3.5 3.5"/></svg>',
   haut:SV+'<path d="M12 19V5M6 11l6-6 6 6"/></svg>',
   bas:SV+'<path d="M12 5v14M6 13l6 6 6-6"/></svg>',
@@ -824,21 +827,7 @@ function rendreCollections(){
   var dossierVue=!filtresActifs()&&!COLL.classeur;
   $('admin').innerHTML=
   '<div class="app'+(PREFS.replieApp?' replie':'')+'">'+
-    '<aside class="app-side">'+
-      '<div class="app-marque"><span class="logo-box">'+LOGO_SVG+'</span><span class="app-nom">Mes galeries</span></div>'+
-      '<nav class="app-nav">'+
-        navItem('collections',I.image,'Collections',!COLL.etoile)+
-        navItem('etoiles',I.etoile,'Favoris',COLL.etoile)+
-        navItem('accueil',I.ecran,'Page d’accueil',false)+
-        navItem('reglages',I.reglages,'Réglages',false)+
-      '</nav>'+
-      '<nav class="app-nav app-sortie"><a class="app-lien" href="/cdn-cgi/access/logout" title="Se déconnecter">'+I.sortie+'<span>Se déconnecter</span></a></nav>'+
-      '<div class="compteur-req" id="compteur-req" hidden></div>'+
-      '<div class="app-bas">'+
-        '<button class="ibtn" id="app-replier" title="'+(PREFS.replieApp?'Déplier':'Replier')+' le menu" aria-label="'+(PREFS.replieApp?'Déplier':'Replier')+' le menu">'+(PREFS.replieApp?I.deplier:I.replier)+'</button>'+
-        '<div class="stockage" title="Stockage Cloudflare R2"><i class="anneau"></i><span><b class="num">'+stock.toFixed(1).replace('.',',')+' Go</b> utilisés<small>Sans limite · '+(stock<=10?'inclus dans l’offre gratuite':'≈ '+((stock-10)*0.015).toFixed(2).replace('.',',')+' $/mois')+'</small></span></div>'+
-      '</div>'+
-    '</aside>'+
+    asideApp(COLL.etoile?'etoiles':'collections',stock)+
     '<main class="app-main">'+
       '<div class="coll-tete">'+
         '<div class="coll-titre">'+((COLL.classeur||filtresActifs())?'<button class="ibtn coll-retour" id="coll-retour" title="Retour à toutes les collections" aria-label="Retour à toutes les collections">'+I.retour+'</button>':'')+(COLL.classeur?'<button class="lienbtn fil-ariane" id="retour-racine">Collections</button><span class="sep-ariane">›</span><h1>'+esc(COLL.classeur)+'</h1>':'<h1>'+(COLL.etoile?'Favoris':'Collections')+'</h1>')+
@@ -846,6 +835,7 @@ function rendreCollections(){
         '<div class="adm-actions"><button class="lienbtn" id="voir-presets">Voir les préréglages</button>'+
           '<div class="split"><button class="btn sauge" id="nouvelle">Nouvelle collection</button><button class="btn sauge" id="nouvelle-plus" aria-label="Créer à partir d’un préréglage" aria-haspopup="menu">'+I.caret+'</button></div></div>'+
       '</div>'+
+      (nbNouvelles()&&!COLL.classeur&&!COLL.etoile?'<button class="bandeau-dem" data-nav="demandes">'+I.boite+'<span><b>'+nbNouvelles()+' nouvelle'+(nbNouvelles()>1?'s':'')+' demande'+(nbNouvelles()>1?'s':'')+'</b> de devis ou de séance à traiter</span><span class="lien-voir">Voir les demandes →</span></button>':'')+
       // Le suivi n'apparaît que sur la page Collections principale (pas dans un dossier ni dans Favoris)
       (COLL.classeur||COLL.etoile?'':[['moi','À faire de mon côté','Ce qui attend une action de votre part'],['client','En attente des clients','Ce que vos clients doivent encore faire']].map(function(g){return '<section class="suivi-groupe" aria-label="'+g[1]+'"><div class="suivi-tete"><h2>'+g[1]+'</h2><span>'+g[2]+'</span></div><div class="suivi">'+Object.keys(ALERTES).filter(function(k){return ALERTES[k].qui===g[0]}).map(function(k){
         var A=ALERTES[k],l=compte[k];
@@ -876,7 +866,27 @@ function rendreCollections(){
   '</div>';
   lierCollections();rendreCompteur();chargerUsage();
 }
-function navItem(id,ico,txt,actif){return '<button class="app-lien'+(actif?' actif':'')+'" data-nav="'+id+'" title="'+txt+'">'+ico+'<span>'+txt+'</span></button>'}
+function asideApp(actif,stock){
+  if(stock===undefined)stock=collections().reduce(function(s,c){return s+(c.go||0)},0);
+  return ''+
+    '<aside class="app-side">'+
+      '<div class="app-marque"><span class="logo-box">'+LOGO_SVG+'</span><span class="app-nom">Mes galeries</span></div>'+
+      '<nav class="app-nav">'+
+        navItem('collections',I.image,'Collections',actif==='collections')+
+        navItem('demandes',I.boite,'Demandes',actif==='demandes',nbNouvelles())+
+        navItem('etoiles',I.etoile,'Favoris',actif==='etoiles')+
+        navItem('accueil',I.ecran,'Page d’accueil',false)+
+        navItem('reglages',I.reglages,'Réglages',false)+
+      '</nav>'+
+      '<nav class="app-nav app-sortie"><a class="app-lien" href="/cdn-cgi/access/logout" title="Se déconnecter">'+I.sortie+'<span>Se déconnecter</span></a></nav>'+
+      '<div class="compteur-req" id="compteur-req" hidden></div>'+
+      '<div class="app-bas">'+
+        '<button class="ibtn" id="app-replier" title="'+(PREFS.replieApp?'Déplier':'Replier')+' le menu" aria-label="'+(PREFS.replieApp?'Déplier':'Replier')+' le menu">'+(PREFS.replieApp?I.deplier:I.replier)+'</button>'+
+        '<div class="stockage" title="Stockage Cloudflare R2"><i class="anneau"></i><span><b class="num">'+stock.toFixed(1).replace('.',',')+' Go</b> utilisés<small>Sans limite · '+(stock<=10?'inclus dans l’offre gratuite':'≈ '+((stock-10)*0.015).toFixed(2).replace('.',',')+' $/mois')+'</small></span></div>'+
+      '</div>'+
+    '</aside>';
+}
+function navItem(id,ico,txt,actif,nb){return '<button class="app-lien'+(actif?' actif':'')+'" data-nav="'+id+'" title="'+txt+'">'+ico+'<span>'+txt+'</span>'+(nb?'<i class="nav-nb num">'+nb+'</i>':'')+'</button>'}
 function chip(k,txt,val){return '<button class="puce-filtre'+(val?' on':'')+'" data-filtre="'+k+'" aria-haspopup="menu">'+txt+(val?' : <b>'+val+'</b>':'')+I.caret+'</button>'}
 function badgesAlertes(c){
   var al=alertesDe(c);if(!al.length)return '';
@@ -1013,16 +1023,20 @@ function ouvrirCollection(id){
 function recharger(){return CID?ouvrirCollection(CID):Promise.resolve()}
 function collCourante(){return collections().filter(function(c){return c.id===CID})[0]||{id:CID,slug:ADM.slug,nom:ADM.nom,nsel:etat.album.length,quota:QUOTA,code:ADM.code,seance:SEANCE,phase:ADM.phase,statut:ADM.statut,classeur:ADM.classeur,album:etat.verrou?'validee':etat.album.length?'cours':'aucun',exp:ADM.expiration,photos:PHOTOS.length,relanceAuto:ADM.relanceAuto!==false,relanceJours:ADM.relanceJours||14,derniereRelance:DONNEES&&DONNEES.relances&&DONNEES.relances[0]?DONNEES.relances[0].ts:null,publieLe:ADM.publieLe,creeTs:DONNEES?DONNEES.cree:Date.now(),date:ADM.dateEvt}}
 function vueGlobale(){COLL.q='';COLL.statut='tout';COLL.dateEv='tout';COLL.exp='tout';COLL.etoile=false;COLL.alerte=null;COLL.classeur=null;admPage='collections';rendreCollections();window.scrollTo(0,0)}
-function lierCollections(){
-  var a=$('admin');
-  a.querySelectorAll('[data-nav]').forEach(function(b){b.onclick=function(){
+function lierNav(rendreIci){
+  $('admin').querySelectorAll('[data-nav]').forEach(function(b){b.onclick=function(){
     var n=b.dataset.nav;
     if(n==='collections'){vueGlobale()}
-    else if(n==='etoiles'){COLL.etoile=true;COLL.classeur=null;rendreCollections()}
+    else if(n==='demandes'){ouvrirDemandes()}
+    else if(n==='etoiles'){COLL.etoile=true;COLL.classeur=null;admPage='collections';rendreCollections()}
     else if(n==='accueil')toast('La page d’accueil publique de vos galeries sera construite avec votre site melissa-simeon.com.');
     else toast('Réglages généraux (logo, modèles d’e-mails, domaine, préréglages) : prévus pour la version en ligne.');
   }});
-  $('app-replier').onclick=function(){sauverPrefs({replieApp:!PREFS.replieApp});rendreCollections()};
+  $('app-replier').onclick=function(){sauverPrefs({replieApp:!PREFS.replieApp});rendreIci()};
+}
+function lierCollections(){
+  var a=$('admin');
+  lierNav(rendreCollections);
   var r=$('retour-racine');if(r)r.onclick=vueGlobale;var cr=$('coll-retour');if(cr)cr.onclick=vueGlobale;
   var q=$('coll-q');q.oninput=function(){COLL.q=q.value;var pos=q.selectionStart;rendreCollections();var n=$('coll-q');n.focus();n.setSelectionRange(pos,pos)};
   $('voir-presets').onclick=fenetrePresets;
@@ -1069,7 +1083,7 @@ function menuFiltre(btn,k){
   });
 }
 var PRESETS={'Mariage':{type:'mariage',classeur:'Mariages',sous:'6 mois · sélection de 60 photos si l’album est inclus'},'Séance photo':{type:'seance',classeur:'Couple',sous:'3 mois · sélection filigranée par le client'},'Événement':{type:'mariage',classeur:'Événements',albumActif:false,evenement:true,sous:'3 mois · sans album · un seul code d’accès pour tout le monde'}};
-function fenetreNouvelle(preset){
+function fenetreNouvelle(preset,pre){
   preset=PRESETS[preset]?preset:'Mariage';
   fenetre(enteteFen('Nouvelle collection')+
     '<div class="champ"><label for="nc-nom">Nom de la collection</label><input type="text" id="nc-nom" placeholder="Par exemple : Mariage Léa & Thomas"></div>'+
@@ -1098,6 +1112,11 @@ function fenetreNouvelle(preset){
     if(![].some.call(sel.options,function(o){return o.value===v})){var o=document.createElement('option');o.textContent=v;sel.insertBefore(o,sel.lastElementChild)}
     sel.value=v;$('nc-nom').placeholder='Par exemple : '+EX_SEANCE[r.value];
   }});
+  if(pre){
+    if(pre.nom)$('nc-nom').value=pre.nom;if(pre.date)$('nc-date').value=pre.date;
+    if(pre.album&&$('nc-album-'+pre.album))$('nc-album-'+pre.album).checked=true;
+    $('fenetre').querySelector('.partage-tete').insertAdjacentHTML('afterend','<p class="note">Créée à partir de la demande : le nom, la date et l’e-mail du client sont repris. Vérifiez-les avant de valider.</p>');
+  }
   $('nc-ok').onclick=function(){
     var nom=$('nc-nom').value.trim();if(!nom){toast('Donnez un nom à la collection.');$('nc-nom').focus();return}
     var P=PRESETS[$('nc-preset').value],d=$('nc-date').value||new Date().toISOString().slice(0,10),b=this;
@@ -1110,7 +1129,8 @@ function fenetreNouvelle(preset){
     var mois=P.type==='seance'||P.albumActif===false?3:6,e=new Date(d+'T12:00:00');e.setMonth(e.getMonth()+mois);
     if(e<new Date()){e=new Date();e.setMonth(e.getMonth()+mois)}
     b.disabled=true;
-    api('collections',{method:'POST',body:{nom:nom,type:P.type,classeur:classeur,dateEvt:d,expiration:e.toISOString().slice(0,10),albumActif:albumActif,sousType:sousType,quota:quota,evenement:!!P.evenement,sansCode:$('nc-code-non').checked}}).then(function(r){
+    api('collections',{method:'POST',body:{nom:nom,type:P.type,classeur:classeur,dateEvt:d,expiration:e.toISOString().slice(0,10),albumActif:albumActif,sousType:sousType,quota:quota,evenement:!!P.evenement,sansCode:$('nc-code-non').checked,contacts:pre&&pre.email?[pre.email]:[]}}).then(function(r){
+      if(pre&&pre.demande)api('demandes/'+pre.demande,{method:'PATCH',body:{collectionId:r.id,statut:'reservee'}}).then(majDemandeLocale).catch(function(){});
       fermerFenetre();toast('Collection créée, en statut cachée. Ajoutez-y vos photos.');return ouvrirCollection(r.id);
     }).catch(function(err){b.disabled=false;toast(err.message)});
   };
@@ -2205,11 +2225,167 @@ function reglageRelanceHTML(){
     '<div class="champ" id="r-relj-champ"><label for="r-relj">Intervalle entre deux relances (jours)</label><input type="number" id="r-relj" min="1" max="90" value="'+(ADM.relanceJours||14)+'"></div>';
 }
 
+/* ---------- Demandes de devis et de réservation ---------- */
+var DEMANDES=null,DEM={q:'',type:''};
+var ETAPES=[['nouvelle','Nouvelles','Pas encore traitées'],['devis','Devis envoyé','En attente de réponse'],['relancee','Relancées','Devis relancé'],['reservee','Réservées','Acompte reçu ou contrat signé'],['livree','Galerie livrée','Photos livrées'],['perdue','Sans suite','Pas de réponse ou refus']];
+function chargerDemandes(){return api('demandes').then(function(l){DEMANDES=l||[];return DEMANDES})}
+function nbNouvelles(){return (DEMANDES||[]).filter(function(d){return d.statut==='nouvelle'}).length}
+function nomDemande(d){var n=(d.nom||'').trim();return d.conjoint&&n.indexOf(d.conjoint)<0?n+' & '+d.conjoint:n||d.email||'Sans nom'}
+function dateDemande(d){return d.dateEvt?new Date(d.dateEvt+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}):(d.dateTxt||'Date non précisée')}
+// Une autre réservation (demande réservée ou galerie de mariage/séance) le même jour
+function conflitDate(d){
+  if(!d.dateEvt)return null;
+  var a=(DEMANDES||[]).filter(function(x){return x.id!==d.id&&x.dateEvt===d.dateEvt&&(x.statut==='reservee'||x.statut==='livree')})[0];
+  if(a)return nomDemande(a);
+  var c=collections().filter(function(x){return x.date===d.dateEvt&&x.id!==d.collectionId&&x.classeur!=='Événements'})[0];
+  return c?c.nom:null;
+}
+function filtrerDemandes(){
+  var q=DEM.q.trim().toLowerCase();
+  return (DEMANDES||[]).filter(function(d){
+    if(DEM.type&&d.type!==DEM.type)return false;
+    if(q&&(nomDemande(d)+' '+(d.email||'')+' '+(d.lieu||'')).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+}
+function carteDemande(d){
+  var cf=conflitDate(d),coll=d.collectionId?collections().filter(function(c){return c.id===d.collectionId})[0]:null;
+  return '<article class="dcarte'+(d.statut==='nouvelle'?' neuve':'')+'" data-dem="'+d.id+'" draggable="true" tabindex="0">'+
+    '<div class="dc-haut"><span class="dc-type t-'+d.type+'">'+(d.type==='seance'?'Séance':'Mariage')+'</span><time title="Reçue le '+dateHeure(d.recu)+'">'+depuis(d.recu)+'</time></div>'+
+    '<h3>'+esc(nomDemande(d))+'</h3>'+
+    '<p class="dc-date">'+I.calendrier+esc(dateDemande(d))+'</p>'+
+    (d.lieu?'<p class="dc-lieu">'+esc(d.lieu.replace(/(Préparatifs|Cérémonie|Réception)\s*:\s*/g,'').split(' / ').filter(Boolean).slice(0,2).join(' · '))+'</p>':'')+
+    (d.devisMontant?'<p class="dc-devis">Devis : <b>'+esc(d.devisMontant)+'</b></p>':'')+
+    (cf&&d.statut!=='perdue'&&d.statut!=='livree'&&d.statut!=='reservee'?'<p class="dc-alerte">'+I.historique+'Date déjà prise : '+esc(cf)+'</p>':'')+
+    (coll?'<p class="dc-galerie">'+I.image+'Galerie : '+STATUTS[coll.statut].nom.toLowerCase()+'</p>':'')+
+  '</article>';
+}
+function ouvrirDemandes(){
+  admPage='demandes';CID=null;DONNEES=null;history.replaceState(null,'',location.pathname+'#demandes');
+  return chargerDemandes().then(rendreDemandes).catch(function(e){toast(e.message)});
+}
+function rendreDemandes(){
+  fermerPop();
+  var l=filtrerDemandes(),tot=(DEMANDES||[]).length;
+  var annee=String(new Date().getFullYear()),cetteAnnee=(DEMANDES||[]).filter(function(d){return new Date(d.recu).getFullYear()==annee});
+  var res=cetteAnnee.filter(function(d){return d.statut==='reservee'||d.statut==='livree'}).length;
+  $('admin').innerHTML='<div class="app'+(PREFS.replieApp?' replie':'')+'">'+asideApp('demandes')+
+    '<main class="app-main">'+
+      '<div class="coll-tete"><div class="coll-titre"><h1>Demandes</h1><label class="recherche">'+I.loupe+'<input type="search" id="dem-q" placeholder="Rechercher" value="'+esc(DEM.q)+'"></label></div>'+
+        '<div class="adm-actions"><button class="lienbtn" id="dem-relier">Relier le formulaire</button><button class="btn sauge" id="dem-ajout">'+I.ajout+'Ajouter une demande</button></div></div>'+
+      '<div class="dem-barre"><div class="puces">'+[['','Toutes'],['mariage','Mariages'],['seance','Séances']].map(function(t){return '<button class="puce-filtre'+(DEM.type===t[0]?' on':'')+'" data-dtype="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>'+
+        '<p class="dem-chiffres">'+cetteAnnee.length+' demande'+(cetteAnnee.length>1?'s':'')+' en '+annee+' · '+res+' réservée'+(res>1?'s':'')+(cetteAnnee.length?' ('+Math.round(res/cetteAnnee.length*100)+' %)':'')+'</p></div>'+
+      (tot?'<div class="kanban">'+ETAPES.map(function(e){
+        var c=l.filter(function(d){return d.statut===e[0]});
+        return '<section class="kcol" data-etape="'+e[0]+'"><header><h2>'+e[1]+'</h2><span class="num">'+c.length+'</span></header><small>'+e[2]+'</small><div class="kliste">'+(c.length?c.map(carteDemande).join(''):'<p class="kvide">Glissez une demande ici</p>')+'</div></section>';
+      }).join('')+'</div>'
+      :'<div class="vide"><h3>Aucune demande pour l’instant</h3><span>Les demandes envoyées depuis votre formulaire de devis apparaîtront ici automatiquement, une fois le formulaire relié. Vous pouvez aussi ajouter à la main une demande reçue sur Instagram ou WhatsApp.</span><button class="btn clair" id="dem-relier2">Relier le formulaire</button></div>')+
+    '</main></div>';
+  lierNav(rendreDemandes);rendreCompteur();
+  var q=$('dem-q');q.oninput=function(){DEM.q=q.value;var pos=q.selectionStart;rendreDemandes();var n=$('dem-q');n.focus();n.setSelectionRange(pos,pos)};
+  document.querySelectorAll('[data-dtype]').forEach(function(b){b.onclick=function(){DEM.type=b.dataset.dtype;rendreDemandes()}});
+  $('dem-ajout').onclick=fenetreAjoutDemande;
+  $('dem-relier').onclick=fenetreRelierFormulaire;if($('dem-relier2'))$('dem-relier2').onclick=fenetreRelierFormulaire;
+  document.querySelectorAll('[data-dem]').forEach(function(c){
+    c.onclick=function(){fenetreDemande(c.dataset.dem)};
+    c.onkeydown=function(e){if(e.key==='Enter')fenetreDemande(c.dataset.dem)};
+    c.ondragstart=function(e){e.dataTransfer.setData('text/plain',c.dataset.dem);e.dataTransfer.effectAllowed='move';c.classList.add('glisse')};
+    c.ondragend=function(){c.classList.remove('glisse')};
+  });
+  document.querySelectorAll('.kcol').forEach(function(col){
+    col.ondragover=function(e){e.preventDefault();col.classList.add('survol')};
+    col.ondragleave=function(e){if(!col.contains(e.relatedTarget))col.classList.remove('survol')};
+    col.ondrop=function(e){e.preventDefault();col.classList.remove('survol');var id=e.dataTransfer.getData('text/plain');if(id)changerEtape(id,col.dataset.etape)};
+  });
+}
+function majDemandeLocale(d){DEMANDES=(DEMANDES||[]).map(function(x){return x.id===d.id?d:x})}
+function changerEtape(id,etape){
+  var d=(DEMANDES||[]).filter(function(x){return x.id===id})[0];if(!d||d.statut===etape)return;
+  d.statut=etape;rendreDemandes();
+  api('demandes/'+id,{method:'PATCH',body:{statut:etape}}).then(function(n){majDemandeLocale(n);if(admPage==='demandes')rendreDemandes();toast('« '+nomDemande(n)+' » → '+ETAPES.filter(function(e){return e[0]===etape})[0][1]+'.')}).catch(function(e){toast(e.message);ouvrirDemandes()});
+}
+function fenetreDemande(id){
+  var d=(DEMANDES||[]).filter(function(x){return x.id===id})[0];if(!d)return;
+  var cf=conflitDate(d),coll=d.collectionId?collections().filter(function(c){return c.id===d.collectionId})[0]:null;
+  var tel=(d.tel||'').replace(/[^\d+]/g,''),wa=tel.replace(/^\+/,'').replace(/^0(?=6|7)/,'596');
+  var objet=d.type==='seance'?'Votre demande de séance photo':'Votre demande de devis mariage';
+  fenetre(enteteFen(esc(nomDemande(d)))+
+    '<p class="dem-sous"><span class="dc-type t-'+d.type+'">'+(d.type==='seance'?'Séance':'Mariage')+'</span> Reçue le '+dateHeure(d.recu)+(d.origine==='manuel'?' · ajoutée à la main':' · formulaire')+(d.source?' · '+esc(d.source):'')+'</p>'+
+    (cf?'<div class="indic alerte">'+I.historique+'<div><b>Date déjà prise</b><span>Vous avez déjà « '+esc(cf)+' » le '+esc(dateDemande(d))+'.</span></div></div>':'')+
+    '<div class="dem-grille">'+
+      '<div class="champ"><label for="fd-etape">Étape</label><select id="fd-etape">'+ETAPES.map(function(e){return '<option value="'+e[0]+'"'+(e[0]===d.statut?' selected':'')+'>'+e[1]+'</option>'}).join('')+'</select></div>'+
+      '<div class="champ"><label for="fd-date">Date '+(d.type==='seance'?'de la séance':'du mariage')+'</label><input type="date" id="fd-date" value="'+esc(d.dateEvt||'')+'">'+(!d.dateEvt&&d.dateTxt?'<p class="note">Indiquée : '+esc(d.dateTxt)+'</p>':'')+'</div>'+
+      '<div class="champ"><label for="fd-montant">Montant du devis</label><input type="text" id="fd-montant" value="'+esc(d.devisMontant||'')+'" placeholder="Ex. : 1 450 €"><p class="note">'+(d.devisLe?'Devis envoyé le '+dateHeure(d.devisLe):'La date d’envoi se note toute seule quand la demande passe à « Devis envoyé ».')+'</p></div>'+
+      '<div class="champ"><label>Contact</label><div class="dem-contact">'+
+        (d.email?'<a href="mailto:'+esc(d.email)+'?subject='+encodeURIComponent(objet)+'">'+I.mail+esc(d.email)+'</a>':'')+
+        (tel?'<a href="tel:'+esc(tel)+'">'+I.tel+esc(d.tel)+'</a><a href="https://wa.me/'+esc(wa)+'" target="_blank" rel="noopener">'+I.partage+'WhatsApp</a>':'')+
+        (!d.email&&!tel?'<span class="note">Aucun contact renseigné</span>':'')+'</div></div>'+
+    '</div>'+
+    '<div class="champ"><label for="fd-notes">Notes internes</label><textarea id="fd-notes" rows="3" placeholder="Visibles uniquement par vous : échanges, options proposées, relances…">'+esc(d.notes||'')+'</textarea></div>'+
+    (d.champs&&d.champs.length?'<details class="dem-reponses" open><summary>Réponses '+(d.origine==='manuel'?'':'au formulaire')+' ('+d.champs.length+')</summary><dl>'+d.champs.map(function(c){return '<div><dt>'+esc(c.label)+'</dt><dd>'+esc(c.valeur).replace(/\n/g,'<br>')+'</dd></div>'}).join('')+'</dl></details>':'')+
+    '<div class="ligne-btn dem-actions"><button class="txtbtn danger-txt" id="fd-suppr">Supprimer</button><span style="flex:1"></span>'+
+      (coll?'<button class="btn clair" id="fd-galerie">'+I.image+'Ouvrir la galerie</button>':'<button class="btn clair" id="fd-creer">'+I.ajout+'Créer la galerie</button>')+
+      '<button class="btn" id="fd-ok">Enregistrer</button></div>');
+  $('fenetre').classList.add('large-fen');
+  function enregistrer(fermer){
+    var b={statut:$('fd-etape').value,dateEvt:$('fd-date').value,devisMontant:$('fd-montant').value.trim(),notes:$('fd-notes').value};
+    return api('demandes/'+id,{method:'PATCH',body:b}).then(function(n){majDemandeLocale(n);if(fermer){fermerFenetre();toast('Demande enregistrée.')}if(admPage==='demandes')rendreDemandes();else rendreCollections();return n}).catch(function(e){toast(e.message)});
+  }
+  $('fd-ok').onclick=function(){enregistrer(true)};
+  $('fd-suppr').onclick=function(){
+    fenetre('<h2>Supprimer cette demande ?</h2><p>La demande de « '+esc(nomDemande(d))+' » et vos notes seront effacées définitivement. La galerie éventuellement créée n’est pas touchée.</p><div class="ligne-btn"><button class="btn clair" id="fd-non">Annuler</button><button class="btn danger" id="fd-oui">Supprimer</button></div>');
+    $('fd-non').onclick=function(){fenetreDemande(id)};
+    $('fd-oui').onclick=function(){api('demandes/'+id,{method:'DELETE'}).then(function(){DEMANDES=DEMANDES.filter(function(x){return x.id!==id});fermerFenetre();rendreDemandes();toast('Demande supprimée.')}).catch(function(e){toast(e.message)})};
+  };
+  if($('fd-galerie'))$('fd-galerie').onclick=function(){fermerFenetre();ouvrirCollection(d.collectionId)};
+  if($('fd-creer'))$('fd-creer').onclick=function(){
+    enregistrer(false).then(function(n){if(!n)return;fermerFenetre();
+      var prenom=(n.prenom||(n.nom||'').split(/\s+/)[0]||'').trim();
+      fenetreNouvelle(n.type==='seance'?'Séance photo':'Mariage',{
+        nom:n.type==='seance'?'Séance '+(n.nom||prenom):'Mariage '+(n.conjoint?prenom+' & '+n.conjoint:(n.nom||prenom)),
+        date:n.dateEvt||'',email:n.email||'',demande:n.id,
+        album:(n.champs||[]).some(function(c){return /option/i.test(c.label)&&/album/i.test(c.valeur)})?'oui':null});
+    });
+  };
+}
+function fenetreAjoutDemande(){
+  fenetre(enteteFen('Ajouter une demande')+'<p class="note">Pour une demande reçue en dehors du formulaire : Instagram, WhatsApp, téléphone, bouche-à-oreille…</p>'+
+    '<div class="champ"><span class="etiquette-champ">Type</span><div class="options" role="radiogroup" style="grid-template-columns:1fr 1fr">'+
+      '<label class="option"><span class="g"><input type="radio" name="ad-type" value="mariage" checked><span>Mariage</span></span></label><label class="option"><span class="g"><input type="radio" name="ad-type" value="seance"><span>Séance photo</span></span></label></div></div>'+
+    '<div class="dem-grille"><div class="champ"><label for="ad-nom">Nom et prénom</label><input type="text" id="ad-nom"></div>'+
+    '<div class="champ"><label for="ad-conjoint">Conjoint(e) <span class="note">facultatif</span></label><input type="text" id="ad-conjoint"></div>'+
+    '<div class="champ"><label for="ad-email">E-mail</label><input type="email" id="ad-email" placeholder="prenom@exemple.fr"></div>'+
+    '<div class="champ"><label for="ad-tel">Téléphone ou WhatsApp</label><input type="tel" id="ad-tel"></div>'+
+    '<div class="champ"><label for="ad-date">Date de l’événement</label><input type="date" id="ad-date"></div>'+
+    '<div class="champ"><label for="ad-source">Provenance</label><input type="text" id="ad-source" placeholder="Ex. : Instagram"></div></div>'+
+    '<div class="champ"><label for="ad-msg">Message ou besoin</label><textarea id="ad-msg" rows="3"></textarea></div>'+
+    '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn" id="ad-ok">Ajouter</button></div>');
+  $('ad-nom').focus();
+  $('ad-ok').onclick=function(){
+    var nom=$('ad-nom').value.trim();if(!nom){toast('Indiquez au moins un nom.');$('ad-nom').focus();return}
+    var b=this;b.disabled=true;
+    api('demandes',{method:'POST',body:{type:document.querySelector('[name=ad-type]:checked').value,nom:nom,prenom:nom.split(/\s+/)[0],conjoint:$('ad-conjoint').value.trim(),email:$('ad-email').value.trim(),tel:$('ad-tel').value.trim(),dateEvt:$('ad-date').value,source:$('ad-source').value.trim(),message:$('ad-msg').value.trim()}})
+      .then(function(){fermerFenetre();toast('Demande ajoutée.');return ouvrirDemandes()}).catch(function(e){b.disabled=false;toast(e.message)});
+  };
+}
+function fenetreRelierFormulaire(){
+  api('demandes/cle').then(function(r){
+    var code="/* Envoi de chaque demande à la vue photographe (galerie.melissa-simeon.com) */\nconst GALERIE = {\n  URL: 'https://galerie.melissa-simeon.com/api/demandes',\n  CLE: '"+r.cle+"'\n};\nfunction relayerGalerie(data, type) {\n  try {\n    UrlFetchApp.fetch(GALERIE.URL, {\n      method: 'post', contentType: 'application/json', muteHttpExceptions: true,\n      headers: { 'x-cle-formulaire': GALERIE.CLE },\n      payload: JSON.stringify(Object.assign({}, data, { type: type }))\n    });\n  } catch (e) { console.error(e); }\n}";
+    fenetre(enteteFen('Relier le formulaire')+'<p>Le formulaire continue d’envoyer ses e-mails comme aujourd’hui. On ajoute simplement une étape au script Google : il transmet chaque demande à votre vue photographe.</p>'+
+      '<ol class="etapes-relier"><li>Dans Apps Script, collez ce code <b>tout en bas</b> du fichier.</li><li>Dans la fonction <code>doPost</code>, ajoutez <code>relayerGalerie(data, \'mariage\');</code> juste après l’enregistrement du devis mariage, et <code>relayerGalerie(data, \'seance\');</code> après celui des séances.</li><li>Enregistrez, puis <b>Déployer → Gérer les déploiements → crayon → Nouvelle version</b>. Google demandera d’autoriser la connexion à un service externe.</li></ol>'+
+      '<p class="note">Ce code contient une clé privée : ne le partagez pas.</p><pre class="code-bloc" id="rf-code">'+esc(code)+'</pre>'+
+      '<div class="ligne-btn"><button class="btn clair" data-ferme>Fermer</button><button class="btn" id="rf-copier">'+I.dupliquer+'Copier le code</button></div>');
+    $('fenetre').classList.add('large-fen');
+    $('rf-copier').onclick=function(){copier(code,'Code copié.')};
+  }).catch(function(e){toast(e.message)});
+}
+
 /* ---------- Démarrage ---------- */
 if(MODE==='admin'){
   $('acces').hidden=true;$('galerie').hidden=true;$('admin').hidden=false;
   var m0=location.hash.match(/c=([a-z0-9]+)/);
-  chargerCollections().then(function(){
+  Promise.all([chargerCollections(),chargerDemandes().catch(function(){})]).then(function(){
+    if(/demandes/.test(location.hash))return ouvrirDemandes();
     if(m0)return ouvrirCollection(m0[1]).then(function(ok){if(!ok)rendreCollections()});
     rendreCollections();
   }).catch(function(e){$('admin').innerHTML='<div class="vide" style="padding:80px 20px"><h3>Impossible de charger vos collections</h3><span>'+esc(e.message)+'</span></div>'});

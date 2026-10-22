@@ -1,5 +1,6 @@
 // Tâche quotidienne : archivage des galeries expirées, rappels d'expiration, relances automatiques, effacement des données anciennes
 import { J } from './util.js';
+import { purgerDemandes } from './demandes.js';
 import { journaliser, etatDe, enregistrerReglages } from './db.js';
 import { envoyerEmail, texteRelance, texteExpiration } from './emails.js';
 import { destinatairesClient } from './api-admin.js';
@@ -46,6 +47,7 @@ export async function tacheQuotidienne(env) {
     }
   }
   await purgerDonnees(env);
+  await purgerDemandes(env);
 }
 
 // Confidentialité : les données des visiteurs (e-mails, visites, favoris, téléchargements) sont effacées

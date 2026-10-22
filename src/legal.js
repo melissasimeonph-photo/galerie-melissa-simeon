@@ -52,6 +52,7 @@ Contact : ${mail}</p>
 <li>vos favoris, votre sélection de photos (album ou retouches) et vos éventuelles notes ;</li>
 <li>les téléchargements effectués depuis la galerie ;</li>
 <li>pour les clients, l’adresse e-mail communiquée lors de la réservation, utilisée pour envoyer le lien de la galerie et les e-mails qui s’y rapportent ;</li>
+<li>pour les demandes de devis ou de réservation, les informations saisies dans le formulaire de demande (coordonnées, date et déroulé de l’événement, préférences), utilisées pour vous répondre et préparer la prestation ;</li>
 <li>de façon temporaire, l’adresse IP utilisée pour limiter les essais de code (effacée au bout de 24 heures).</li>
 </ul>
 <h2>Pourquoi</h2>
@@ -59,7 +60,7 @@ Contact : ${mail}</p>
 <h2>Base légale</h2>
 <p>L’exécution du contrat de prestation photographique pour les clients ; l’intérêt légitime de permettre aux invités d’accéder à la galerie que les clients ont choisi de partager avec eux.</p>
 <h2>Durée de conservation</h2>
-<p>Les données des visiteurs (e-mails de connexion, visites, favoris, téléchargements) sont effacées automatiquement trois mois après la date d’expiration de la galerie. Les coordonnées des clients sont conservées dans leur dossier client, pour la durée de la relation et des obligations légales.</p>
+<p>Les données des visiteurs (e-mails de connexion, visites, favoris, téléchargements) sont effacées automatiquement trois mois après la date d’expiration de la galerie. Les coordonnées des clients sont conservées dans leur dossier client, pour la durée de la relation et des obligations légales. Les demandes de devis ou de réservation qui n’aboutissent pas sont effacées automatiquement au bout de 18 mois.</p>
 <h2>Qui y a accès</h2>
 <p>Mélissa Siméon uniquement. Le site s’appuie sur deux prestataires techniques : Cloudflare (hébergement du site et des photos) et Resend (envoi des e-mails), situés aux États-Unis. Ces transferts sont encadrés par les garanties prévues par le RGPD (clauses contractuelles types de la Commission européenne et cadre de protection des données UE–États-Unis).</p>
 <h2>Cookies</h2>
