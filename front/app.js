@@ -1681,7 +1681,7 @@ function fenetreStyle(){
 }
 
 /* ---- Partage côté photographe ---- */
-function salutAdm(){return EVT()?'Bonjour,':salutAdm()+''}
+function salutAdm(){return EVT()?'Bonjour,':'Bonjour '+prenomsAdm()+','}
 function prenomsAdm(){var n=nomsCouple(ADM.nom);return /^Famille\s/i.test(ADM.nom)?'à toute la famille '+ADM.nom.replace(/^Famille\s+/i,''):n.replace(/\s*&\s*/,' et ')}
 function sansMentionCode(t){
   if(!ADM.sansCode)return t;
