@@ -338,5 +338,15 @@ export async function routerAdmin(env, req, url, ctx) {
     return json({ ok: true });
   }
 
+  if (m === 'POST' && action === 'reinitialiser') {
+    if (c.type === 'seance' && g.phase === 'livraison') return erreur('Les photos sont déjà livrées : la sélection ne peut plus être réinitialisée.', 409);
+    const etat = await etatDe(env, c.id);
+    const n = etat.album.length;
+    etat.album = []; etat.notes = {}; etat.verrou = false; etat.valide = null; etat.debut = null; etat.maj = null;
+    await enregistrerEtat(env, c.id, etat);
+    await journaliser(env, c.id, 'Vous', `avez réinitialisé la sélection (${n} photo${n > 1 ? 's' : ''} retirée${n > 1 ? 's' : ''})`);
+    return json({ ok: true });
+  }
+
   return erreur('Action inconnue.', 404);
 }

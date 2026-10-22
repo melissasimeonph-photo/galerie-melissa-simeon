@@ -1777,7 +1777,8 @@ function rendreActivite(){
     '<div class="ligne-btn" style="justify-content:flex-start">'+
       (etat.verrou||LIVRE()?'':'<button class="btn clair" id="relance-album">'+I.mail+'Relancer le client</button>')+
       '<button class="btn clair" id="export-lr" '+(na?'':'disabled')+'>Copier la liste pour Lightroom</button>'+
-      (etat.verrou&&!LIVRE()?'<button class="txtbtn" id="rouvrir-sel">Rouvrir la sélection</button>':'')+'</div>'+
+      (etat.verrou&&!LIVRE()?'<button class="txtbtn" id="rouvrir-sel">Rouvrir la sélection</button>':'')+
+      (na&&!LIVRE()?'<button class="txtbtn" id="reinit-sel">Réinitialiser la sélection</button>':'')+'</div>'+
     '</div>';
 
   /* 3. Fil d'activité */
@@ -1835,6 +1836,14 @@ function rendreActivite(){
   var aa=$('activer-album');if(aa)aa.onclick=function(){ADM.albumActif=true;sauverAdm(true);rendreActivite();toast('Album activé : le couple peut maintenant choisir ses photos.')};
   var rs=$('relance-sauvegarde');if(rs)rs.onclick=function(){envoyerSimple('Pensez à télécharger vos photos',salutAdm()+'\n\nPetit rappel : pensez à télécharger vos photos en haute définition pour les garder précieusement. Votre galerie reste en ligne jusqu’au '+dateFr(ADM.expiration)+'.\n\nCode d’accès : '+ADM.code+'\n\nMélissa','Rappel de téléchargement envoyé.')};
   var ra=$('relance-album');if(ra)ra.onclick=function(){fenetreRelance([collCourante()])};
+  var rz=$('reinit-sel');if(rz)rz.onclick=function(){
+    var nn=Object.keys(etat.notes||{}).length;
+    fenetre('<h2>Réinitialiser la sélection ?</h2><p>Les '+na+' photo'+(na>1?'s':'')+' choisie'+(na>1?'s':'')+(nn?' et les '+nn+' note'+(nn>1?'s':'')+' du client':'')+' seront retirées. '+(etat.verrou?'La sélection sera aussi rouverte : le client':'Le client')+' repartira de zéro, avec les mêmes photos dans sa galerie.</p>'+
+      '<label class="option"><span class="g"><input type="checkbox" id="reinit-ok-case"><span>Je comprends que la sélection actuelle sera effacée</span></span></label>'+
+      '<div class="ligne-btn"><button class="btn clair" data-ferme>Annuler</button><button class="btn danger" id="reinit-ok" disabled>Réinitialiser</button></div>');
+    $('reinit-ok-case').onchange=function(){$('reinit-ok').disabled=!this.checked};
+    $('reinit-ok').onclick=function(){this.disabled=true;api('collections/'+CID+'/reinitialiser',{method:'POST',body:{}}).then(function(){fermerFenetre();toast('Sélection réinitialisée : le client repart de zéro.');return recharger()}).catch(function(e){toast(e.message)})};
+  };
   var ro=$('rouvrir-sel');if(ro)ro.onclick=function(){api('collections/'+CID+'/rouvrir',{method:'POST',body:{}}).then(function(){toast('Sélection rouverte : le client peut à nouveau la modifier.');return recharger()}).catch(function(e){toast(e.message)})};
   var ex=$('export-lr');if(ex)ex.onclick=function(){copier(selection().map(function(p){return p.nom.replace(/\.[^.]+$/,'')}).join(', '),'Liste copiée : '+etat.album.length+' noms de fichiers.')};
   var eb=$('export-best');if(eb)eb.onclick=function(){copier(best.map(function(x){return x.p.nom.replace(/\.[^.]+$/,'')}).join(', '),'Sélection copiée : '+best.length+' noms de fichiers, à coller dans Lightroom.')};
