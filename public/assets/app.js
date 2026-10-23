@@ -2272,20 +2272,19 @@ function rendreDemandes(){
   $('admin').innerHTML='<div class="app'+(PREFS.replieApp?' replie':'')+'">'+asideApp('demandes')+
     '<main class="app-main">'+
       '<div class="coll-tete"><div class="coll-titre"><h1>Demandes</h1><label class="recherche">'+I.loupe+'<input type="search" id="dem-q" placeholder="Rechercher" value="'+esc(DEM.q)+'"></label></div>'+
-        '<div class="adm-actions"><button class="lienbtn" id="dem-relier">Relier le formulaire</button><button class="btn sauge" id="dem-ajout">'+I.ajout+'Ajouter une demande</button></div></div>'+
+        '<div class="adm-actions"><button class="btn sauge" id="dem-ajout">'+I.ajout+'Ajouter une demande</button></div></div>'+
       '<div class="dem-barre"><div class="puces">'+[['','Toutes'],['mariage','Mariages'],['seance','Séances']].map(function(t){return '<button class="puce-filtre'+(DEM.type===t[0]?' on':'')+'" data-dtype="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>'+
         '<p class="dem-chiffres">'+cetteAnnee.length+' demande'+(cetteAnnee.length>1?'s':'')+' en '+annee+' · '+res+' réservée'+(res>1?'s':'')+(cetteAnnee.length?' ('+Math.round(res/cetteAnnee.length*100)+' %)':'')+'</p></div>'+
       (tot?'<div class="kanban">'+ETAPES.map(function(e){
         var c=l.filter(function(d){return d.statut===e[0]});
         return '<section class="kcol" data-etape="'+e[0]+'"><header><h2>'+e[1]+'</h2><span class="num">'+c.length+'</span></header><small>'+e[2]+'</small><div class="kliste">'+(c.length?c.map(carteDemande).join(''):'<p class="kvide">Glissez une demande ici</p>')+'</div></section>';
       }).join('')+'</div>'
-      :'<div class="vide"><h3>Aucune demande pour l’instant</h3><span>Les demandes envoyées depuis votre formulaire de devis apparaîtront ici automatiquement, une fois le formulaire relié. Vous pouvez aussi ajouter à la main une demande reçue sur Instagram ou WhatsApp.</span><button class="btn clair" id="dem-relier2">Relier le formulaire</button></div>')+
+      :'<div class="vide"><h3>Aucune demande pour l’instant</h3><span>Les demandes envoyées depuis votre formulaire de devis apparaîtront ici automatiquement. Vous pouvez aussi ajouter à la main une demande reçue sur Instagram ou WhatsApp.</span></div>')+
     '</main></div>';
   lierNav(rendreDemandes);rendreCompteur();
   var q=$('dem-q');q.oninput=function(){DEM.q=q.value;var pos=q.selectionStart;rendreDemandes();var n=$('dem-q');n.focus();n.setSelectionRange(pos,pos)};
   document.querySelectorAll('[data-dtype]').forEach(function(b){b.onclick=function(){DEM.type=b.dataset.dtype;rendreDemandes()}});
   $('dem-ajout').onclick=fenetreAjoutDemande;
-  $('dem-relier').onclick=fenetreRelierFormulaire;if($('dem-relier2'))$('dem-relier2').onclick=fenetreRelierFormulaire;
   document.querySelectorAll('[data-dem]').forEach(function(c){
     c.onclick=function(){fenetreDemande(c.dataset.dem)};
     c.onkeydown=function(e){if(e.key==='Enter')fenetreDemande(c.dataset.dem)};
