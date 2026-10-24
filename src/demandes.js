@@ -1,5 +1,6 @@
 // Demandes de devis (mariage) et de réservation (séances) : réception depuis le formulaire, suivi dans la vue photographe
 import { json, erreur, lireJSON, idAleatoire, J, egalTempsConstant } from './util.js';
+import { envoyerEmail } from './emails.js';
 
 export const STATUTS_DEMANDE = ['nouvelle', 'devis', 'relancee', 'reservee', 'livree', 'perdue'];
 // Demandes non abouties effacées après 18 mois (RGPD)
@@ -38,7 +39,7 @@ const ligne = (r) => ({
   id: r.id, recu: r.recu, type: r.type, nom: r.nom, prenom: r.prenom, conjoint: r.conjoint, email: r.email, tel: r.tel,
   dateEvt: r.date_evt, dateTxt: r.date_txt, lieu: r.lieu, source: r.source, budget: r.budget, statut: r.statut,
   devisMontant: r.devis_montant, devisLe: r.devis_le, notes: r.notes, collectionId: r.collection_id, maj: r.maj,
-  champs: JSON.parse(r.champs || '[]'), origine: r.origine,
+  champs: JSON.parse(r.champs || '[]'), origine: r.origine, relances: JSON.parse(r.relances || '[]'), alerteLe: r.alerte_le,
 });
 
 // Champs déduits des réponses du formulaire
@@ -104,6 +105,19 @@ export async function routerDemandes(env, req, p) {
   const r = await env.DB.prepare('SELECT * FROM demandes WHERE id=?').bind(p[1]).first();
   if (!r) return erreur('Demande introuvable.', 404);
   if (m === 'GET') return json(ligne(r));
+  // Relance du client par e-mail (texte relu et modifié dans la vue photographe)
+  if (m === 'POST' && p[2] === 'relance') {
+    const b = await lireJSON(req);
+    if (!r.email) return erreur('Aucune adresse e-mail pour ce client.');
+    const objet = String(b.objet || '').trim().slice(0, 200), texte = String(b.texte || '').trim().slice(0, 6000);
+    if (!objet || !texte) return erreur('L’objet et le message sont obligatoires.');
+    const env2 = await envoyerEmail(env, { a: r.email, objet, texte });
+    if (!env2.ok) return erreur('E-mail non envoyé : ' + env2.statut, 502);
+    const relances = JSON.parse(r.relances || '[]'); relances.push(Date.now());
+    const statut = ['nouvelle', 'devis'].includes(r.statut) ? 'relancee' : r.statut;
+    await env.DB.prepare('UPDATE demandes SET relances=?, statut=?, maj=? WHERE id=?').bind(JSON.stringify(relances), statut, Date.now(), r.id).run();
+    return json(ligne(await env.DB.prepare('SELECT * FROM demandes WHERE id=?').bind(r.id).first()));
+  }
   if (m === 'DELETE') { await env.DB.prepare('DELETE FROM demandes WHERE id=?').bind(r.id).run(); return json({ ok: true }); }
   if (m === 'PATCH') {
     const b = await lireJSON(req), maj = {};
@@ -134,4 +148,43 @@ export async function cleAffichee(env) { return cleFormulaire(env); }
 export async function purgerDemandes(env) {
   const limite = Date.now() - CONSERVATION_DEMANDES_JOURS * J;
   await env.DB.prepare("DELETE FROM demandes WHERE recu<? AND collection_id IS NULL AND statut IN ('nouvelle','devis','relancee','perdue')").bind(limite).run();
+}
+
+// Délai (en jours) avant de signaler un devis sans réponse ; réglable dans la vue photographe
+export async function delaiRelance(env) {
+  const r = await env.DB.prepare("SELECT valeur FROM prefs WHERE cle='relanceDevisJours'").first();
+  const n = r ? parseInt(JSON.parse(r.valeur), 10) : 7;
+  return n > 0 && n < 91 ? n : 7;
+}
+
+// Tâche quotidienne : un seul e-mail récapitulatif à Mélissa (nouvelles demandes non traitées, devis sans réponse)
+export async function alertesDemandes(env) {
+  const now = Date.now(), jours = await delaiRelance(env);
+  const { results } = await env.DB.prepare("SELECT * FROM demandes WHERE statut IN ('nouvelle','devis','relancee')").all();
+  const nouvelles = [], sansReponse = [];
+  for (const d of results) {
+    const relances = JSON.parse(d.relances || '[]');
+    if (d.statut === 'nouvelle') {
+      // Pas encore traitée après 2 jours : signalée une seule fois
+      if (now - d.recu >= 2 * J && !d.alerte_le) nouvelles.push(d);
+    } else {
+      const dernier = Math.max(d.devis_le || 0, relances.length ? relances[relances.length - 1] : 0) || d.maj || d.recu;
+      if (now - dernier >= jours * J && (!d.alerte_le || d.alerte_le < dernier)) sansReponse.push({ d, dernier });
+    }
+  }
+  if (!nouvelles.length && !sansReponse.length) return;
+  const nom = (d) => (d.conjoint && !String(d.nom || '').includes(d.conjoint) ? `${d.nom} & ${d.conjoint}` : d.nom) || d.email;
+  const quand = (d) => d.date_txt ? ` (${d.type === 'seance' ? 'séance' : 'mariage'} le ${d.date_txt})` : '';
+  const lignes = [];
+  if (sansReponse.length) lignes.push(`Devis sans réponse depuis ${jours} jours ou plus :\n` + sansReponse.map(({ d, dernier }) => `• ${nom(d)}${quand(d)} : dernier contact il y a ${Math.floor((now - dernier) / J)} jours`).join('\n'));
+  if (nouvelles.length) lignes.push('Demandes reçues il y a plus de 2 jours, pas encore traitées :\n' + nouvelles.map((d) => `• ${nom(d)}${quand(d)}`).join('\n'));
+  const n = nouvelles.length + sansReponse.length;
+  await envoyerEmail(env, {
+    a: env.ADMIN_EMAIL,
+    objet: `${n} demande${n > 1 ? 's' : ''} à relancer`,
+    texte: lignes.join('\n\n') + '\n\nDepuis la fiche de chaque demande, le bouton « Relancer par e-mail » prépare le message pour vous.',
+    bouton: { texte: 'Ouvrir mes demandes', url: `https://${env.DOMAINE}/admin/#demandes` },
+  });
+  const ids = [...nouvelles.map((d) => d.id), ...sansReponse.map((x) => x.d.id)];
+  for (const id of ids) await env.DB.prepare('UPDATE demandes SET alerte_le=? WHERE id=?').bind(now, id).run();
 }

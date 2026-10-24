@@ -2226,7 +2226,10 @@ function reglageRelanceHTML(){
 }
 
 /* ---------- Demandes de devis et de réservation ---------- */
-var DEMANDES=null,DEM={q:'',type:''};
+var DEMANDES=null,DEM={q:'',type:'',vue:'colonnes',mois:null};
+function delaiRelance(){var n=parseInt(PREFS.relanceDevisJours,10);return n>0&&n<91?n:7}
+// Dernier contact (devis ou relance) et nombre de jours sans réponse, pour un devis en attente
+function attenteDemande(d){if(d.statut!=='devis'&&d.statut!=='relancee')return null;var rl=d.relances||[],der=Math.max(d.devisLe||0,rl.length?rl[rl.length-1]:0)||d.maj||d.recu;return Math.floor((Date.now()-der)/864e5)}
 var ETAPES=[['nouvelle','Nouvelles','Pas encore traitées'],['devis','Devis envoyé','En attente de réponse'],['relancee','Relancées','Devis relancé'],['reservee','Réservées','Acompte reçu ou contrat signé'],['livree','Galerie livrée','Photos livrées'],['perdue','Sans suite','Pas de réponse ou refus']];
 function chargerDemandes(){return api('demandes').then(function(l){DEMANDES=l||[];return DEMANDES})}
 function nbNouvelles(){return (DEMANDES||[]).filter(function(d){return d.statut==='nouvelle'}).length}
@@ -2256,6 +2259,7 @@ function carteDemande(d){
     '<p class="dc-date">'+I.calendrier+esc(dateDemande(d))+'</p>'+
     (d.lieu?'<p class="dc-lieu">'+esc(d.lieu.replace(/(Préparatifs|Cérémonie|Réception)\s*:\s*/g,'').split(' / ').filter(Boolean).slice(0,2).join(' · '))+'</p>':'')+
     (d.devisMontant?'<p class="dc-devis">Devis : <b>'+esc(d.devisMontant)+'</b></p>':'')+
+    (function(){var a=attenteDemande(d);return a!==null&&a>=delaiRelance()?'<p class="dc-attente">'+I.mail+'Sans réponse depuis '+a+' j'+((d.relances||[]).length?' · '+d.relances.length+' relance'+(d.relances.length>1?'s':''):'')+'</p>':''})()+
     (cf&&d.statut!=='perdue'&&d.statut!=='livree'&&d.statut!=='reservee'?'<p class="dc-alerte">'+I.historique+'Date déjà prise : '+esc(cf)+'</p>':'')+
     (coll?'<p class="dc-galerie">'+I.image+'Galerie : '+STATUTS[coll.statut].nom.toLowerCase()+'</p>':'')+
   '</article>';
@@ -2274,8 +2278,9 @@ function rendreDemandes(){
       '<div class="coll-tete"><div class="coll-titre"><h1>Demandes</h1><label class="recherche">'+I.loupe+'<input type="search" id="dem-q" placeholder="Rechercher" value="'+esc(DEM.q)+'"></label></div>'+
         '<div class="adm-actions"><button class="btn sauge" id="dem-ajout">'+I.ajout+'Ajouter une demande</button></div></div>'+
       '<div class="dem-barre"><div class="puces">'+[['','Toutes'],['mariage','Mariages'],['seance','Séances']].map(function(t){return '<button class="puce-filtre'+(DEM.type===t[0]?' on':'')+'" data-dtype="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>'+
+        '<div class="dem-outils"><div class="bascule-vue">'+[['colonnes','Colonnes'],['calendrier','Calendrier']].map(function(v){return '<button class="'+(DEM.vue===v[0]?'on':'')+'" data-dvue="'+v[0]+'">'+(v[0]==='colonnes'?I.liste:I.calendrier)+v[1]+'</button>'}).join('')+'</div><button class="lienbtn" id="dem-delai" title="Délai avant le rappel d’un devis sans réponse">'+I.historique+'Rappel après '+delaiRelance()+' j</button></div>'+
         '<p class="dem-chiffres">'+cetteAnnee.length+' demande'+(cetteAnnee.length>1?'s':'')+' en '+annee+' · '+res+' réservée'+(res>1?'s':'')+(cetteAnnee.length?' ('+Math.round(res/cetteAnnee.length*100)+' %)':'')+'</p></div>'+
-      (tot?'<div class="kanban">'+ETAPES.map(function(e){
+      (tot&&DEM.vue==='calendrier'?calendrierDemandes(l):tot?'<div class="kanban">'+ETAPES.map(function(e){
         var c=l.filter(function(d){return d.statut===e[0]});
         return '<section class="kcol" data-etape="'+e[0]+'"><header><h2>'+e[1]+'</h2><span class="num">'+c.length+'</span></header><small>'+e[2]+'</small><div class="kliste">'+(c.length?c.map(carteDemande).join(''):'<p class="kvide">Glissez une demande ici</p>')+'</div></section>';
       }).join('')+'</div>'
@@ -2284,6 +2289,12 @@ function rendreDemandes(){
   lierNav(rendreDemandes);rendreCompteur();
   var q=$('dem-q');q.oninput=function(){DEM.q=q.value;var pos=q.selectionStart;rendreDemandes();var n=$('dem-q');n.focus();n.setSelectionRange(pos,pos)};
   document.querySelectorAll('[data-dtype]').forEach(function(b){b.onclick=function(){DEM.type=b.dataset.dtype;rendreDemandes()}});
+  document.querySelectorAll('[data-dvue]').forEach(function(b){b.onclick=function(){DEM.vue=b.dataset.dvue;rendreDemandes()}});
+  $('dem-delai').onclick=function(e){e.stopPropagation();pop(this,'<div class="pop-label">Me rappeler un devis sans réponse après</div>'+[3,5,7,10,14,21].map(function(n){return itemPop(String(n),null,n+' jours',delaiRelance()===n)}).join('')+'<p class="pop-note">Un e-mail récapitulatif vous est envoyé chaque matin s’il y a des devis à relancer.</p>',function(m){
+    m.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){fermerPop();sauverPrefs({relanceDevisJours:+b.dataset.a});rendreDemandes();toast('Rappel après '+b.dataset.a+' jours sans réponse.')}})})};
+  document.querySelectorAll('[data-cal-dem]').forEach(function(c){c.onclick=function(){fenetreDemande(c.dataset.calDem)}});
+  document.querySelectorAll('[data-cal-coll]').forEach(function(c){c.onclick=function(){ouvrirCollection(c.dataset.calColl)}});
+  document.querySelectorAll('[data-cal-mois]').forEach(function(b){b.onclick=function(){var m=b.dataset.calMois,d=DEM.mois||new Date();DEM.mois=m==='0'?null:new Date(d.getFullYear(),d.getMonth()+(+m),1);rendreDemandes()}});
   $('dem-ajout').onclick=fenetreAjoutDemande;
   document.querySelectorAll('[data-dem]').forEach(function(c){
     c.onclick=function(){fenetreDemande(c.dataset.dem)};
@@ -2320,9 +2331,11 @@ function fenetreDemande(id){
         (tel?'<a href="tel:'+esc(tel)+'">'+I.tel+esc(d.tel)+'</a><a href="https://wa.me/'+esc(wa)+'" target="_blank" rel="noopener">'+I.partage+'WhatsApp</a>':'')+
         (!d.email&&!tel?'<span class="note">Aucun contact renseigné</span>':'')+'</div></div>'+
     '</div>'+
+    (d.relances&&d.relances.length?'<p class="note dem-relances">'+I.mail+'Relancé'+(d.relances.length>1?' '+d.relances.length+' fois':'')+' : '+d.relances.map(function(t){return dateHeure(t)}).join(', ')+'</p>':'')+
     '<div class="champ"><label for="fd-notes">Notes internes</label><textarea id="fd-notes" rows="3" placeholder="Visibles uniquement par vous : échanges, options proposées, relances…">'+esc(d.notes||'')+'</textarea></div>'+
     (d.champs&&d.champs.length?'<details class="dem-reponses" open><summary>Réponses '+(d.origine==='manuel'?'':'au formulaire')+' ('+d.champs.length+')</summary><dl>'+d.champs.map(function(c){return '<div><dt>'+esc(c.label)+'</dt><dd>'+esc(c.valeur).replace(/\n/g,'<br>')+'</dd></div>'}).join('')+'</dl></details>':'')+
     '<div class="ligne-btn dem-actions"><button class="txtbtn danger-txt" id="fd-suppr">Supprimer</button><span style="flex:1"></span>'+
+      (d.email&&d.statut!=='reservee'&&d.statut!=='livree'&&d.statut!=='perdue'?'<button class="btn clair" id="fd-relance">'+I.mail+'Relancer par e-mail</button>':'')+
       (coll?'<button class="btn clair" id="fd-galerie">'+I.image+'Ouvrir la galerie</button>':'<button class="btn clair" id="fd-creer">'+I.ajout+'Créer la galerie</button>')+
       '<button class="btn" id="fd-ok">Enregistrer</button></div>');
   $('fenetre').classList.add('large-fen');
@@ -2337,6 +2350,7 @@ function fenetreDemande(id){
     $('fd-oui').onclick=function(){api('demandes/'+id,{method:'DELETE'}).then(function(){DEMANDES=DEMANDES.filter(function(x){return x.id!==id});fermerFenetre();rendreDemandes();toast('Demande supprimée.')}).catch(function(e){toast(e.message)})};
   };
   if($('fd-galerie'))$('fd-galerie').onclick=function(){fermerFenetre();ouvrirCollection(d.collectionId)};
+  if($('fd-relance'))$('fd-relance').onclick=function(){enregistrer(false).then(function(n){if(n)fenetreRelanceDemande(n)})};
   if($('fd-creer'))$('fd-creer').onclick=function(){
     enregistrer(false).then(function(n){if(!n)return;fermerFenetre();
       var prenom=(n.prenom||(n.nom||'').split(/\s+/)[0]||'').trim();
@@ -2346,6 +2360,50 @@ function fenetreDemande(id){
         album:(n.champs||[]).some(function(c){return /option/i.test(c.label)&&/album/i.test(c.valeur)})?'oui':null});
     });
   };
+}
+function texteRelanceDemande(d){
+  var prenom=(d.prenom||(d.nom||'').split(/\s+/)[0]||'').trim(),noms=d.conjoint?prenom+' et '+d.conjoint:prenom;
+  var seance=d.type==='seance',rl=(d.relances||[]).length;
+  var quand=d.dateEvt?(seance?'de votre séance du ':'de votre mariage du ')+new Date(d.dateEvt+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):(seance?'de votre séance photo':'de votre mariage');
+  var libre=d.dateEvt&&!conflitDate(d);
+  var corps=d.devisLe?'Je me permets de revenir vers vous au sujet du devis que je vous ai envoyé le '+new Date(d.devisLe).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})+' pour les photos '+quand+'.':'Je reviens vers vous au sujet de votre demande pour les photos '+quand+'.';
+  return {objet:seance?'Votre séance photo':'Votre devis photo pour votre mariage',
+    texte:'Bonjour '+noms+',\n\n'+corps+'\n\n'+(rl?'Je voulais simplement m’assurer que mon précédent message vous était bien parvenu. ':'')+'Avez-vous eu le temps d’y jeter un œil ? Je reste disponible pour en parler, ajuster la proposition ou répondre à vos questions.'+(libre?'\n\nVotre date est encore libre dans mon agenda, mais je ne peux pas la bloquer sans confirmation de votre part.':'')+'\n\nBelle journée,\nMélissa'};
+}
+function fenetreRelanceDemande(d){
+  var t=texteRelanceDemande(d);
+  fenetre(enteteFen('Relancer '+esc(nomDemande(d)))+'<p class="note">Envoyé à <b>'+esc(d.email)+'</b> depuis galerie@melissa-simeon.com, avec votre mise en page. Les réponses arrivent sur votre Gmail.</p>'+
+    '<div class="champ"><label for="rd-o">Objet</label><input type="text" id="rd-o" value="'+esc(t.objet)+'"></div>'+
+    '<div class="champ"><label for="rd-m">Message</label><textarea id="rd-m" rows="11">'+esc(t.texte)+'</textarea></div>'+
+    '<div class="ligne-btn"><button class="btn clair" id="rd-retour">Retour</button><button class="btn" id="rd-ok">'+I.envoyer+'Envoyer la relance</button></div>');
+  $('fenetre').classList.add('large-fen');
+  $('rd-retour').onclick=function(){fenetreDemande(d.id)};
+  $('rd-ok').onclick=function(){var b=this;b.disabled=true;
+    api('demandes/'+d.id+'/relance',{method:'POST',body:{objet:$('rd-o').value,texte:$('rd-m').value}}).then(function(n){majDemandeLocale(n);fermerFenetre();toast('Relance envoyée à '+n.email+'.');if(admPage==='demandes')rendreDemandes()}).catch(function(e){b.disabled=false;toast(e.message)});
+  };
+}
+// Calendrier du mois : demandes datées et galeries (mariages, séances)
+function calendrierDemandes(l){
+  var base=DEM.mois||new Date(),an=base.getFullYear(),mo=base.getMonth();
+  var debut=new Date(an,mo,1),decal=(debut.getDay()+6)%7,nbj=new Date(an,mo+1,0).getDate();
+  var iso=function(j){return an+'-'+String(mo+1).padStart(2,'0')+'-'+String(j).padStart(2,'0')};
+  var liees={};(DEMANDES||[]).forEach(function(d){if(d.collectionId)liees[d.collectionId]=1});
+  var auj=new Date().toISOString().slice(0,10),cases='';
+  for(var i=0;i<decal;i++)cases+='<div class="cal-j vide"></div>';
+  for(var j=1;j<=nbj;j++){
+    var jour=iso(j);
+    var dems=l.filter(function(d){return d.dateEvt===jour&&d.statut!=='perdue'});
+    var colls=collections().filter(function(c){return c.date===jour&&!liees[c.id]});
+    var pris=dems.filter(function(d){return d.statut==='reservee'||d.statut==='livree'}).length+colls.filter(function(c){return c.classeur!=='Événements'}).length;
+    cases+='<div class="cal-j'+(jour===auj?' auj':'')+(pris>1?' double':'')+'"><span class="cal-n">'+j+'</span>'+
+      dems.map(function(d){var ok=d.statut==='reservee'||d.statut==='livree';return '<button class="cal-ev '+(ok?'ok':'option')+'" data-cal-dem="'+d.id+'" title="'+esc(nomDemande(d))+' · '+ETAPES.filter(function(e){return e[0]===d.statut})[0][1]+'">'+esc(nomDemande(d))+'</button>'}).join('')+
+      colls.map(function(c){return '<button class="cal-ev galerie" data-cal-coll="'+c.id+'" title="Galerie : '+esc(c.nom)+'">'+esc(c.nom.replace(/^(Mariage|Séance couple|Séance famille|Séance maternité|Séance)\s+/,''))+'</button>'}).join('')+
+    '</div>';
+  }
+  var titre=debut.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  return '<div class="cal"><div class="cal-tete"><button class="ibtn" data-cal-mois="-1" aria-label="Mois précédent">'+I.retour+'</button><h2>'+titre.charAt(0).toUpperCase()+titre.slice(1)+'</h2><button class="ibtn cal-suiv" data-cal-mois="1" aria-label="Mois suivant">'+I.retour+'</button><button class="lienbtn" data-cal-mois="0">Aujourd’hui</button>'+
+    '<span class="cal-legende"><i class="ok"></i>Réservé<i class="option"></i>En option<i class="galerie"></i>Galerie</span></div>'+
+    '<div class="cal-grille">'+['lun.','mar.','mer.','jeu.','ven.','sam.','dim.'].map(function(x){return '<div class="cal-jn">'+x+'</div>'}).join('')+cases+'</div></div>';
 }
 function fenetreAjoutDemande(){
   fenetre(enteteFen('Ajouter une demande')+'<p class="note">Pour une demande reçue en dehors du formulaire : Instagram, WhatsApp, téléphone, bouche-à-oreille…</p>'+
