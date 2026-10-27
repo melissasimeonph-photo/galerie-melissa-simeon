@@ -34,11 +34,11 @@ def page(titre, mode, extra='', tete=''):
 </html>
 '''
 (P / 'client.html').write_text(page('__TITRE__', 'client', 'window.COLL=/*__COLLECTION__*/null;'), encoding='utf-8')
-(P / 'admin' / 'index.html').write_text(page('Mes galeries · Mélissa Siméon', 'admin', tete='''<link rel="manifest" href="/assets/app/admin.webmanifest">
+(P / 'admin' / 'index.html').write_text(page('Studio Bokeh', 'admin', tete='''<link rel="manifest" href="/assets/app/admin.webmanifest">
 <link rel="apple-touch-icon" href="/assets/app/icone-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Mes galeries">
+<meta name="apple-mobile-web-app-title" content="Studio Bokeh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 '''), encoding='utf-8')
 print('ok', v)

@@ -1,0 +1,20 @@
+{
+  "name": "Studio Bokeh",
+  "short_name": "Studio Bokeh",
+  "description": "Galeries clients, sélections et demandes de devis",
+  "lang": "fr",
+  "id": "/admin/",
+  "start_url": "/admin/",
+  "scope": "/admin/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
+  "icons": [
+    { "src": "/assets/app/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/app/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/app/icone-masquable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Demandes", "url": "/admin/#demandes" }
+  ]
+}
