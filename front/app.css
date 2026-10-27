@@ -968,3 +968,53 @@ body.en-glisse-photos,body.en-glisse-photos *{user-select:none;-webkit-user-sele
 }
 .voir-plus{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px}
 .voir-plus small{color:var(--brun-doux);font-weight:500;margin-left:4px}
+
+/* Mobile : boutons d'action de la visionneuse en bas, à portée de pouce */
+@media (max-width:760px){
+  .visionneuse{grid-template-rows:auto 1fr auto auto}
+  .visionneuse .haut{display:contents}
+  #v-fermer{grid-row:1;justify-self:start;margin:calc(8px + env(safe-area-inset-top,0px)) 12px 4px}
+  .visionneuse .scene{grid-row:2}
+  .visionneuse .legende{grid-row:3;padding:8px 16px 4px}
+  .visionneuse .actions{grid-row:4;display:flex;justify-content:center;flex-wrap:wrap;gap:8px;padding:10px 12px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--ligne);background:var(--papier)}
+  .visionneuse .actions .ibtn{height:44px;min-width:44px}
+  #v-album,#v-fav,#v-note{height:44px}
+  .vimg{max-height:calc(100vh - 190px);max-height:calc(100dvh - 190px)}
+  .scene{padding:0 8px}
+  .fleche{width:40px;height:40px;background:rgba(255,255,255,.75)}
+  .fleche.g{left:4px}.fleche.d{right:4px}
+}
+/* Mobile : guide de sélection, illustration au-dessus du texte */
+@media (max-width:520px){
+  .guide-etapes li{grid-template-columns:1fr;gap:10px;justify-items:center}
+  .guide-etapes li>div{justify-self:stretch}
+  .ill{width:150px;height:112px}
+  .ill .il{transform:none}
+  .guide-etapes p{font-size:15px}
+}
+/* Mobile : tableaux d'activité présentés en fiches lisibles */
+@media (max-width:560px){
+  .t-cartes thead{display:none}
+  .t-cartes,.t-cartes tbody{display:block;width:100%}
+  .t-cartes tr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:12px 0;border-bottom:1px solid var(--ligne)}
+  .t-cartes td{display:block;padding:0!important;border:0!important;text-align:left!important;font-size:13.5px;min-width:0}
+  .t-cartes td:first-child{flex-basis:100%;font-weight:600;overflow-wrap:anywhere}
+  .t-cartes td:first-child small{font-weight:400}
+  .t-cartes td[data-l]::before{content:attr(data-l) " : ";color:var(--brun-doux);font-weight:400}
+  .t-dl td:nth-child(2){flex-basis:100%}
+  .t-dl td:nth-child(4){color:var(--brun-doux)}
+  .t-cartes td[colspan]{flex-basis:100%}
+}
+/* Mobile : navigation de la vue photographe compacte (une ligne qui défile) */
+@media (max-width:560px){
+  .app,.app.replie{grid-template-columns:minmax(0,1fr)}
+  .app-side{flex-wrap:wrap;gap:0;min-width:0}
+  .app>*{min-width:0}
+  .app-marque{order:0;flex:1;padding:10px 16px}
+  .app-sortie{order:1;width:auto;margin:0;padding:0 8px}
+  .app-sortie .app-lien span{display:none!important}
+  .app-nav:not(.app-sortie){order:2;box-sizing:border-box;width:100%;max-width:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:0 8px 8px;gap:2px}
+  .app-nav:not(.app-sortie)::-webkit-scrollbar{display:none}
+  .app-nav:not(.app-sortie) .app-lien{flex:none;white-space:nowrap}
+}
+@media (max-width:560px){.suivi-relance,.suivi-auto{grid-column:1}.suivi-carte{min-width:0}.suivi-relance{white-space:normal;text-align:left}}

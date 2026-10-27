@@ -292,7 +292,7 @@ function photosVue(){
   if(etat.vue==='tout')return photosClient();
   return PHOTOS.filter(function(p){return p.dossier===etat.vue});
 }
-function rendre(){
+function rendre(surPlace){
   if(['tout','fav','album'].indexOf(etat.vue)<0){var dv=dossierPar(etat.vue);if(!dv||!dv.n)etat.vue='tout'}
   if(LIVRE()&&etat.vue==='album')etat.vue='tout';
   if(SEANCE)majBandeau();
@@ -317,24 +317,38 @@ function rendre(){
     var v=document.createElement('div');v.className='vide';
     v.innerHTML=etat.vue==='fav'?'<h3>Aucun favori pour l’instant</h3><span>Touchez le cœur sur une photo pour l’ajouter à cette liste.</span>':SEANCE?'<h3>Aucune photo sélectionnée</h3><span>Cliquez sur le bouton <b>« + Sélectionner »</b> en bas à droite d’une photo pour la choisir. Votre formule en comprend '+QUOTA+'.</span><button class="btn clair" data-guide>Comment ça marche ?</button>':'<h3>L’album est vide</h3><span>Cliquez sur le bouton <b>« + Ajouter à l’album »</b> en bas à droite d’une photo pour la proposer pour votre livre. Vous pouvez en choisir '+QUOTA+'.</span><button class="btn clair" data-guide>Comment ça marche ?</button>';
     $('colonnes').appendChild(v);
+  }else if(surPlace&&memesPhotos(liste)){
+    // Même liste qu'avant : on met à jour les boutons de chaque photo sans recharger les images (pas de clignotement)
+    [].slice.call($('colonnes').querySelectorAll('.tuile')).forEach(function(t){
+      var p=liste[+t.dataset.i];if(!p)return;var f=estFav(p.id),a=estAlbum(p.id),ch=a&&modeChoix()==='album';
+      if(t.dataset.etat===String(f)+a+!!etat.notes[p.id]+etat.verrou)return;
+      t.classList.toggle('choisie',ch);
+      [].slice.call(t.children).forEach(function(c){if(!c.classList.contains('ph'))c.remove()});
+      t.insertAdjacentHTML('beforeend',interieurTuile(p,f,a));t.dataset.etat=String(f)+a+!!etat.notes[p.id]+etat.verrou;
+    });
   }else{
     var h='';
     liste.forEach(function(p,i){
       var f=estFav(p.id),a=estAlbum(p.id);
       h+='<figure class="tuile'+(a&&modeChoix()==='album'?' choisie':'')+'" data-i="'+i+'" data-r="'+(p.w/p.h).toFixed(4)+'" tabindex="0" aria-label="'+p.nom+'">'+
         '<img class="ph" loading="lazy" decoding="async" src="'+SRC(p.n,'mini')+'" srcset="'+SRC(p.n,'mini')+' 800w, '+SRC(p.n,'web')+' 2048w" sizes="33vw" alt="">'+
-        '<div class="etats">'+(f?'<span title="Dans vos favoris">'+I.coeurPlein+'</span>':'')+'</div>'+
-        boutonChoix(p,f,a)+boutonNote(p,a)+
-        '<div class="outils">'+
-        (modeChoix()==='fav'?'':'<button class="tbtn" data-act="fav" data-id="'+p.id+'" title="'+(f?'Retirer des favoris':'Ajouter aux favoris')+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?I.coeurPlein:I.coeur)+'</button>')+
-        '<button class="tbtn" data-act="dl" data-id="'+p.id+'" title="Télécharger" aria-label="Télécharger" aria-haspopup="menu">'+I.dl+'</button>'+
-        '<button class="tbtn" data-act="partage" data-id="'+p.id+'" title="Partager" aria-label="Partager" aria-haspopup="dialog">'+I.partage+'</button>'+
-        '</div></figure>';
+        interieurTuile(p,f,a)+'</figure>';
     });
     $('colonnes').innerHTML=h;
     agencer();
   }
+  if(liste.length)$('colonnes').dataset.ids=liste.map(function(p){return p.id}).join(',');else delete $('colonnes').dataset.ids;
   rendreBarreSel();
+}
+function memesPhotos(l){return $('colonnes').dataset.ids===l.map(function(p){return p.id}).join(',')&&$('colonnes').querySelectorAll('.tuile').length===l.length}
+function interieurTuile(p,f,a){
+  return '<div class="etats">'+(f?'<span title="Dans vos favoris">'+I.coeurPlein+'</span>':'')+'</div>'+
+    boutonChoix(p,f,a)+boutonNote(p,a)+
+    '<div class="outils">'+
+    (modeChoix()==='fav'?'':'<button class="tbtn" data-act="fav" data-id="'+p.id+'" title="'+(f?'Retirer des favoris':'Ajouter aux favoris')+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?I.coeurPlein:I.coeur)+'</button>')+
+    '<button class="tbtn" data-act="dl" data-id="'+p.id+'" title="Télécharger" aria-label="Télécharger" aria-haspopup="menu">'+I.dl+'</button>'+
+    '<button class="tbtn" data-act="partage" data-id="'+p.id+'" title="Partager" aria-label="Partager" aria-haspopup="dialog">'+I.partage+'</button>'+
+    '</div>';
 }
 /* Mosaïque en colonnes : chaque photo garde son format, rangée dans la colonne la plus courte.
    Le client choisit la taille d'affichage : petit, moyen (par défaut) ou grand. */
@@ -407,7 +421,7 @@ function boutonNote(p,a){
 function basculer(act,id){
   if(APERCU){toast('Aperçu : vos clics ne sont pas enregistrés.');return}
   var avant=JSON.stringify({l:etat.listes,a:etat.album});
-  function reafficher(){var y=window.scrollY;rendre();window.scrollTo(0,y);if(!$('vision').hidden)majVision()}
+  function reafficher(){var y=window.scrollY;rendre(true);window.scrollTo(0,y);if(!$('vision').hidden)majVision()}
   function annuler(e){var x=JSON.parse(avant);etat.listes=x.l;etat.album=x.a;reafficher();toast(e.message)}
   if(act==='fav'){
     var l=etat.listes[etat.listeActive],i=l.indexOf(id),on=i<0;
@@ -1818,10 +1832,10 @@ function rendreActivite(){
   var parEmail={};D.telechargements.forEach(function(x){var e=parEmail[x.email]=parEmail[x.email]||{hd:0,web:0};e[x.qualite==='hd'?'hd':'web']+=x.nb});
   // 10 premières lignes, puis « Voir plus » (10 de plus à chaque clic)
   var PAS=10;
-  function lignesVis(n){return D.visiteurs.slice(0,n).map(function(v){var e=parEmail[v.email];return '<tr><td>'+esc(v.email)+'</td><td>'+(EVT()?'Visiteur':v.role==='couple'?'Couple':'Invité')+'</td><td class="n">'+v.visites+'</td><td>'+depuis(v.derniere)+'</td><td>'+(e?[e.hd?e.hd+' HD':'',e.web?e.web+' web':''].filter(Boolean).join(' · '):'—')+'</td></tr>'}).join('')}
+  function lignesVis(n){return D.visiteurs.slice(0,n).map(function(v){var e=parEmail[v.email];return '<tr><td>'+esc(v.email)+'</td><td>'+(EVT()?'Visiteur':v.role==='couple'?'Couple':'Invité')+'</td><td class="n" data-l="Visites">'+v.visites+'</td><td data-l="Dernière visite">'+depuis(v.derniere)+'</td><td data-l="Téléchargé">'+(e?[e.hd?e.hd+' HD':'',e.web?e.web+' web':''].filter(Boolean).join(' · '):'—')+'</td></tr>'}).join('')}
   function boutonPlus(id,reste,n){var moins=n>PAS;return reste>0||moins?'<div class="voir-plus">'+(moins?'<button class="btn clair" id="'+id+'-moins">Afficher moins</button>':'')+(reste>0?'<button class="btn clair" id="'+id+'">Voir plus <small>('+reste+' restant'+(reste>1?'s':'')+')</small></button>':'')+'</div>':''}
   var visN=PAS;
-  var blocVis='<div class="bloc" id="act-vis" style="grid-column:1/-1"><h2>Visiteurs</h2>'+(D.visiteurs.length?'<div class="tableau"><table><thead><tr><th>E-mail</th><th>Rôle</th><th style="text-align:right">Visites</th><th>Dernière visite</th><th>Téléchargé</th></tr></thead><tbody id="vis-lignes">'+
+  var blocVis='<div class="bloc" id="act-vis" style="grid-column:1/-1"><h2>Visiteurs</h2>'+(D.visiteurs.length?'<div class="tableau"><table class="t-cartes"><thead><tr><th>E-mail</th><th>Rôle</th><th style="text-align:right">Visites</th><th>Dernière visite</th><th>Téléchargé</th></tr></thead><tbody id="vis-lignes">'+
     lignesVis(visN)+'</tbody></table></div><div id="vis-plus">'+boutonPlus('vis-btn',D.visiteurs.length-visN,visN)+'</div>':'<p class="note">Personne n’a encore ouvert la galerie.</p>')+'</div>';
 
   /* 6. Détail des téléchargements : qui a téléchargé quoi */
@@ -1845,7 +1859,7 @@ function rendreActivite(){
   }
   var blocDl='<div class="bloc" id="act-dl" style="grid-column:1/-1"><div class="bloc-tete"><h2>Téléchargements</h2>'+
     (pers.length>1?'<select id="dl-filtre" aria-label="Filtrer par personne"><option value="">Tout le monde ('+D.telechargements.length+')</option>'+pers.map(function(e){return '<option value="'+esc(e)+'">'+esc(e)+'</option>'}).join('')+'</select>':'')+'</div>'+
-    (D.telechargements.length?'<div class="tableau"><table><thead><tr><th>Qui</th><th>Quoi</th><th>Qualité</th><th>Quand</th></tr></thead><tbody id="dl-lignes">'+lignesDl('',dlN)+'</tbody></table></div><div id="dl-plus">'+boutonPlus('dl-btn',D.telechargements.length-dlN,dlN)+'</div>':'<p class="note">Personne n’a encore téléchargé de photo.</p>')+'</div>';
+    (D.telechargements.length?'<div class="tableau"><table class="t-cartes t-dl"><thead><tr><th>Qui</th><th>Quoi</th><th>Qualité</th><th>Quand</th></tr></thead><tbody id="dl-lignes">'+lignesDl('',dlN)+'</tbody></table></div><div id="dl-plus">'+boutonPlus('dl-btn',D.telechargements.length-dlN,dlN)+'</div>':'<p class="note">Personne n’a encore téléchargé de photo.</p>')+'</div>';
 
   $('adm-main').innerHTML=
    '<div class="adm-main-tete"><h2>Activité</h2><div class="outils-adm"><span class="etat '+(jours<30?'alerte':'ok')+'">'+STATUTS[ADM.statut].nom+' · '+(jours>=0?'expire dans '+jours+' jours':'expirée')+'</span><button class="action" id="prolonger">Prolonger de 3 mois</button></div></div>'+
@@ -1973,7 +1987,7 @@ function fenetreNote(id){
     if(APERCU){fermerFenetre();return}
     api('note',{method:'POST',body:{photoId:id,texte:t}}).then(function(r){
       etat.notes=r.etat.notes;etat.album=r.etat.album;
-      fermerFenetre();var y=window.scrollY;rendre();window.scrollTo(0,y);if(!$('vision').hidden)majVision();
+      fermerFenetre();var y=window.scrollY;rendre(true);window.scrollTo(0,y);if(!$('vision').hidden)majVision();
       toast(t?'Note enregistrée pour Mélissa.':'Note supprimée.');
     }).catch(function(e){toast(e.message)});
   }
