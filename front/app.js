@@ -1819,10 +1819,10 @@ function rendreActivite(){
   // 10 premières lignes, puis « Voir plus » (10 de plus à chaque clic)
   var PAS=10;
   function lignesVis(n){return D.visiteurs.slice(0,n).map(function(v){var e=parEmail[v.email];return '<tr><td>'+esc(v.email)+'</td><td>'+(EVT()?'Visiteur':v.role==='couple'?'Couple':'Invité')+'</td><td class="n">'+v.visites+'</td><td>'+depuis(v.derniere)+'</td><td>'+(e?[e.hd?e.hd+' HD':'',e.web?e.web+' web':''].filter(Boolean).join(' · '):'—')+'</td></tr>'}).join('')}
-  function boutonPlus(id,reste){return reste>0?'<div class="voir-plus"><button class="btn clair" id="'+id+'">Voir plus <small>('+reste+' restant'+(reste>1?'s':'')+')</small></button></div>':''}
+  function boutonPlus(id,reste,n){var moins=n>PAS;return reste>0||moins?'<div class="voir-plus">'+(moins?'<button class="btn clair" id="'+id+'-moins">Afficher moins</button>':'')+(reste>0?'<button class="btn clair" id="'+id+'">Voir plus <small>('+reste+' restant'+(reste>1?'s':'')+')</small></button>':'')+'</div>':''}
   var visN=PAS;
   var blocVis='<div class="bloc" id="act-vis" style="grid-column:1/-1"><h2>Visiteurs</h2>'+(D.visiteurs.length?'<div class="tableau"><table><thead><tr><th>E-mail</th><th>Rôle</th><th style="text-align:right">Visites</th><th>Dernière visite</th><th>Téléchargé</th></tr></thead><tbody id="vis-lignes">'+
-    lignesVis(visN)+'</tbody></table></div><div id="vis-plus">'+boutonPlus('vis-btn',D.visiteurs.length-visN)+'</div>':'<p class="note">Personne n’a encore ouvert la galerie.</p>')+'</div>';
+    lignesVis(visN)+'</tbody></table></div><div id="vis-plus">'+boutonPlus('vis-btn',D.visiteurs.length-visN,visN)+'</div>':'<p class="note">Personne n’a encore ouvert la galerie.</p>')+'</div>';
 
   /* 6. Détail des téléchargements : qui a téléchargé quoi */
   function quoiDl(x){
@@ -1845,7 +1845,7 @@ function rendreActivite(){
   }
   var blocDl='<div class="bloc" id="act-dl" style="grid-column:1/-1"><div class="bloc-tete"><h2>Téléchargements</h2>'+
     (pers.length>1?'<select id="dl-filtre" aria-label="Filtrer par personne"><option value="">Tout le monde ('+D.telechargements.length+')</option>'+pers.map(function(e){return '<option value="'+esc(e)+'">'+esc(e)+'</option>'}).join('')+'</select>':'')+'</div>'+
-    (D.telechargements.length?'<div class="tableau"><table><thead><tr><th>Qui</th><th>Quoi</th><th>Qualité</th><th>Quand</th></tr></thead><tbody id="dl-lignes">'+lignesDl('',dlN)+'</tbody></table></div><div id="dl-plus">'+boutonPlus('dl-btn',D.telechargements.length-dlN)+'</div>':'<p class="note">Personne n’a encore téléchargé de photo.</p>')+'</div>';
+    (D.telechargements.length?'<div class="tableau"><table><thead><tr><th>Qui</th><th>Quoi</th><th>Qualité</th><th>Quand</th></tr></thead><tbody id="dl-lignes">'+lignesDl('',dlN)+'</tbody></table></div><div id="dl-plus">'+boutonPlus('dl-btn',D.telechargements.length-dlN,dlN)+'</div>':'<p class="note">Personne n’a encore téléchargé de photo.</p>')+'</div>';
 
   $('adm-main').innerHTML=
    '<div class="adm-main-tete"><h2>Activité</h2><div class="outils-adm"><span class="etat '+(jours<30?'alerte':'ok')+'">'+STATUTS[ADM.statut].nom+' · '+(jours>=0?'expire dans '+jours+' jours':'expirée')+'</span><button class="action" id="prolonger">Prolonger de 3 mois</button></div></div>'+
@@ -1857,11 +1857,12 @@ function rendreActivite(){
      '<div class="chiffre"><b class="num">'+Object.keys(favUniques).length+'</b><span>photos en favoris</span></div>'+
    '</div>'+
    '<div class="grille-admin">'+blocSauvegarde+(EVT()?'':blocAlbum)+blocBest+blocVis+blocDl+'</div>';
-  function majDl(){$('dl-lignes').innerHTML=lignesDl(dlF,dlN);$('dl-plus').innerHTML=boutonPlus('dl-btn',dlFiltres(dlF).length-dlN);if($('dl-btn'))$('dl-btn').onclick=function(){dlN+=PAS;majDl()}}
-  function majVis(){$('vis-lignes').innerHTML=lignesVis(visN);$('vis-plus').innerHTML=boutonPlus('vis-btn',D.visiteurs.length-visN);if($('vis-btn'))$('vis-btn').onclick=function(){visN+=PAS;majVis()}}
+  function majDl(replie){$('dl-lignes').innerHTML=lignesDl(dlF,dlN);$('dl-plus').innerHTML=boutonPlus('dl-btn',dlFiltres(dlF).length-dlN,dlN);lierDl();if(replie)$('act-dl').scrollIntoView({block:'start',behavior:'smooth'})}
+  function majVis(replie){$('vis-lignes').innerHTML=lignesVis(visN);$('vis-plus').innerHTML=boutonPlus('vis-btn',D.visiteurs.length-visN,visN);lierVis();if(replie)$('act-vis').scrollIntoView({block:'start',behavior:'smooth'})}
+  function lierDl(){if($('dl-btn'))$('dl-btn').onclick=function(){dlN+=PAS;majDl()};if($('dl-btn-moins'))$('dl-btn-moins').onclick=function(){dlN=PAS;majDl(true)}}
+  function lierVis(){if($('vis-btn'))$('vis-btn').onclick=function(){visN+=PAS;majVis()};if($('vis-btn-moins'))$('vis-btn-moins').onclick=function(){visN=PAS;majVis(true)}}
   if($('dl-filtre'))$('dl-filtre').onchange=function(){dlF=this.value;dlN=PAS;majDl()};
-  if($('dl-btn'))$('dl-btn').onclick=function(){dlN+=PAS;majDl()};
-  if($('vis-btn'))$('vis-btn').onclick=function(){visN+=PAS;majVis()};
+  if($('dl-plus'))lierDl();if($('vis-plus'))lierVis();
 
   $('prolonger').onclick=function(){var d=new Date((ADM.expiration||new Date().toISOString().slice(0,10))+'T12:00:00');if(d<new Date())d=new Date();d.setMonth(d.getMonth()+3);ADM.expiration=d.toISOString().slice(0,10);if(ADM.statut==='archivee')ADM.statut='publiee';sauverAdm(true);rendreAdmin();toast('Galerie prolongée jusqu’au '+dateFr(ADM.expiration)+'.')};
   var aa=$('activer-album');if(aa)aa.onclick=function(){ADM.albumActif=true;sauverAdm(true);rendreActivite();toast('Album activé : le couple peut maintenant choisir ses photos.')};
