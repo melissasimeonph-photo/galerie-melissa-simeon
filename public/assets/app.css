@@ -728,7 +728,12 @@ body.en-glisse-photos,body.en-glisse-photos *{user-select:none;-webkit-user-sele
 .guide-sel .ligne-btn .btn{min-width:220px}
 .lien-guide{background:none;border:0;color:inherit;opacity:.8;font:500 13px var(--f-texte);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px 4px;white-space:nowrap}
 .lien-guide:hover{opacity:1}
-@media (max-width:560px){.lien-guide{display:none}}
+@media (max-width:560px){
+  .selection{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:2px}
+  .selection .txt{grid-column:1;grid-row:1}
+  .selection #btn-valider{grid-column:2;grid-row:1/3;align-self:center}
+  .selection .lien-guide{grid-column:1;grid-row:2;justify-self:start;padding:4px 0 0;font-size:12px}
+}
 .vide [data-guide]{margin-top:14px}
 
 /* Photo dans l'album / sélectionnée : bouton vert foncé, texte blanc, et cadre vert autour de la photo */
