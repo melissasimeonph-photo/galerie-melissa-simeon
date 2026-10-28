@@ -688,7 +688,7 @@ function rendreAdmin(){
    '<div class="adm-corps'+(ADM.replie?' replie':'')+'">'+
      '<aside class="adm-side">'+
        '<button class="adm-couv" id="adm-couv" style="'+(couvAdm()?'background-image:'+(urlCouvHd(couvAdm())?'url('+urlCouvHd(couvAdm())+'),':'')+'url('+SRC(couvAdm())+');':'')+'background-position:'+ADM.couvPos+(urlCouvHd(couvAdm())?','+ADM.couvPos:'')+'" aria-label="Changer la photo de couverture"><span>'+I.crayon+'Changer la couverture</span></button>'+
-       '<div class="adm-tabs" role="tablist">'+[['photos',I.image,'Photos'],['activite',I.activite,'Activité'],['reglages',I.reglages,'Réglages']].map(function(o){return '<button class="adm-tab" role="tab" data-o="'+o[0]+'" aria-selected="'+(admOnglet===o[0])+'" title="'+o[2]+'" aria-label="'+o[2]+'">'+o[1]+'</button>'}).join('')+'</div>'+
+       '<div class="adm-tabs" role="tablist">'+[['photos',I.image,'Photos'],['activite',I.activite,'Activité'],['reglages',I.reglages,'Réglages']].map(function(o){return '<button class="adm-tab" role="tab" data-o="'+o[0]+'" aria-selected="'+(admOnglet===o[0])+'" title="'+o[2]+'" aria-label="'+o[2]+'">'+o[1]+'<span class="tab-lib">'+o[2]+'</span></button>'}).join('')+'</div>'+
        '<div id="adm-side"></div>'+
        '<button class="ibtn replier" id="adm-replier" title="'+(ADM.replie?'Déplier le panneau':'Replier le panneau')+'" aria-label="'+(ADM.replie?'Déplier le panneau':'Replier le panneau')+'">'+(ADM.replie?I.deplier:I.replier)+'</button>'+
      '</aside>'+
@@ -844,14 +844,14 @@ function rendreCollections(){
     asideApp(COLL.etoile?'etoiles':'collections',stock)+
     '<main class="app-main">'+
       '<div class="coll-tete">'+
-        '<div class="coll-titre">'+((COLL.classeur||filtresActifs())?'<button class="ibtn coll-retour" id="coll-retour" title="Retour à toutes les collections" aria-label="Retour à toutes les collections">'+I.retour+'</button>':'')+(COLL.classeur?'<button class="lienbtn fil-ariane" id="retour-racine">Collections</button><span class="sep-ariane">›</span><h1>'+esc(COLL.classeur)+'</h1>':'<h1>'+(COLL.etoile?'Favoris':'Collections')+'</h1>')+
+        '<div class="coll-titre">'+((COLL.classeur||filtresActifs())?'<button class="ibtn coll-retour" id="coll-retour" title="Retour à toutes les collections" aria-label="Retour à toutes les collections">'+I.retour+'</button>':'')+(COLL.classeur?'<button class="lienbtn fil-ariane" id="retour-racine">Collections</button><span class="sep-ariane">›</span><h1>'+esc(COLL.classeur)+'</h1>':'<h1>'+(COLL.etoile?'Favoris':'Collections')+'</h1>')+boutonsTete('coll','Nouvelle collection')+
           '<label class="recherche">'+I.loupe+'<input type="search" id="coll-q" placeholder="Rechercher" value="'+esc(COLL.q)+'"></label></div>'+
         '<div class="adm-actions"><button class="lienbtn" id="voir-presets">Voir les préréglages</button>'+
           '<div class="split"><button class="btn sauge" id="nouvelle">Nouvelle collection</button><button class="btn sauge" id="nouvelle-plus" aria-label="Créer à partir d’un préréglage" aria-haspopup="menu">'+I.caret+'</button></div></div>'+
       '</div>'+
       (nbNouvelles()&&!COLL.classeur&&!COLL.etoile?'<button class="bandeau-dem" data-nav="demandes">'+I.boite+'<span><b>'+nbNouvelles()+' nouvelle'+(nbNouvelles()>1?'s':'')+' demande'+(nbNouvelles()>1?'s':'')+'</b> de devis ou de séance à traiter</span><span class="lien-voir">Voir les demandes →</span></button>':'')+
       // Le suivi n'apparaît que sur la page Collections principale (pas dans un dossier ni dans Favoris)
-      (COLL.classeur||COLL.etoile?'':[['moi','À faire de mon côté','Ce qui attend une action de votre part'],['client','En attente des clients','Ce que vos clients doivent encore faire']].map(function(g){return '<section class="suivi-groupe" aria-label="'+g[1]+'"><div class="suivi-tete"><h2>'+g[1]+'</h2><span>'+g[2]+'</span></div><div class="suivi">'+Object.keys(ALERTES).filter(function(k){return ALERTES[k].qui===g[0]}).map(function(k){
+      (COLL.classeur||COLL.etoile?'':[['moi','À faire de mon côté','Ce qui attend une action de votre part'],['client','En attente des clients','Ce que vos clients doivent encore faire']].map(function(g){var ks=Object.keys(ALERTES).filter(function(k){return ALERTES[k].qui===g[0]});return '<section class="suivi-groupe'+(ks.every(function(k){return !compte[k].length})?' tout-vide':'')+'" aria-label="'+g[1]+'"><div class="suivi-tete"><h2>'+g[1]+'</h2><span>'+g[2]+'</span></div><div class="suivi">'+Object.keys(ALERTES).filter(function(k){return ALERTES[k].qui===g[0]}).map(function(k){
         var A=ALERTES[k],l=compte[k];
         return '<div class="suivi-carte s-'+A.cls+(COLL.alerte===k?' actif':'')+(l.length?'':' vide')+'" data-alerte="'+k+'" role="button" tabindex="0" aria-pressed="'+(COLL.alerte===k)+'">'+
           '<span class="suivi-ico">'+I[A.ico]+'</span><b class="num">'+l.length+'</b><span class="suivi-titre">'+A.titre+'</span>'+
@@ -898,7 +898,27 @@ function asideApp(actif,stock){
         '<button class="ibtn" id="app-replier" title="'+(PREFS.replieApp?'Déplier':'Replier')+' le menu" aria-label="'+(PREFS.replieApp?'Déplier':'Replier')+' le menu">'+(PREFS.replieApp?I.deplier:I.replier)+'</button>'+
         '<div class="stockage" title="Stockage Cloudflare R2"><i class="anneau"></i><span><b class="num">'+stock.toFixed(1).replace('.',',')+' Go</b> utilisés<small>Sans limite · '+(stock<=10?'inclus dans l’offre gratuite':'≈ '+((stock-10)*0.015).toFixed(2).replace('.',',')+' $/mois')+'</small></span></div>'+
       '</div>'+
-    '</aside>';
+    '</aside>'+
+    '<nav class="tabbar" aria-label="Navigation">'+
+      tabItem('collections',I.image,'Collections',actif==='collections')+
+      tabItem('demandes',I.boite,'Demandes',actif==='demandes',nbNouvelles())+
+      tabItem('etoiles',I.etoile,'Favoris',actif==='etoiles')+
+      '<button class="tab" id="tab-plus" aria-haspopup="menu">'+I.plus+'<span>Plus</span></button>'+
+    '</nav>';
+}
+function tabItem(id,ico,txt,actif,nb){return '<button class="tab'+(actif?' actif':'')+'" data-nav="'+id+'"'+(actif?' aria-current="page"':'')+'>'+ico+'<span>'+txt+'</span>'+(nb?'<i class="nav-nb num">'+nb+'</i>':'')+'</button>'}
+// Boutons d'en-tête sur téléphone : loupe (affiche la recherche) et « + »
+var MCHERCHE={};
+function boutonsTete(page,titrePlus){return '<span class="m-act"><button class="ibtn" id="m-q" aria-label="Rechercher">'+I.loupe+'</button><button class="ibtn m-plus" id="m-plus" aria-label="'+titrePlus+'" aria-haspopup="menu">'+I.croix+'</button></span>'}
+function lierTete(page,q,plus){
+  var t=document.querySelector('.coll-tete');if(!t)return;
+  t.classList.toggle('cherche',!!(MCHERCHE[page]||q));
+  $('m-q').onclick=function(){MCHERCHE[page]=!t.classList.contains('cherche');t.classList.toggle('cherche',MCHERCHE[page]);var i=t.querySelector('.recherche input');if(MCHERCHE[page]&&i)i.focus()};
+  $('m-plus').onclick=plus;
+}
+function menuNouvelle(btn){
+  pop(btn,'<div class="pop-label">Nouvelle collection</div>'+itemPop('Mariage',I.livre,'Mariage',false,PRESETS['Mariage'].sous)+itemPop('Séance photo',I.coeur,'Séance photo',false,PRESETS['Séance photo'].sous)+itemPop('Événement',I.image,'Événement',false,PRESETS['Événement'].sous),function(m){
+    m.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){fermerPop();fenetreNouvelle(b.dataset.a)}})});
 }
 function navItem(id,ico,txt,actif,nb){return '<button class="app-lien'+(actif?' actif':'')+'" data-nav="'+id+'" title="'+txt+'">'+ico+'<span>'+txt+'</span>'+(nb?'<i class="nav-nb num">'+nb+'</i>':'')+'</button>'}
 function chip(k,txt,val){return '<button class="puce-filtre'+(val?' on':'')+'" data-filtre="'+k+'" aria-haspopup="menu">'+txt+(val?' : <b>'+val+'</b>':'')+I.caret+'</button>'}
@@ -1043,10 +1063,20 @@ function lierNav(rendreIci){
     if(n==='collections'){vueGlobale()}
     else if(n==='demandes'){ouvrirDemandes()}
     else if(n==='etoiles'){COLL.etoile=true;COLL.classeur=null;admPage='collections';rendreCollections()}
+    else if(n==='presets')fenetrePresets();
     else if(n==='accueil')toast('La page d’accueil publique de vos galeries sera construite avec votre site melissa-simeon.com.');
     else toast('Réglages généraux (logo, modèles d’e-mails, domaine, préréglages) : prévus pour la version en ligne.');
   }});
   $('app-replier').onclick=function(){sauverPrefs({replieApp:!PREFS.replieApp});rendreIci()};
+  if($('tab-plus'))$('tab-plus').onclick=function(e){e.stopPropagation();
+    var stock=collections().reduce(function(s,c){return s+(c.go||0)},0);
+    pop(this,'<div class="pop-label">Plus</div>'+itemPop('presets',I.style,'Préréglages',false,'Modèles de mariage, séance, événement')+itemPop('reglages',I.reglages,'Réglages')+itemPop('accueil',I.ecran,'Page d’accueil')+'<div class="pop-sep"></div>'+itemPop('sortie',I.sortie,'Se déconnecter')+'<p class="pop-note">Stockage : '+stock.toFixed(1).replace('.',',')+' Go utilisés</p>',function(m){
+      m.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){fermerPop();var a=b.dataset.a;
+        if(a==='sortie'){location.href='/cdn-cgi/access/logout';return}
+        if(a==='presets'){fenetrePresets();return}
+        if(a==='accueil')toast('La page d’accueil publique de vos galeries sera construite avec votre site melissa-simeon.com.');
+        else toast('Réglages généraux (logo, modèles d’e-mails, domaine, préréglages) : prévus pour la version en ligne.')}})});
+  };
 }
 function lierCollections(){
   var a=$('admin');
@@ -1054,6 +1084,7 @@ function lierCollections(){
   var r=$('retour-racine');if(r)r.onclick=vueGlobale;var cr=$('coll-retour');if(cr)cr.onclick=vueGlobale;
   var q=$('coll-q');q.oninput=function(){COLL.q=q.value;var pos=q.selectionStart;rendreCollections();var n=$('coll-q');n.focus();n.setSelectionRange(pos,pos)};
   $('voir-presets').onclick=fenetrePresets;
+  lierTete('coll',COLL.q,function(e){e.stopPropagation();menuNouvelle(this)});
   $('nouvelle').onclick=function(){fenetreNouvelle(null)};
   $('nouvelle-plus').onclick=function(e){e.stopPropagation();
     pop(this,'<div class="pop-label">Créer à partir d’un préréglage</div>'+itemPop('Mariage',I.livre,'Mariage',false,PRESETS['Mariage'].sous)+itemPop('Séance photo',I.coeur,'Séance photo',false,PRESETS['Séance photo'].sous)+itemPop('Événement',I.image,'Événement',false,PRESETS['Événement'].sous),function(m){
@@ -2294,6 +2325,8 @@ function ouvrirDemandes(){
   admPage='demandes';CID=null;DONNEES=null;history.replaceState(null,'',location.pathname+'#demandes');
   return chargerDemandes().then(rendreDemandes).catch(function(e){toast(e.message)});
 }
+// Sur téléphone, une étape à la fois : celle choisie, sinon la première qui contient des demandes
+function etapeM(l){if(DEM.etapeM)return DEM.etapeM;var e=ETAPES.filter(function(e){return l.some(function(d){return d.statut===e[0]})})[0];return e?e[0]:'nouvelle'}
 function rendreDemandes(){
   fermerPop();
   var l=filtrerDemandes(),tot=(DEMANDES||[]).length;
@@ -2301,14 +2334,15 @@ function rendreDemandes(){
   var res=cetteAnnee.filter(function(d){return d.statut==='reservee'||d.statut==='livree'}).length;
   $('admin').innerHTML='<div class="app'+(PREFS.replieApp?' replie':'')+'">'+asideApp('demandes')+
     '<main class="app-main">'+
-      '<div class="coll-tete"><div class="coll-titre"><h1>Demandes</h1><label class="recherche">'+I.loupe+'<input type="search" id="dem-q" placeholder="Rechercher" value="'+esc(DEM.q)+'"></label></div>'+
+      '<div class="coll-tete"><div class="coll-titre"><h1>Demandes</h1>'+boutonsTete('dem','Ajouter une demande')+'<label class="recherche">'+I.loupe+'<input type="search" id="dem-q" placeholder="Rechercher" value="'+esc(DEM.q)+'"></label></div>'+
         '<div class="adm-actions"><button class="btn sauge" id="dem-ajout">'+I.ajout+'Ajouter une demande</button></div></div>'+
       '<div class="dem-barre"><div class="puces">'+[['','Toutes'],['mariage','Mariages'],['seance','Séances']].map(function(t){return '<button class="puce-filtre'+(DEM.type===t[0]?' on':'')+'" data-dtype="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>'+
-        '<div class="dem-outils"><div class="bascule-vue">'+[['colonnes','Colonnes'],['calendrier','Calendrier']].map(function(v){return '<button class="'+(DEM.vue===v[0]?'on':'')+'" data-dvue="'+v[0]+'">'+(v[0]==='colonnes'?I.liste:I.calendrier)+v[1]+'</button>'}).join('')+'</div><button class="lienbtn" id="dem-delai" title="Délai avant le rappel d’un devis sans réponse">'+I.historique+'Rappel après '+delaiRelance()+' j</button></div>'+
+        '<div class="dem-outils"><div class="bascule-vue">'+[['colonnes','Colonnes'],['calendrier','Calendrier']].map(function(v){return '<button class="'+(DEM.vue===v[0]?'on':'')+'" data-dvue="'+v[0]+'">'+(v[0]==='colonnes'?I.liste:I.calendrier)+(v[0]==='colonnes'?'<span class="kv-d">Colonnes</span><span class="kv-m">Liste</span>':v[1])+'</button>'}).join('')+'</div><button class="lienbtn" id="dem-delai" title="Délai avant le rappel d’un devis sans réponse">'+I.historique+'Rappel après '+delaiRelance()+' j</button></div>'+
         '<p class="dem-chiffres">'+cetteAnnee.length+' demande'+(cetteAnnee.length>1?'s':'')+' en '+annee+' · '+res+' réservée'+(res>1?'s':'')+(cetteAnnee.length?' ('+Math.round(res/cetteAnnee.length*100)+' %)':'')+'</p></div>'+
+      (tot&&DEM.vue!=='calendrier'?'<div class="dem-etapes" role="tablist">'+ETAPES.map(function(e){var n=l.filter(function(d){return d.statut===e[0]}).length;return '<button class="puce-filtre'+(etapeM(l)===e[0]?' on':'')+'" data-detape="'+e[0]+'">'+e[1]+' <span class="num">'+n+'</span></button>'}).join('')+'</div>':'')+
       (tot&&DEM.vue==='calendrier'?calendrierDemandes(l):tot?'<div class="kanban">'+ETAPES.map(function(e){
         var c=l.filter(function(d){return d.statut===e[0]});
-        return '<section class="kcol" data-etape="'+e[0]+'"><header><h2>'+e[1]+'</h2><span class="num">'+c.length+'</span></header><small>'+e[2]+'</small><div class="kliste">'+(c.length?c.map(carteDemande).join(''):'<p class="kvide">Glissez une demande ici</p>')+'</div></section>';
+        return '<section class="kcol'+(etapeM(l)===e[0]?' m-on':'')+'" data-etape="'+e[0]+'"><header><h2>'+e[1]+'</h2><span class="num">'+c.length+'</span></header><small>'+e[2]+'</small><div class="kliste">'+(c.length?c.map(carteDemande).join(''):'<p class="kvide"><span class="kv-d">Glissez une demande ici</span><span class="kv-m">Aucune demande à cette étape</span></p>')+'</div></section>';
       }).join('')+'</div>'
       :'<div class="vide"><h3>Aucune demande pour l’instant</h3><span>Les demandes envoyées depuis votre formulaire de devis apparaîtront ici automatiquement. Vous pouvez aussi ajouter à la main une demande reçue sur Instagram ou WhatsApp.</span></div>')+
     '</main></div>';
@@ -2322,6 +2356,8 @@ function rendreDemandes(){
   document.querySelectorAll('[data-cal-coll]').forEach(function(c){c.onclick=function(){ouvrirCollection(c.dataset.calColl)}});
   document.querySelectorAll('[data-cal-mois]').forEach(function(b){b.onclick=function(){var m=b.dataset.calMois,d=DEM.mois||new Date();DEM.mois=m==='0'?null:new Date(d.getFullYear(),d.getMonth()+(+m),1);rendreDemandes()}});
   $('dem-ajout').onclick=fenetreAjoutDemande;
+  lierTete('dem',DEM.q,function(e){e.stopPropagation();fenetreAjoutDemande()});
+  document.querySelectorAll('[data-detape]').forEach(function(b){b.onclick=function(){DEM.etapeM=b.dataset.detape;rendreDemandes()}});
   document.querySelectorAll('[data-dem]').forEach(function(c){
     c.onclick=function(){fenetreDemande(c.dataset.dem)};
     c.onkeydown=function(e){if(e.key==='Enter')fenetreDemande(c.dataset.dem)};
