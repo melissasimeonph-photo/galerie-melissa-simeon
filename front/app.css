@@ -1137,3 +1137,4 @@ body.en-glisse-photos,body.en-glisse-photos *{user-select:none;-webkit-user-sele
   .dem-barre .dem-outils{flex-wrap:nowrap;justify-content:space-between}
   .dem-barre{gap:10px}
 }
+a.btn{text-decoration:none}

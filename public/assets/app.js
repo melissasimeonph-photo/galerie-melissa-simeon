@@ -1841,7 +1841,8 @@ function rendreActivite(){
     (etat.verrou?'<p class="note">Un e-mail de notification vous a été envoyé avec le lien vers cette page.</p>':'')+
     '<div class="ligne-btn" style="justify-content:flex-start">'+
       (etat.verrou||LIVRE()?'':'<button class="btn clair" id="relance-album">'+I.mail+'Relancer le client</button>')+
-      '<button class="btn clair" id="export-lr" '+(na?'':'disabled')+'>Copier la liste pour Lightroom</button>'+
+      (na?boutonsExport('ex'):'')+
+      '<button class="txtbtn" id="export-lr" '+(na?'':'disabled')+'>Copier pour Lightroom</button>'+
       (etat.verrou&&!LIVRE()?'<button class="txtbtn" id="rouvrir-sel">Rouvrir la sélection</button>':'')+
       (na&&!LIVRE()?'<button class="txtbtn" id="reinit-sel">Réinitialiser la sélection</button>':'')+'</div>'+
     '</div>';
@@ -1922,6 +1923,7 @@ function rendreActivite(){
     $('reinit-ok').onclick=function(){this.disabled=true;api('collections/'+CID+'/reinitialiser',{method:'POST',body:{}}).then(function(){fermerFenetre();toast('Sélection réinitialisée : le client repart de zéro.');return recharger()}).catch(function(e){toast(e.message)})};
   };
   var ro=$('rouvrir-sel');if(ro)ro.onclick=function(){api('collections/'+CID+'/rouvrir',{method:'POST',body:{}}).then(function(){toast('Sélection rouverte : le client peut à nouveau la modifier.');return recharger()}).catch(function(e){toast(e.message)})};
+  lierExport('ex');
   var ex=$('export-lr');if(ex)ex.onclick=function(){copier(selection().map(function(p){return p.nom.replace(/\.[^.]+$/,'')}).join(', '),'Liste copiée : '+etat.album.length+' noms de fichiers.')};
   var eb=$('export-best');if(eb)eb.onclick=function(){copier(best.map(function(x){return x.p.nom.replace(/\.[^.]+$/,'')}).join(', '),'Sélection copiée : '+best.length+' noms de fichiers, à coller dans Lightroom.')};
 }
@@ -2036,7 +2038,7 @@ function rendreEtapes(){
   if(liv)h+='<h3>Photos livrées</h3><p>'+nLiv+' photos retouchées en HD, sur le même lien'+(ADM.livre?', depuis le '+dateHeure(ADM.livre):'')+'. Fichiers renommés '+esc(prefixeFichiers())+'-01.jpg à -'+(nLiv<100?('0'+nLiv).slice(-2):nLiv)+'.jpg. Le client a reçu l’e-mail « Vos photos sont prêtes ». Les aperçus filigranés ont été supprimés.</p>'+
     '<div class="ligne-btn"><button class="btn clair" id="et-copier">'+I.lien+'Copier le lien</button>'+(nLiv<n?'<button class="btn clair" id="et-livrer">'+I.ajout+'Ajouter des photos retouchées</button>':'')+'</div>';
   else if(recue)h+='<h3>Sélection reçue : '+n+' photo'+(n>1?'s':'')+'</h3><p>'+(ADM.albumValide?'Envoyée le '+dateHeure(ADM.albumValide)+' · ':'')+Math.min(n,QUOTA)+' incluses'+(k?' + <b>'+k+' en supplément, soit '+prix(k)+' à facturer</b>':'')+(nn?' · '+nn+' note'+(nn>1?'s':'')+' du client':'')+'. Vous avez reçu un e-mail de notification.</p>'+
-    '<div class="ligne-btn"><button class="btn" id="et-livrer">'+I.ajout+'Téléverser les photos retouchées</button><button class="btn clair" id="et-voir">Voir la sélection</button><button class="btn clair" id="et-lr">Copier pour Lightroom</button><button class="btn clair" id="et-csv">'+I.dl+'Copier le tableau</button><button class="txtbtn" id="et-rouvrir">Rouvrir la sélection</button></div>';
+    '<div class="ligne-btn"><button class="btn" id="et-livrer">'+I.ajout+'Téléverser les photos retouchées</button><button class="btn clair" id="et-voir">Voir la sélection</button>'+boutonsExport('et',true)+'<button class="btn clair" id="et-lr">Copier pour Lightroom</button><button class="btn clair" id="et-csv">'+I.dl+'Copier le tableau</button><button class="txtbtn" id="et-rouvrir">Rouvrir la sélection</button></div>';
   else h+='<h3>'+(n?'Sélection en cours : '+n+' / '+QUOTA:'En attente du client')+'</h3><p>'+(n?'Le client a choisi '+n+' photo'+(n>1?'s':'')+(k?', dont '+k+' en supplément ('+prix(k)+')':'')+(ADM.albumMaj?' · dernière modification '+depuis(ADM.albumMaj):'')+'. ':'Le client n’a pas encore commencé. Envoyez-lui le lien avec le bouton Partager. ')+'Les aperçus sont filigranés, le téléchargement et le partage sont bloqués.</p>'+
     '<div class="ligne-btn"><button class="btn" id="et-import">'+I.ajout+'Importer des RAW</button>'+(n?'<button class="btn clair" id="et-voir">Voir la sélection</button>':'')+'<button class="btn clair" id="et-relancer">'+I.mail+'Relancer le client</button>'+'<button class="btn clair" id="et-copier">'+I.lien+'Copier le lien</button></div>';
   m.insertAdjacentHTML('afterbegin',h+'</section>');
@@ -2046,7 +2048,7 @@ function rendreEtapes(){
   lier('et-relancer',function(){fenetreRelance([collCourante()])});
   lier('et-voir',fenetreSelectionAdm);
   lier('et-lr',function(){copier(selection().map(function(p){return p.nom.replace(/\.[^.]+$/,'')}).join(', '),'Liste copiée : '+n+' noms de fichiers. Dans Lightroom : Filtre de bibliothèque › Texte › Nom de fichier › Contient, puis collez.')});
-  lier('et-csv',exporterCSV);
+  lier('et-csv',exporterCSV);lierExport('et');
   lier('et-livrer',fenetreLivrer);
   lier('et-rouvrir',function(){api('collections/'+CID+'/rouvrir',{method:'POST',body:{}}).then(function(){toast('Sélection rouverte : le client peut à nouveau la modifier.');return recharger()}).catch(function(e){toast(e.message)})});
 }
@@ -2054,10 +2056,65 @@ function fenetreSelectionAdm(){
   var l=selection(),k=nbSupp();
   fenetre(enteteFen('Sélection du client')+'<p>'+l.length+' photo'+(l.length>1?'s':'')+(k?' · '+QUOTA+' incluses + '+k+' en supplément ('+prix(k)+')':'')+'. Les photos au-delà de la formule sont marquées, dans l’ordre où le client les a choisies.</p>'+
     '<div class="sel-liste">'+l.map(function(p,i){return '<div class="sel-ligne"><img src="'+SRC(p.n)+'" alt=""><div><b>'+esc(p.nom.replace('.jpg',''))+'</b>'+(etat.notes[p.id]?'<small>« '+esc(etat.notes[p.id])+' »</small>':'')+'</div>'+(i>=QUOTA?'<span class="tag-supp">+'+ADM.prixSupp+' €</span>':'<span></span>')+'</div>'}).join('')+'</div>'+
-    '<div class="ligne-btn"><button class="btn clair" id="sa-csv">'+I.dl+'Copier le tableau</button><button class="btn" id="sa-lr">Copier pour Lightroom</button></div>');
-  $('fenetre').classList.add('large-fen');
+    '<div class="ligne-btn">'+boutonsExport('sa')+'<button class="btn clair" id="sa-csv">'+I.dl+'Copier le tableau</button><button class="btn clair" id="sa-lr">Copier pour Lightroom</button></div>');
+  $('fenetre').classList.add('large-fen');lierExport('sa');
   $('sa-csv').onclick=exporterCSV;
   $('sa-lr').onclick=function(){copier(l.map(function(p){return p.nom.replace('.jpg','')}).join(', '),'Liste copiée. Dans Lightroom : Filtre de bibliothèque › Texte › Nom de fichier › Contient, puis collez.')};
+}
+/* ---- Récupérer les fichiers de la sélection sur l'ordinateur ---- */
+function nbHdSel(){return selection().filter(function(p){return p.variantes&&p.variantes.hd}).length}
+function boutonsExport(pre,clair){
+  return '<button class="btn'+(clair?' clair':'')+'" id="'+pre+'-dossier" title="Retrouve les fichiers choisis dans votre dossier d’export et les copie dans un sous-dossier">'+I.dossier+'Copier dans un dossier</button>'+
+    (nbHdSel()?'<a class="btn clair" id="'+pre+'-zip" href="/admin/api/collections/'+CID+'/zip-selection" download>'+I.dl+'Télécharger en ZIP</a>':'');
+}
+function lierExport(pre){var b=$(pre+'-dossier');if(b)b.onclick=copierDansDossier;var z=$(pre+'-zip');if(z)z.onclick=function(){toast('Préparation du ZIP de la sélection ('+nbHdSel()+' photos)…')}}
+function cleFichier(n){return String(n||'').replace(/\.[^.]+$/,'').trim().toLowerCase()}
+function copierDansDossier(){
+  var l=selection();if(!l.length){toast('La sélection est vide.');return}
+  if(!window.showDirectoryPicker){
+    fenetre(enteteFen('Copier dans un dossier')+'<p>Cette fonction utilise Google Chrome sur ordinateur : ouvrez Studio Bokeh dans Chrome sur votre Mac pour l’utiliser.</p>'+(nbHdSel()?'<p>Vous pouvez aussi télécharger la sélection en ZIP.</p><div class="ligne-btn"><a class="btn" href="/admin/api/collections/'+CID+'/zip-selection" download>'+I.dl+'Télécharger en ZIP</a></div>':''));return}
+  var nomDest='Sélection client – '+String(ADM.nom||NOMDEF).replace(/[\\/:*?"<>|]/g,'-').trim();
+  var voulus={};l.forEach(function(p){voulus[cleFichier(p.nom)]=p});
+  window.showDirectoryPicker({id:'export-selection',mode:'readwrite'}).then(function(racine){
+    var trouves={},nbVus=0;
+    toast('Recherche des '+l.length+' fichiers dans « '+racine.name+' »…');
+    // Parcourt le dossier choisi et ses sous-dossiers (3 niveaux), sans entrer dans un dossier de sélection déjà créé
+    function parcourir(dir,prof){
+      var it=dir.values(),suite=Promise.resolve();
+      function prochain(){return it.next().then(function(x){
+        if(x.done)return;var e=x.value;
+        if(e.kind==='file'){nbVus++;var k=cleFichier(e.name);if(voulus[k]&&!/^\./.test(e.name))(trouves[k]=trouves[k]||[]).push(e)}
+        else if(prof<3&&e.name.indexOf('Sélection client')!==0&&e.name.charAt(0)!=='.')return parcourir(e,prof+1).then(prochain);
+        return prochain();
+      })}
+      return prochain();
+    }
+    return parcourir(racine,0).then(function(){
+      var cles=Object.keys(trouves);
+      if(!cles.length){fenetre(enteteFen('Aucun fichier trouvé')+'<p>Aucun des '+l.length+' fichiers de la sélection n’est dans « '+esc(racine.name)+' » ('+nbVus+' fichiers parcourus). Choisissez le dossier où vous avez exporté les photos de cette galerie.</p><p class="note">Exemple de nom attendu : '+esc(l[0].nom)+'</p><div class="ligne-btn"><button class="btn" id="dd-encore">Choisir un autre dossier</button></div>');$('dd-encore').onclick=function(){fermerFenetre();copierDansDossier()};return}
+      return racine.getDirectoryHandle(nomDest,{create:true}).then(function(dest){
+        var fait=0,taches=[];
+        cles.forEach(function(k){trouves[k].forEach(function(fh){taches.push(fh)})});
+        function copie(i){
+          if(i>=taches.length)return Promise.resolve();
+          var fh=taches[i];
+          return fh.getFile().then(function(f){return dest.getFileHandle(fh.name,{create:true}).then(function(nh){return nh.createWritable().then(function(w){return w.write(f).then(function(){return w.close()})})})})
+            .then(function(){fait++;if(fait%10===0)toast(fait+' / '+taches.length+' fichiers copiés…')}).then(function(){return copie(i+1)});
+        }
+        return copie(0).then(function(){
+          var notes=l.filter(function(p){return etat.notes[p.id]});
+          if(!notes.length)return;
+          var txt='Notes du client – '+(ADM.nom||'')+'\n\n'+notes.map(function(p){return p.nom+' : '+String(etat.notes[p.id]).replace(/\s+/g,' ')}).join('\n')+'\n';
+          return dest.getFileHandle('Notes du client.txt',{create:true}).then(function(nh){return nh.createWritable().then(function(w){return w.write(txt).then(function(){return w.close()})})});
+        }).then(function(){
+          var manquants=l.filter(function(p){return !trouves[cleFichier(p.nom)]});
+          fenetre(enteteFen('Sélection copiée')+'<p><b>'+fait+' fichier'+(fait>1?'s':'')+'</b> copié'+(fait>1?'s':'')+' dans le dossier « '+esc(nomDest)+' », à l’intérieur de « '+esc(racine.name)+' ».'+(l.some(function(p){return etat.notes[p.id]})?' Les notes du client sont dans « Notes du client.txt ».':'')+'</p>'+
+            (manquants.length?'<p><b>'+manquants.length+' introuvable'+(manquants.length>1?'s':'')+'</b> dans ce dossier :</p><div class="note" style="max-height:160px;overflow:auto">'+manquants.map(function(p){return esc(p.nom)}).join('<br>')+'</div>':'<p class="note">Les '+l.length+' photos de la sélection ont été retrouvées.</p>')+
+            '<div class="ligne-btn"><button class="btn" data-ferme>OK</button></div>');
+        });
+      });
+    });
+  }).catch(function(e){if(e&&e.name==='AbortError')return;toast('Copie impossible : '+(e&&e.message||e))});
 }
 function exporterCSV(){
   var l=selection();

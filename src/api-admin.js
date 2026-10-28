@@ -1,8 +1,9 @@
 // Vue photographe : toutes les routes /api/admin/* (protégées par Cloudflare Access + vérification ici)
-import { json, erreur, lireJSON, slugifier, idAleatoire, reglagesParDefaut, estEvenement, J } from './util.js';
+import { json, erreur, lireJSON, slugifier, idAleatoire, reglagesParDefaut, estEvenement, J, slugNom } from './util.js';
 import { collectionParId, enregistrerReglages, journaliser, photosDe, etatDe, enregistrerEtat, cleR2, supprimerPrefixeR2 } from './db.js';
 import { envoyerEmail, texteRelance, texteLivraison, texteGuideAlbum } from './emails.js';
 import { routerDemandes, cleAffichee } from './demandes.js';
+import { planZip, fluxZip } from './zip.js';
 
 const CHAMPS_MODIFIABLES = ['nom', 'evenement', 'sansCode', 'classeur', 'dateEvt', 'statut', 'code', 'codeInvite', 'quota', 'prixSupp', 'supp', 'hd', 'hdInvite', 'web', 'albumActif',
   'expiration', 'rappel', 'relanceAuto', 'relanceJours', 'couv', 'couvPos', 'mur', 'prefixe', 'dossiers', 'grille', 'fichiers', 'tri', 'contacts', 'etoile'];
@@ -343,6 +344,23 @@ export async function routerAdmin(env, req, url, ctx) {
     await enregistrerEtat(env, c.id, etat);
     await journaliser(env, c.id, 'Vous', 'avez rouvert la sélection');
     return json({ ok: true });
+  }
+
+  // Sélection du client en ZIP, avec les noms de fichiers d'origine (ceux du dossier d'export)
+  if (m === 'GET' && action === 'zip-selection') {
+    const etat = await etatDe(env, c.id);
+    if (!etat.album.length) return erreur('La sélection est vide.', 404);
+    const parId = new Map((await photosDe(env, c.id)).map((x) => [x.id, x]));
+    const liste = etat.album.map((id) => parId.get(id)).filter((x) => x && x.variantes.hd && x.variantes.hd.crc !== undefined);
+    if (!liste.length) return erreur('Les fichiers HD de cette sélection ne sont pas sur la galerie (aperçus filigranés uniquement).', 404);
+    const vus = new Set();
+    const fichiers = liste.map((x) => {
+      let n = String(x.nom || `photo-${x.id}.jpg`).replace(/[\\/]/g, '-'); if (!/\.jpe?g$/i.test(n)) n = n.replace(/\.[^.]+$/, '') + '.jpg';
+      while (vus.has(n.toLowerCase())) n = n.replace(/(\.jpe?g)$/i, '-bis$1'); vus.add(n.toLowerCase());
+      return { nom: n, taille: x.variantes.hd.o, crc: x.variantes.hd.crc, cle: cleR2(c.id, x.id, 'hd') };
+    });
+    const plan = planZip(fichiers), nomZip = `selection-${slugNom(g.nom || 'galerie')}.zip`;
+    return new Response(fluxZip(env, plan), { headers: { 'content-type': 'application/zip', 'content-length': String(plan.total), 'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(nomZip)}` } });
   }
 
   if (m === 'POST' && action === 'reinitialiser') {
