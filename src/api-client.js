@@ -3,6 +3,7 @@ import { json, erreur, lireJSON, egalTempsConstant, J, slugNom, codeSession } fr
 import { signerJeton, nomCookie, empreinteCode, sessionClient, tentativeAutorisee, verifierAdmin } from './auth.js';
 import { collectionParSlug, journaliser, photosDe, etatDe, enregistrerEtat, cleR2 } from './db.js';
 import { envoyerEmail, texteSelectionRecue } from './emails.js';
+import { urlVignette } from './vignettes.js';
 import { planZip, fluxZip } from './zip.js';
 
 export const estSeanceSel = (c) => c.type === 'seance' && c.reglages.phase !== 'livraison';
@@ -215,8 +216,13 @@ export async function routerClient(env, req, url, ctx) {
       etat.verrou = true; etat.valide = now;
       const k = c.type === 'seance' ? Math.max(0, etat.album.length - g.quota) : 0;
       await journaliser(env, c.id, qui(s), `a envoyé sa sélection (${etat.album.length} photos${k ? ', dont ' + k + ' en supplément' : ''})`);
-      const noms = (await photosDe(env, c.id)).filter((p) => etat.album.includes(p.id)).map((p) => p.nom.replace(/\.[^.]+$/, ''));
-      ctx.waitUntil(envoyerEmail(env, { collectionId: c.id, a: env.ADMIN_EMAIL, ...texteSelectionRecue(env, c, etat, noms) }));
+      const parId = new Map((await photosDe(env, c.id)).map((p) => [p.id, p]));
+      const choisies = etat.album.map((id) => parId.get(id)).filter(Boolean);
+      const noms = choisies.map((p) => p.nom.replace(/\.[^.]+$/, ''));
+      ctx.waitUntil((async () => {
+        const vignettes = await Promise.all(choisies.map(async (p, i) => ({ url: await urlVignette(env, c.id, p.id), nom: noms[i], note: etat.notes[p.id] || '', supp: c.type === 'seance' && i >= g.quota })));
+        await envoyerEmail(env, { collectionId: c.id, a: env.ADMIN_EMAIL, vignettes, ...texteSelectionRecue(env, c, etat, noms) });
+      })());
     }
     await enregistrerEtat(env, c.id, etat);
     return json({ ok: true, etat });

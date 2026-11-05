@@ -2,7 +2,7 @@
 import { esc, dateFr, estEvenement, sansMentionCode } from './util.js';
 import { collectionParId } from './db.js';
 
-export async function envoyerEmail(env, { collectionId = null, a, objet, texte, bouton = null, etapes = null, programmeA = null }) {
+export async function envoyerEmail(env, { collectionId = null, a, objet, texte, bouton = null, etapes = null, programmeA = null, vignettes = null }) {
   const destinataires = (Array.isArray(a) ? a : [a]).filter(Boolean);
   if (!destinataires.length) return { ok: false, raison: 'aucun destinataire' };
   const coll = collectionId ? await collectionParId(env, collectionId).catch(() => null) : null;
@@ -14,7 +14,7 @@ export async function envoyerEmail(env, { collectionId = null, a, objet, texte, 
   if (env.RESEND_API_KEY) {
     // Le design avec photo est réservé aux e-mails des clients ; tes notifications restent sobres
     const pieces = [];
-    const html = pourMoi ? gabaritSobre(objet, texte, bouton) : gabarit(env, { objet, texte, bouton, coll, etapes }, pieces);
+    const html = pourMoi ? gabaritSobre(objet, texte, bouton, vignettes) : gabarit(env, { objet, texte, bouton, coll, etapes }, pieces);
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { authorization: 'Bearer ' + String(env.RESEND_API_KEY).replace(/\s+/g, ''), 'content-type': 'application/json' },
@@ -74,12 +74,26 @@ function texteBrut(texte, etapes) {
   return i > 0 ? texte.slice(0, i) + '\n\n' + liste + texte.slice(i) : texte + '\n\n' + liste;
 }
 
-function gabaritSobre(objet, texte, bouton) {
+function grilleVignettes(v) {
+  // 3 colonnes en tableau : s'affiche partout (Gmail, Apple Mail, Outlook, téléphone)
+  const cases = v.map((x, i) => `<td width="33%" valign="top" style="padding:6px;width:33%"><img src="${esc(x.url)}" width="164" alt="${esc(x.nom)}" style="display:block;width:100%;max-width:164px;height:auto;border:0;border-radius:6px;background:${C.ligne}">` +
+    `<div style="font-size:11px;line-height:1.35;color:${C.gris};padding-top:5px;word-break:break-all">${i + 1}. ${esc(x.nom)}</div>` + (x.supp ? `<div style="font-size:11px;font-weight:600;color:${C.encre}">+ supplément</div>` : '') +
+    (x.note ? `<div style="font-size:11.5px;line-height:1.4;color:${C.encre};padding-top:3px">✎ ${esc(x.note)}</div>` : '') + '</td>');
+  let lignes = '';
+  for (let i = 0; i < cases.length; i += 3) lignes += '<tr>' + cases.slice(i, i + 3).join('') + '<td></td>'.repeat(Math.max(0, 3 - cases.slice(i, i + 3).length)) + '</tr>';
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px -6px 18px;table-layout:fixed">${lignes}</table>`;
+}
+function gabaritSobre(objet, texte, bouton, vignettes = null) {
+  // Avec des miniatures, la liste pour Lightroom passe sous les photos, en petit
+  let liste = '';
+  if (vignettes && vignettes.length) { const i = texte.indexOf('\n\nPour Lightroom'); if (i > -1) { liste = texte.slice(i + 2); texte = texte.slice(0, i); } }
   const paras = esc(texte).split(/\n{2,}/).map((p) => `<p style="margin:0 0 14px;line-height:1.6">${p.replace(/\n/g, '<br>')}</p>`).join('');
+  const grille = vignettes && vignettes.length ? grilleVignettes(vignettes) : '';
+  const lr = liste ? `<p style="margin:0 0 14px;font-size:12.5px;line-height:1.5;color:${C.gris}">${esc(liste).replace(/\n/g, '<br>')}</p>` : '';
   const btn = bouton ? `<p style="margin:20px 0 0"><a href="${esc(bouton.url)}" style="display:inline-block;background:${C.encre};color:${C.fond};text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600">${esc(bouton.texte)}</a></p>` : '';
   return `<!doctype html><html><body style="margin:0;background:${C.fond};font-family:${TEXTE};color:${C.encre};font-size:15px">
 <div style="max-width:560px;margin:0 auto;padding:28px 18px"><p style="margin:0 0 6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:${C.gris}">Ma galerie · notification</p>
-<h1 style="margin:0 0 16px;font-family:${TITRE};font-weight:400;font-size:24px">${esc(objet)}</h1>${paras}${btn}</div></body></html>`;
+<h1 style="margin:0 0 16px;font-family:${TITRE};font-weight:400;font-size:24px">${esc(objet)}</h1>${paras}${btn}${grille ? '<div style="height:18px"></div>' + grille : ''}${lr}</div></body></html>`;
 }
 
 function gabarit(env, { objet, texte, bouton, coll, etapes = null }, pieces = null) {

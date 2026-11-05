@@ -7,6 +7,7 @@ import { routerClient } from './api-client.js';
 import { collectionParSlug } from './db.js';
 import { tacheQuotidienne } from './cron.js';
 import { recevoirDemande } from './demandes.js';
+import { servirVignette } from './vignettes.js';
 
 const SECURITE = {
   'x-frame-options': 'DENY',
@@ -66,6 +67,7 @@ export default {
       }
       // Formulaires de demande (devis mariage, séances) : transmis par le script Google du formulaire
       if (chemin === '/api/demandes' && req.method === 'POST') return avecSecurite(await recevoirDemande(env, req));
+      if (chemin.startsWith('/vignette/')) return await servirVignette(env, chemin);
       if (/^\/(api\/g|img|dl|zip)\//.test(chemin)) return avecSecurite(await routerClient(env, req, url, ctx));
       if (chemin === '/' ) return avecSecurite(await pageSimple(env, 'Galeries de Mélissa Siméon', 'Ouvrez le lien de votre galerie pour retrouver vos photos.', 200, '<span class="pied"><a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a> · <a href="/admin/">Espace photographe</a></span>'));
       if (chemin === '/mentions-legales' || chemin === '/confidentialite') return avecSecurite(pageLegale(env, chemin.slice(1)));
