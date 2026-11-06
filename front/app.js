@@ -1833,24 +1833,7 @@ function rendreActivite(){
   /* 2. Sélection */
   var inactif=ADM.albumMaj?Math.floor((maintenant-ADM.albumMaj)/J):null;
   var blocAlbum=ADM.albumActif===false?'<div class="bloc" id="act-album"><h2>'+TXT.titreSel+'</h2><div class="indic attente">'+I.album+'<div><b>Option album désactivée</b><span>Le client ne voit pas la sélection d’album</span></div></div><p class="note">Activez-la si le couple ajoute un album à sa prestation. Sa sélection éventuelle est conservée.</p><div class="ligne-btn" style="justify-content:flex-start"><button class="btn clair" id="activer-album">Activer l’album</button></div></div>':
-  '<div class="bloc" id="act-album"><h2>'+TXT.titreSel+'</h2>'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span class="etat '+(etat.verrou?'ok':'cours')+'">'+(etat.verrou?'Envoyée par le client':na?'En cours':'Pas encore commencée')+'</span><span class="num">'+na+' / '+QUOTA+'</span></div>'+
-    '<div class="jauge" style="background:var(--sable-2)"><i style="width:'+Math.min(100,na/QUOTA*100)+'%"></i></div>'+
-    '<dl class="dates">'+
-      '<div><dt>Commencée</dt><dd>'+(ADM.albumDebut?dateHeure(ADM.albumDebut):'—')+'</dd></div>'+
-      '<div><dt>Dernière modification</dt><dd>'+(ADM.albumMaj?depuis(ADM.albumMaj):'—')+'</dd></div>'+
-      (ADM.albumValide?'<div><dt>Envoyée</dt><dd>'+dateHeure(ADM.albumValide)+'</dd></div>':'')+
-    '</dl>'+
-    (!etat.verrou&&inactif!==null&&inactif>=7?'<div class="indic alerte">'+I.historique+'<div><b>Aucune activité depuis '+inactif+' jours</b><span>La sélection semble en pause</span></div></div>':'')+
-    (etat.verrou?'<p class="note">Un e-mail de notification vous a été envoyé avec le lien vers cette page.</p>':'')+
-    (etat.verrou&&!SEANCE?suiviAlbum():'')+
-    '<div class="ligne-btn" style="justify-content:flex-start">'+
-      (etat.verrou||LIVRE()?'':'<button class="btn clair" id="relance-album">'+I.mail+'Relancer le client</button>')+
-      (na?boutonsExport('ex'):'')+
-      '<button class="txtbtn" id="export-lr" '+(na?'':'disabled')+'>Copier pour Lightroom</button>'+
-      (etat.verrou&&!LIVRE()?'<button class="txtbtn" id="rouvrir-sel">Rouvrir la sélection</button>':'')+
-      (na&&!LIVRE()?'<button class="txtbtn" id="reinit-sel">Réinitialiser la sélection</button>':'')+'</div>'+
-    '</div>';
+  blocSelection(na,inactif);
 
   /* 3. Fil d'activité */
   var fil=(ADM.journal||[]).slice(-14).reverse();
@@ -2124,21 +2107,49 @@ function copierDansDossier(){
 }
 /* ---- Suivi de l'album après la sélection : mise en page → production → livré ---- */
 function jourFr(t){return new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
-function suiviAlbum(){
-  var e=ADM.albumLivre?2:ADM.albumProd?1:0;
-  var pas=[['Mise en page',null],['En production',ADM.albumProd],['Livré au client',ADM.albumLivre]];
-  return '<div class="suivi-album"><ol class="sa-etapes">'+pas.map(function(p,i){return '<li class="'+(i<e?'fait':i===e?'actuel':'')+'"><b>'+p[0]+'</b>'+(p[1]?'<span>'+jourFr(p[1])+'</span>':'')+'</li>'}).join('')+'</ol>'+
-    '<div class="ligne-btn" style="justify-content:flex-start">'+
-      (e===0?'<button class="btn" id="alb-prod">'+I.livre+'Album envoyé en production</button>':'')+
-      (e===1?'<button class="btn" id="alb-livre">'+I.check+'Album livré au client</button>':'')+
-      (e>0?'<button class="txtbtn" id="alb-retour">Revenir à l’étape précédente</button>':'')+
-    '</div></div>';
+function blocSelection(na,inactif){
+  var court=function(t){return new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})};
+  var alb=!SEANCE,e=!etat.verrou?0:!alb?1:ADM.albumLivre?3:ADM.albumProd?2:1;
+  var statut=!etat.verrou?(na?'Sélection en cours':'Pas encore commencée'):!alb?'Sélection reçue':['','Mise en page','En production','Livré au client'][e];
+  // Étapes : Sélection → Mise en page → En production → Livré
+  var pas=[['Sélection',etat.verrou?na+' photos · '+court(ADM.albumValide||Date.now()):na+' / '+QUOTA]];
+  if(alb)pas.push(['Mise en page',e===1?'À faire':''],['En production',ADM.albumProd?court(ADM.albumProd):''],['Livré',ADM.albumLivre?court(ADM.albumLivre):'']);
+  var se=e===3?4:e;
+  var etapes=!alb?'':'<ol class="alb-etapes c'+pas.length+'">'+pas.map(function(p,i){return '<li class="'+(i<se?'fait':i===se?'actuel':'')+'"><i>'+(i<se?I.check:'')+'</i><b>'+p[0]+'</b><span>'+(p[1]||'&nbsp;')+'</span></li>'}).join('')+'</ol>';
+  // Une seule action principale : la prochaine étape
+  var suite='';
+  if(!etat.verrou){
+    suite='<div class="alb-suite"><div class="jauge"><i style="width:'+Math.min(100,na/QUOTA*100)+'%"></i></div>'+
+      '<p>'+(na?'<b>'+na+' / '+QUOTA+'</b> photos choisies':'Le client n’a pas encore commencé')+(ADM.albumMaj?' · dernière modification '+depuis(ADM.albumMaj):'')+'</p>'+
+      (inactif!==null&&inactif>=7?'<p class="alb-alerte">'+I.historique+'Aucune activité depuis '+inactif+' jours</p>':'')+
+      (LIVRE()?'':'<button class="btn" id="relance-album">'+I.mail+'Relancer le client</button>')+'</div>';
+  }else if(alb&&e<3){
+    suite='<div class="alb-suite"><p>'+(e===1?'<b>Prochaine étape :</b> faire la mise en page puis commander l’album.':'<b>Prochaine étape :</b> remettre l’album au couple.')+'</p>'+
+      (e===1?'<button class="btn" id="alb-prod">'+I.livre+'Album envoyé en production</button>':'<button class="btn" id="alb-livre">'+I.check+'Album livré au client</button>')+'</div>';
+  }else if(alb){
+    suite='<div class="alb-suite ok"><p>'+I.check+'<span>Album livré le '+jourFr(ADM.albumLivre)+'. Tout est terminé pour cette galerie.</span></p></div>';
+  }
+  var fichiers=na?'<div class="alb-fichiers"><span class="alb-label">Fichiers de la sélection</span><div class="alb-outils">'+
+      '<button class="btn clair petit" id="ex-dossier">'+I.dossier+'Copier dans un dossier</button>'+
+      (nbHdSel()?'<a class="btn clair petit" id="ex-zip" href="/admin/api/collections/'+CID+'/zip-selection" download>'+I.dl+'Télécharger en ZIP</a>':'')+
+      '<button class="btn clair petit" id="export-lr">'+I.dupliquer+'Copier pour Lightroom</button></div></div>':'';
+  var menu=[];
+  if(alb&&e>1)menu.push('<button class="pop-item" id="alb-retour">'+I.historique+'<span>Revenir à l’étape précédente</span></button>');
+  if(etat.verrou&&!LIVRE())menu.push('<button class="pop-item" id="rouvrir-sel">'+I.crayon+'<span>Rouvrir la sélection au client</span></button>');
+  if(na&&!LIVRE())menu.push('<button class="pop-item danger" id="reinit-sel">'+I.corbeille+'<span>Réinitialiser la sélection</span></button>');
+  return '<div class="bloc" id="act-album">'+
+    '<div class="alb-tete"><h2>'+TXT.titreSel+'</h2><span class="etat '+(e===3||(!alb&&e===1)?'ok':'cours')+'">'+statut+'</span>'+
+      (menu.length?'<details class="alb-plus"><summary class="ibtn" aria-label="Autres actions">'+I.points+'</summary><div class="alb-menu">'+menu.join('')+'</div></details>':'')+'</div>'+
+    etapes+suite+fichiers+
+    (ADM.albumDebut?'<p class="alb-dates">Commencée le '+dateHeure(ADM.albumDebut)+(ADM.albumValide?' · envoyée le '+dateHeure(ADM.albumValide):'')+'</p>':'')+
+  '</div>';
 }
 function lierSuiviAlbum(){
   function maj(champs,msg){Object.keys(champs).forEach(function(k){ADM[k]=champs[k]});sauverAdm(true);var c=COLLS.filter(function(x){return x.id===CID})[0];if(c)Object.keys(champs).forEach(function(k){c.reglages[k]=champs[k]});rendreActivite();toast(msg)}
   var a=$('alb-prod');if(a)a.onclick=function(){maj({albumProd:Date.now()},'Album noté en production.')};
   var b=$('alb-livre');if(b)b.onclick=function(){maj({albumLivre:Date.now()},'Album noté comme livré au client.')};
-  var r=$('alb-retour');if(r)r.onclick=function(){maj(ADM.albumLivre?{albumLivre:null}:{albumProd:null},'Étape annulée.')};
+  var r=$('alb-retour');if(r)r.onclick=function(){maj(ADM.albumLivre?{albumLivre:null}:{albumProd:null},'Retour à l’étape précédente.')};
+  document.addEventListener('click',function ferme(ev){var d=document.querySelector('.alb-plus[open]');if(!d){document.removeEventListener('click',ferme);return}if(!d.contains(ev.target)||ev.target.closest('.pop-item'))d.removeAttribute('open')});
 }
 function exporterCSV(){
   var l=selection();

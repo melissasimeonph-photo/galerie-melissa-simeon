@@ -1150,3 +1150,41 @@ a.btn{text-decoration:none}
 .sa-etapes li.actuel{background:var(--brun);color:#fff}
 .sa-etapes li.actuel span{color:rgba(255,255,255,.8)}
 @media (max-width:560px){.sa-etapes{grid-template-columns:1fr}}
+/* Bloc « Sélection d'album » : étapes claires, une action principale, outils regroupés */
+#act-album .alb-tete{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+#act-album .alb-tete h2{margin:0;flex:1}
+.alb-plus{position:relative}
+.alb-plus summary{list-style:none;cursor:pointer;width:34px;height:34px;display:grid;place-items:center;border-radius:50%}
+.alb-plus summary::-webkit-details-marker{display:none}
+.alb-plus[open] summary{background:var(--sable-2,#F2F0EC)}
+.alb-menu{position:absolute;right:0;top:40px;z-index:20;min-width:250px;background:#fff;border:1px solid var(--ligne);border-radius:14px;box-shadow:0 12px 30px rgba(42,33,23,.14);padding:6px}
+.alb-menu .pop-item{width:100%}
+.alb-menu .pop-item.danger{color:#A23B2A}
+.alb-etapes{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:0}
+.alb-etapes.c4{grid-template-columns:repeat(4,1fr)}
+.alb-etapes.c1{grid-template-columns:1fr}
+.alb-etapes li{position:relative;display:grid;justify-items:center;text-align:center;gap:3px;padding:0 4px;font-size:13px;color:var(--brun-doux)}
+.alb-etapes li::before{content:"";position:absolute;top:11px;left:-50%;width:100%;height:2px;background:var(--ligne);z-index:0}
+.alb-etapes li:first-child::before{display:none}
+.alb-etapes li.fait::before,.alb-etapes li.actuel::before{background:var(--brun)}
+.alb-etapes li i{position:relative;z-index:1;width:24px;height:24px;border-radius:50%;border:2px solid var(--ligne);background:#fff;display:grid;place-items:center}
+.alb-etapes li i .ico{width:14px;height:14px;stroke-width:2.4}
+.alb-etapes li.fait i{background:var(--brun);border-color:var(--brun);color:#fff}
+.alb-etapes li.actuel i{border-color:var(--brun);box-shadow:0 0 0 4px rgba(54,32,35,.12)}
+.alb-etapes li.actuel i::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--brun)}
+.alb-etapes li b{font-weight:500;margin-top:4px}
+.alb-etapes li.actuel b,.alb-etapes li.fait b{color:var(--brun);font-weight:600}
+.alb-etapes li span{font-size:12px}
+.alb-etapes.c1 li{justify-items:start;text-align:left;grid-template-columns:auto 1fr;align-items:center;column-gap:10px}
+.alb-etapes.c1 li i{grid-row:1/3}
+.alb-suite{background:var(--sable-2,#F6F3EF);border-radius:14px;padding:14px 16px;display:grid;gap:10px;justify-items:start;margin-bottom:16px}
+.alb-suite p{margin:0;font-size:14px;line-height:1.5}
+.alb-suite .jauge{width:100%;margin:0;background:#fff}
+.alb-suite.ok p{display:flex;gap:8px;align-items:center;color:var(--brun)}
+.alb-alerte{display:flex;gap:6px;align-items:center;color:#A23B2A}
+.alb-fichiers{border-top:1px solid var(--ligne);padding-top:14px;display:grid;gap:10px}
+.alb-label{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--brun-doux)}
+.alb-outils{display:flex;flex-wrap:wrap;gap:8px}
+.btn.petit{min-height:36px;padding:0 14px;font-size:13.5px}
+.alb-dates{margin:14px 0 0;font-size:12px;color:var(--brun-doux)}
+@media (max-width:560px){.alb-etapes li b{font-size:12px}.alb-etapes li span{font-size:11px}.alb-outils .btn{flex:1 1 100%;justify-content:center}}
