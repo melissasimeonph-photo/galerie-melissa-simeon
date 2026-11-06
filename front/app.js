@@ -102,7 +102,8 @@ function LIVREC(c){return c.type==='seance'&&c.phase==='livraison'}
 function majNoms(){
   var n=nomsCouple(ADM.nom||(COLLPUB&&COLLPUB.nom)),parts=n.split(/\s*&\s*/);
   $('acces-nom').textContent=n;
-  $('couv-nom').innerHTML=parts.length===2?esc(parts[0])+' <em>&amp;</em><br>'+esc(parts[1]):esc(n);
+  $('couv-nom').innerHTML=parts.length===2?esc(parts[0])+' <em>&amp;</em> <br class="br-m">'+esc(parts[1]):esc(n);
+  ajusterTitre();if(!window.__titreR){window.__titreR=1;window.addEventListener('resize',ajusterTitre);if(document.fonts)document.fonts.ready.then(ajusterTitre)}
   document.title=n+' · Mélissa Siméon';
 }
 
@@ -203,6 +204,21 @@ function majExpiration(){setTimeout(initOeil);if(MODE!=='client')return;majMur()
 $('btn-voir').addEventListener('click',function(){document.querySelector('.barre').scrollIntoView({behavior:'smooth'})});
 
 /* ---------- Onglets ---------- */
+// Sur ordinateur, le titre de couverture tient sur une ligne : la taille s'adapte à sa longueur
+function ajusterTitre(){
+  var t=$('couv-nom');if(!t)return;
+  t.style.fontSize='';t.classList.remove('titre-long');
+  if(window.innerWidth<900)return;
+  var dispo=t.parentNode.clientWidth-32;
+  if(dispo<=0){setTimeout(ajusterTitre,250);return}  // couverture pas encore affichée
+  var max=parseFloat(getComputedStyle(t).fontSize);
+  if(t.scrollWidth<=dispo)return;
+  var taille=Math.floor(max*dispo/t.scrollWidth*0.97);
+  t.style.fontSize=taille+'px';
+  while(t.scrollWidth>dispo&&taille>44){taille-=2;t.style.fontSize=taille+'px'}
+  if(taille<44){t.style.fontSize='44px';t.classList.add('titre-long');return}
+  t.style.fontSize=taille+'px';
+}
 function rendreOnglets(){
   var h='<button class="onglet" data-v="tout">Tout<span class="num">'+photosClient().length+'</span></button>';
   // Une seule catégorie avec des photos : inutile de l'afficher à côté de « Tout »
