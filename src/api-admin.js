@@ -5,7 +5,7 @@ import { envoyerEmail, texteRelance, texteLivraison, texteGuideAlbum } from './e
 import { routerDemandes, cleAffichee } from './demandes.js';
 import { planZip, fluxZip } from './zip.js';
 
-const CHAMPS_MODIFIABLES = ['nom', 'evenement', 'sansCode', 'classeur', 'dateEvt', 'statut', 'code', 'codeInvite', 'quota', 'prixSupp', 'supp', 'hd', 'hdInvite', 'web', 'albumActif',
+const CHAMPS_MODIFIABLES = ['albumProd', 'albumLivre', 'nom', 'evenement', 'sansCode', 'classeur', 'dateEvt', 'statut', 'code', 'codeInvite', 'quota', 'prixSupp', 'supp', 'hd', 'hdInvite', 'web', 'albumActif',
   'expiration', 'rappel', 'relanceAuto', 'relanceJours', 'couv', 'couvPos', 'mur', 'prefixe', 'dossiers', 'grille', 'fichiers', 'tri', 'contacts', 'etoile'];
 
 async function slugLibre(env, base, idActuel = null) {

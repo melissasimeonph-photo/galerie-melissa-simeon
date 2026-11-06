@@ -32,7 +32,7 @@ function api(chemin,opts){
 var ADM={dossiers:[],statut:'cachee',grille:'grande',fichiers:true,tri:'asc',quota:60,hd:true,web:true,albumActif:true,couvPos:'50% 50%',mur:true};
 var DONNEES=null;                         // détail de la collection ouverte (vue photographe)
 var minuteurSauve=null;
-var CHAMPS=['nom','evenement','sansCode','classeur','dateEvt','statut','code','codeInvite','quota','prixSupp','supp','hd','hdInvite','web','albumActif','expiration','rappel','relanceAuto','relanceJours','couv','couvPos','mur','prefixe','dossiers','grille','fichiers','tri','contacts'];
+var CHAMPS=['albumProd','albumLivre','nom','evenement','sansCode','classeur','dateEvt','statut','code','codeInvite','quota','prixSupp','supp','hd','hdInvite','web','albumActif','expiration','rappel','relanceAuto','relanceJours','couv','couvPos','mur','prefixe','dossiers','grille','fichiers','tri','contacts'];
 function sauverAdm(immediat){
   if(MODE!=='admin'||!CID)return Promise.resolve();
   clearTimeout(minuteurSauve);
@@ -762,7 +762,7 @@ function chargerCollections(){return Promise.all([api('collections'),api('prefs'
 function collections(){
   return COLLS.map(function(c){var g=c.reglages;return {id:c.id,slug:c.slug,nom:g.nom,classeur:g.classeur||'',date:g.dateEvt||new Date(c.cree).toISOString().slice(0,10),statut:g.statut,photos:c.photos,go:(c.octets||0)/1e9,exp:g.expiration,
     seance:c.type==='seance',phase:g.phase,album:(c.type!=='seance'&&g.albumActif===false)?null:c.verrou?'validee':c.nsel?'cours':'aucun',sauvegarde:!!g.sauvegarde,cree:new Date(c.cree).toISOString().slice(0,10),creeTs:c.cree,
-    couv:g.couv,couvPos:g.couvPos||'50% 50%',nsel:c.nsel,quota:g.quota,code:g.code,derniereRelance:c.derniereRelance,relanceAuto:g.relanceAuto!==false,relanceJours:g.relanceJours||14,publieLe:g.publieLe||null,premiere:c.premiere||null}});
+    couv:g.couv,couvPos:g.couvPos||'50% 50%',nsel:c.nsel,quota:g.quota,code:g.code,derniereRelance:c.derniereRelance,relanceAuto:g.relanceAuto!==false,relanceJours:g.relanceJours||14,publieLe:g.publieLe||null,premiere:c.premiere||null,albumProd:g.albumProd||null,albumLivre:g.albumLivre||null}});
 }
 /* ---- Compteur de requêtes du jour (limite de l'offre gratuite Cloudflare) ---- */
 var USAGE=null,usageT=0;
@@ -787,7 +787,9 @@ function alertesDe(c){
   var a=[],j=joursAvant(c.exp);
   if(c.statut==='publiee'&&j!==null&&j>=0&&j<=30)a.push('expire');
   if(c.statut==='publiee'&&!c.seance&&(c.album==='aucun'||c.album==='cours'))a.push('album');
-  if(c.album==='validee'&&!c.seance)a.push('produire');
+  if(c.album==='validee'&&!c.seance&&!c.albumProd&&!c.albumLivre)a.push('produire');
+  if(!c.seance&&c.albumProd&&!c.albumLivre)a.push('production');
+  if(!c.seance&&c.albumLivre&&Date.now()-c.albumLivre<60*864e5)a.push('livre');
   if(c.seance&&c.album==='validee'&&c.phase!=='livraison')a.push('retouche');
   if(c.seance&&c.statut==='publiee'&&c.phase!=='livraison'&&c.album!=='validee')a.push('selclient');
   if(c.statut==='publiee'&&c.photos>0&&!c.sauvegarde&&(!c.seance||c.phase==='livraison'))a.push('sauvegarde');
@@ -795,6 +797,8 @@ function alertesDe(c){
 }
 var ALERTES={
   produire:{titre:'Albums validés à mettre en page',ico:'check',cls:'ok',qui:'moi'},
+  production:{titre:'Albums en production',ico:'livre',cls:'cours',qui:'moi',quand:'albumProd',depuis:'envoyé le'},
+  livre:{titre:'Albums livrés récemment',ico:'coeur',cls:'ok',qui:'moi',quand:'albumLivre',depuis:'livré le'},
   retouche:{titre:'Sélections de séance à retoucher',ico:'crayon',cls:'ok',qui:'moi'},
   expire:{titre:'Expirent dans les 30 jours',ico:'historique',cls:'alerte',qui:'moi'},
   album:{titre:'Albums en attente du couple',ico:'livre',cls:'cours',qui:'client'},
@@ -855,7 +859,7 @@ function rendreCollections(){
         var A=ALERTES[k],l=compte[k];
         return '<div class="suivi-carte s-'+A.cls+(COLL.alerte===k?' actif':'')+(l.length?'':' vide')+'" data-alerte="'+k+'" role="button" tabindex="0" aria-pressed="'+(COLL.alerte===k)+'">'+
           '<span class="suivi-ico">'+I[A.ico]+'</span><b class="num">'+l.length+'</b><span class="suivi-titre">'+A.titre+'</span>'+
-          '<small>'+(l.length?l.map(function(c){return esc(c.nom.replace(/^(Mariage|Séance couple|Séance famille|Séance maternité|Séance)\s+/,''))}).join(', '):'Rien à signaler')+'</small>'+((k==='album'||k==='selclient')&&l.length?'<button class="suivi-relance" data-relance="'+k+'">'+I.mail+'Relancer'+(l.length>1?' les '+l.length:'')+'</button><span class="suivi-auto">'+txtAuto(l)+'</span>':'')+'</div>';
+          '<small>'+(l.length?l.map(function(c){return esc(c.nom.replace(/^(Mariage|Séance couple|Séance famille|Séance maternité|Séance)\s+/,''))+(A.quand&&c[A.quand]?' ('+A.depuis+' '+new Date(c[A.quand]).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+')':'')}).join(', '):'Rien à signaler')+'</small>'+((k==='album'||k==='selclient')&&l.length?'<button class="suivi-relance" data-relance="'+k+'">'+I.mail+'Relancer'+(l.length>1?' les '+l.length:'')+'</button><span class="suivi-auto">'+txtAuto(l)+'</span>':'')+'</div>';
       }).join('')+'</div></section>'}).join(''))+
       '<div class="coll-filtres">'+
         '<div class="puces">'+
@@ -1839,6 +1843,7 @@ function rendreActivite(){
     '</dl>'+
     (!etat.verrou&&inactif!==null&&inactif>=7?'<div class="indic alerte">'+I.historique+'<div><b>Aucune activité depuis '+inactif+' jours</b><span>La sélection semble en pause</span></div></div>':'')+
     (etat.verrou?'<p class="note">Un e-mail de notification vous a été envoyé avec le lien vers cette page.</p>':'')+
+    (etat.verrou&&!SEANCE?suiviAlbum():'')+
     '<div class="ligne-btn" style="justify-content:flex-start">'+
       (etat.verrou||LIVRE()?'':'<button class="btn clair" id="relance-album">'+I.mail+'Relancer le client</button>')+
       (na?boutonsExport('ex'):'')+
@@ -1911,6 +1916,7 @@ function rendreActivite(){
   if($('dl-plus'))lierDl();if($('vis-plus'))lierVis();
 
   $('prolonger').onclick=function(){var d=new Date((ADM.expiration||new Date().toISOString().slice(0,10))+'T12:00:00');if(d<new Date())d=new Date();d.setMonth(d.getMonth()+3);ADM.expiration=d.toISOString().slice(0,10);if(ADM.statut==='archivee')ADM.statut='publiee';sauverAdm(true);rendreAdmin();toast('Galerie prolongée jusqu’au '+dateFr(ADM.expiration)+'.')};
+  lierSuiviAlbum();
   var aa=$('activer-album');if(aa)aa.onclick=function(){ADM.albumActif=true;sauverAdm(true);rendreActivite();toast('Album activé : le couple peut maintenant choisir ses photos.')};
   var rs=$('relance-sauvegarde');if(rs)rs.onclick=function(){envoyerSimple('Pensez à télécharger vos photos',salutAdm()+'\n\nPetit rappel : pensez à télécharger vos photos en haute définition pour les garder précieusement. Votre galerie reste en ligne jusqu’au '+dateFr(ADM.expiration)+'.\n\nCode d’accès : '+ADM.code+'\n\nMélissa','Rappel de téléchargement envoyé.')};
   var ra=$('relance-album');if(ra)ra.onclick=function(){fenetreRelance([collCourante()])};
@@ -2115,6 +2121,24 @@ function copierDansDossier(){
       });
     });
   }).catch(function(e){if(e&&e.name==='AbortError')return;toast('Copie impossible : '+(e&&e.message||e))});
+}
+/* ---- Suivi de l'album après la sélection : mise en page → production → livré ---- */
+function jourFr(t){return new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
+function suiviAlbum(){
+  var e=ADM.albumLivre?2:ADM.albumProd?1:0;
+  var pas=[['Mise en page',null],['En production',ADM.albumProd],['Livré au client',ADM.albumLivre]];
+  return '<div class="suivi-album"><ol class="sa-etapes">'+pas.map(function(p,i){return '<li class="'+(i<e?'fait':i===e?'actuel':'')+'"><b>'+p[0]+'</b>'+(p[1]?'<span>'+jourFr(p[1])+'</span>':'')+'</li>'}).join('')+'</ol>'+
+    '<div class="ligne-btn" style="justify-content:flex-start">'+
+      (e===0?'<button class="btn" id="alb-prod">'+I.livre+'Album envoyé en production</button>':'')+
+      (e===1?'<button class="btn" id="alb-livre">'+I.check+'Album livré au client</button>':'')+
+      (e>0?'<button class="txtbtn" id="alb-retour">Revenir à l’étape précédente</button>':'')+
+    '</div></div>';
+}
+function lierSuiviAlbum(){
+  function maj(champs,msg){Object.keys(champs).forEach(function(k){ADM[k]=champs[k]});sauverAdm(true);var c=COLLS.filter(function(x){return x.id===CID})[0];if(c)Object.keys(champs).forEach(function(k){c.reglages[k]=champs[k]});rendreActivite();toast(msg)}
+  var a=$('alb-prod');if(a)a.onclick=function(){maj({albumProd:Date.now()},'Album noté en production.')};
+  var b=$('alb-livre');if(b)b.onclick=function(){maj({albumLivre:Date.now()},'Album noté comme livré au client.')};
+  var r=$('alb-retour');if(r)r.onclick=function(){maj(ADM.albumLivre?{albumLivre:null}:{albumProd:null},'Étape annulée.')};
 }
 function exporterCSV(){
   var l=selection();
