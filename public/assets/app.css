@@ -65,7 +65,7 @@ input:focus{outline:none;border-color:var(--sauge-fonce);box-shadow:0 0 0 3px va
 /* Couverture */
 .couverture{position:relative;min-height:min(78vh,720px);display:flex;align-items:flex-end;color:#FFFFFF;overflow:hidden}
 .couverture .ph{position:absolute;inset:0}
-.couverture::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(42,33,23,.25) 0%,rgba(42,33,23,0) 35%,rgba(42,33,23,.62) 100%)}
+.couverture::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(18,13,10,.84) 0%,rgba(18,13,10,.62) 28%,rgba(18,13,10,.22) 55%,rgba(18,13,10,0) 72%,rgba(18,13,10,0) 84%,rgba(18,13,10,.32) 100%)}
 .couverture .haut{position:absolute;z-index:2;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:18px 16px;gap:12px}
 .marque{display:flex;align-items:center;gap:10px;font-family:var(--f-titre);font-size:15px}
 .couverture .haut .marque{white-space:nowrap;flex:none}
