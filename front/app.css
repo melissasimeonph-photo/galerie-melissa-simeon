@@ -1189,3 +1189,22 @@ a.btn{text-decoration:none}
 .alb-dates{margin:14px 0 0;font-size:12px;color:var(--brun-doux)}
 @media (max-width:560px){.alb-etapes li b{font-size:12px}.alb-etapes li span{font-size:11px}.alb-outils .btn{flex:1 1 100%;justify-content:center}}
 @media (min-width:900px){.couverture h1{white-space:nowrap;width:max-content;max-width:none}.couverture h1 .br-m{display:none}.couverture h1.titre-long{white-space:normal;width:auto}}
+
+/* ---------- Couverture pleine page (mariages, couple, famille) ---------- */
+.signature-couv{display:none}
+.couverture.couv-pleine{min-height:100vh;min-height:100svh;align-items:center;justify-content:center;text-align:center}
+.couverture.couv-pleine::after{background:linear-gradient(180deg,rgba(18,13,10,.30) 0%,rgba(18,13,10,.40) 50%,rgba(18,13,10,.55) 100%)}
+.couverture.couv-pleine.couv-floue::after{background:rgba(42,33,23,.42)}
+.couv-pleine .haut{justify-content:flex-end}
+.couv-pleine .haut .marque,.couv-pleine .meta-couv{display:none}
+.couv-pleine .contenu{justify-items:center;gap:0;padding:0 20px;max-width:1400px;animation:couvApparait 1.2s cubic-bezier(.2,.8,.2,1) both}
+.couv-pleine h1{order:1;font-weight:200;font-size:clamp(46px,8vw,96px);line-height:1;letter-spacing:-.02em;text-shadow:0 2px 24px rgba(0,0,0,.25)}
+.couv-pleine h1 em{color:#FFFFFF;font-weight:200}
+.couv-pleine .date-evt{order:2;margin-top:26px;font-size:clamp(12px,1.2vw,15px);font-weight:400;letter-spacing:.24em;opacity:.95}
+.couv-pleine .contenu>div:last-child{order:3;margin-top:42px}
+.couverture.couv-pleine .btn{background:transparent;border:1px solid rgba(255,255,255,.9);color:#FFFFFF;border-radius:2px;min-height:48px;padding:0 30px;font-size:13px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;transition:background .25s,color .25s}
+.couverture.couv-pleine .btn:hover,.couverture.couv-pleine .btn:focus-visible{background:#FFFFFF;color:var(--brun)}
+.couv-pleine .signature-couv{display:block;position:absolute;z-index:2;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom,0px));margin:0;font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;opacity:.9}
+@keyframes couvApparait{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.couv-pleine .contenu{animation:none}}
+@media (max-width:600px){.couv-pleine h1{font-size:clamp(42px,13vw,64px)}.couv-pleine .date-evt{letter-spacing:.18em}.couv-pleine .signature-couv{font-size:10.5px;letter-spacing:.2em}}
