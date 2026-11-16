@@ -1208,3 +1208,15 @@ a.btn{text-decoration:none}
 @keyframes couvApparait{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.couv-pleine .contenu{animation:none}}
 @media (max-width:600px){.couv-pleine h1{font-size:clamp(42px,13vw,64px)}.couv-pleine .date-evt{letter-spacing:.18em}.couv-pleine .signature-couv{font-size:10.5px;letter-spacing:.2em;bottom:calc(72px + env(safe-area-inset-bottom,0px))}}
+
+/* ---------- Séance en sélection : écran anti-capture ---------- */
+.protege{position:fixed;inset:0;z-index:10000;background:#FFFFFF;color:var(--brun);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:14px}
+.protege[hidden]{display:none}
+.protege-rond{width:96px;height:96px;border-radius:50%;background:var(--sauge-fonce);color:#FFFFFF;display:grid;place-items:center;margin-bottom:12px}
+.protege-rond svg{width:46px;height:46px}
+.protege b{font-family:var(--f-titre);font-weight:400;font-size:clamp(24px,4vw,32px)}
+.protege p{max-width:420px;margin:0;color:var(--brun-doux);font-size:16px;line-height:1.5}
+body.photos-cachees .seance-sel img,body.photos-cachees .seance-sel .ph{visibility:hidden}
+@media print{.seance-sel img,.seance-sel .ph{display:none!important}.seance-sel::before{content:"Impression non autorisée pendant la sélection."}}
+.seance-sel img,.seance-sel{-webkit-touch-callout:none}
+.seance-sel img{-webkit-user-select:none;pointer-events:auto}

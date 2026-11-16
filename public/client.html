@@ -10,7 +10,7 @@
 <link rel="preload" href="/assets/polices/hanken-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/polices/bricolage-grotesque-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/polices.css">
-<link rel="stylesheet" href="/assets/app.css?v=0e2add2f">
+<link rel="stylesheet" href="/assets/app.css?v=f60c04fc">
 <script>window.MODE='client';window.COLL=/*__COLLECTION__*/null;</script>
 </head>
 <body>
@@ -139,8 +139,14 @@
 </div>
 <div class="voile" id="voile" hidden><div class="fenetre" id="fenetre" role="dialog" aria-modal="true"></div></div>
 <div class="toast" id="toast" role="status"></div>
+<!-- Séance en sélection : écran affiché quand une capture d'écran est tentée -->
+<div class="protege" id="protege" hidden aria-hidden="true">
+  <div class="protege-rond"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5a2 2 0 0 1 2-2h2l1.5-2h5l1.5 2h2a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.3"/><path d="M3 3l18 18"/></svg></div>
+  <b>Capture d’écran bloquée</b>
+  <p>Pour protéger vos photos, les captures d’écran ne sont pas autorisées pendant la sélection. Vous recevrez vos photos finales en haute définition, sans filigrane.</p>
+</div>
 
 
-<script src="/assets/app.js?v=0e2add2f"></script>
+<script src="/assets/app.js?v=f60c04fc"></script>
 </body>
 </html>

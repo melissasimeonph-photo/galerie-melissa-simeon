@@ -504,6 +504,32 @@ $('v-fav').onclick=function(){basculer('fav',etat.courante[etat.idx].id)};
 $('v-album').onclick=function(){basculer('album',etat.courante[etat.idx].id)};
 $('v-note').onclick=function(){fenetreNote(etat.courante[etat.idx].id)};
 document.addEventListener('contextmenu',function(e){if(MODE==='client'&&SELP()&&e.target.tagName==='IMG')e.preventDefault()});
+/* ---------- Séance en sélection : protection contre les captures d'écran ----------
+   Un site ne peut pas bloquer la capture au niveau du téléphone comme une application.
+   On masque donc les photos dès qu'une capture est probable : raccourcis clavier (Mac, Windows),
+   touche Impr. écran, page qui perd le focus (outil de capture ouvert), impression. */
+var protegeT;
+function protegeActif(){return MODE==='client'&&SELP()&&!$('galerie').hidden}
+function proteger(ms){if(!protegeActif())return;$('protege').hidden=false;document.body.classList.add('photos-cachees');clearTimeout(protegeT);if(ms)protegeT=setTimeout(deproteger,ms)}
+function deproteger(){clearTimeout(protegeT);$('protege').hidden=true;document.body.classList.remove('photos-cachees')}
+document.addEventListener('keydown',function(e){
+  if(!protegeActif())return;
+  var k=e.key||'';
+  // Mac : Cmd+Maj (+3, 4, 5, 6) · Windows : Win+Maj+S, Impr. écran · Ctrl/Cmd+P (impression) · Ctrl/Cmd+S (enregistrer)
+  if((e.metaKey&&e.shiftKey)||k==='PrintScreen'||k==='Snapshot'||((e.metaKey||e.ctrlKey)&&/^[ps]$/i.test(k))){
+    if(k!=='PrintScreen'&&k!=='Snapshot'&&/^[ps]$/i.test(k))e.preventDefault();
+    proteger(2500)}
+},true);
+document.addEventListener('keyup',function(e){
+  if(!protegeActif())return;
+  if(e.key==='PrintScreen'||e.key==='Snapshot'){proteger(2500);try{navigator.clipboard.writeText('Capture d’écran bloquée · Mélissa Siméon')}catch(_){}}
+},true);
+window.addEventListener('blur',function(){proteger()});
+window.addEventListener('focus',function(){setTimeout(deproteger,400)});
+document.addEventListener('visibilitychange',function(){if(document.hidden)proteger();else setTimeout(deproteger,400)});
+window.addEventListener('beforeprint',function(){proteger()});
+window.addEventListener('afterprint',function(){setTimeout(deproteger,400)});
+$('protege').addEventListener('click',deproteger);
 $('v-dl').onclick=function(e){e.stopPropagation();ouvrirMenu($('v-dl'),etat.courante[etat.idx])};
 
 /* ---------- Partage ---------- */
